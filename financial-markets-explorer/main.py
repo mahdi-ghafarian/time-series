@@ -99,7 +99,7 @@ with tab_smoothing: # second tab
 
 with tab_plot: # third tab
     # Plot parameters
-    height = st.number_input('Heigth',value=1000, min_value=0)  
+    height = st.number_input('Heigth',value=750, min_value=0)  
 
 # About the App
 st.sidebar.header('About')
