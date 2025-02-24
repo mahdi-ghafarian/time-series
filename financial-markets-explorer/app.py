@@ -250,7 +250,7 @@ top_fig.for_each_trace(lambda trace: trace.update(
 # Standard residual figure
 bot_fig = px.line(df, x=df.index, y=['std_residual'], 
               labels={'variable': 'Time Series'},
-              title = 'Residual Oscillator')
+              title = 'Residual Oscillator', showlegend=False)
 
 # Update the y-axis to have grid lines at each integer
 bot_fig.update_yaxes(dtick=1)
@@ -270,7 +270,7 @@ for trace in top_fig.data:
     main_fig.add_trace(trace, row=1, col=1)
 # Add the trace from the bot_fig to the subplot (main_fig)
 for trace in bot_fig.data:
-    main_fig.add_trace(trace, row=2, col=1,showlegend=False)
+    main_fig.add_trace(trace, row=2, col=1)
 
 # show the plot
 st.plotly_chart(main_fig)
