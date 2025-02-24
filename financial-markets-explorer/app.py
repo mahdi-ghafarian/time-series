@@ -131,6 +131,9 @@ else:
 # Convert data to DataFrame
 df = pd.DataFrame(data)
 
+# Change the format of the DatetimeIndex
+df.index = df.index.strftime('%Y-%m-%d')
+
 # Error handling
 if(len(df)==0):
     st.warning('Ticker does not exist.\
