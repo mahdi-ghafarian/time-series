@@ -301,10 +301,11 @@ st.plotly_chart(main_fig)
 st.divider()
 
 # Display Statistics
-st.subheader('Statistics')
-# Residuals
-st.write('Residuals Mean:',round(res_mean,2))
-st.write('Residuals Standard Deviation:',round(res_std,2))
+with st.expander('## Statistics'):
+    #st.subheader('Statistics')
+    # Residuals
+    st.write('Residuals Mean:',round(res_mean,2))
+    st.write('Residuals Standard Deviation:',round(res_std,2))
 
 # Display latest data
 st.subheader('Latest Data')
