@@ -37,10 +37,15 @@ with tab_data: # first tab
     # ticker symbol: find from Yahoo Finance
     ticker_symbol = st.text_input(label='Ticker',value='BTC-USD',
         key='ticker_symbol',
-        help = 'Use [Yahoo Finance](https://finance.yahoo.com) to find \
-            the ticker for crypto, index, stock or futures. \
-            Examples include SPY, BTC-USD, ETH-USD, GLD, ^DJI, ^IXIC \
-            , ^GSPC, GOOG, MSFT, NVDA, AAPL, AMZN, META, TSLA')
+        help = '''
+            Use [Yahoo Finance](https://finance.yahoo.com) to find the ticker.
+            Examples include:
+            - **Crypto**: SPY, BTC-USD, ETH-USD
+            - **ETF**: SPY, QQQ, GLD
+            - **Index**:  ^DJI, ^IXIC, ^GSPC
+            - **Stock**: GOOG, MSFT, NVDA, AAPL, AMZN, META, TSLA
+            '''
+        )
     
     # Timeframe
     tf_options = {'1d':'Daily', '1wk':'Weekly', '1mo':'Monthly'}
