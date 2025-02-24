@@ -249,8 +249,7 @@ with st.expander("View data"):
     st.write('Latest Data:',df[['avg','l_avg']].tail(10))
 
 # show the plot
-with st.container(): # to use full width
-    st.plotly_chart(fig1,use_container_width=True)
+st.plotly_chart(fig1)
 
 # ------------------------------------------------------------------------------ 
 # Plot Oscillator
