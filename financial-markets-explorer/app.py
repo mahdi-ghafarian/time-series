@@ -52,6 +52,9 @@ with tab_data: # first tab
             '''
         )
     
+    # horizontal line
+    st.divider()
+    
     # Timeframe
     tf_options = {'1d':'Daily', '1wk':'Weekly', '1mo':'Monthly'}
     interval = st.pills(label="Timeframe", options=tf_options, 
@@ -63,6 +66,9 @@ with tab_data: # first tab
     use_data_window = st.checkbox(label='Use data window',value=True,
         help='Select data range method: data window or dates')
     
+    # horizontal line
+    st.divider()
+
     # use a data window
     if(use_data_window):
         dw_options = ['3mo','6mo','1y','2y','5y'
