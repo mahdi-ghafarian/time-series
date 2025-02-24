@@ -199,9 +199,9 @@ main_fig = make_subplots(rows=2, cols=1, shared_xaxes=True,
 
 # Create chart title
 if(use_period == True):
-    title = f'{ticker_symbol} ({interval},{lt_period},{st_period})'
+    title = f'{ticker_symbol} Trends: ({interval},{lt_period},{st_period})'
 else:
-    title = f'{ticker_symbol} ({interval},{lt_bw:.2f},{st_bw:.2f})'
+    title = f'{ticker_symbol} Trends: ({interval},{lt_bw:.2f},{st_bw:.2f})'
     
 # Update the figure title
 main_fig.update_layout(
