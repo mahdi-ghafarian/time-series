@@ -212,38 +212,6 @@ for year in range(df.index.year.min()+1, df.index.year.max() + 1):
         line=dict(color='gray', width=0.5, dash='solid')
     )
 
-# Add the y-axis label 
-main_fig.update_layout(yaxis_title='Log Price')
-
-# Add hrizontal lines
-# y = 1
-main_fig.add_shape(
-    type='line',
-    x0=df.index.min(),
-    y0=1,
-    x1=df.index.max(),
-    y1=1,
-    line=dict(color='black', width=0.5, dash='dot'),
-)
-# y = -1
-main_fig.add_shape(
-    type='line',
-    x0=df.index.min(),
-    y0=-1,
-    x1=df.index.max(),
-    y1=-1,
-    line=dict(color='black', width=0.5, dash='dot'),
-)
-# y = 0
-main_fig.add_shape(
-    type='line',
-    x0=df.index.min(),
-    y0=0,
-    x1=df.index.max(),
-    y1=0,
-    line=dict(color='black', width=0.5, dash='solid'),
-)
-
 # ------------------------------------------------------------------------------ 
 # Top Figure
 # ------------------------------------------------------------------------------
