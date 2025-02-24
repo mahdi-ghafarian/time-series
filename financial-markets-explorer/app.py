@@ -228,15 +228,15 @@ for year in range(df.index.year.min()+1, df.index.year.max() + 1):
         line=dict(color='gray', width=0.5, dash='solid')
     )
 
+# Update the y-axis tick distance for top figure
+main_fig.update_yaxes(dtick=y_grid)
+
 # Update y-axis tick distance for bottom figure
 main_fig.update_yaxes(dtick=1, row=2, col=1)
 
 # Update y-axis label
 main_fig.update_yaxes(title_text='Log Price', row=1, col=1)
 main_fig.update_yaxes(title_text='Std. Residual', row=2, col=1)
-
-# Update the y-axis grid distance
-main_fig.update_yaxes(dtick=y_grid)
 
 # ------------------------------------------------------------------------------ 
 # Top Figure
