@@ -22,15 +22,6 @@ st.set_page_config(layout="wide", # centered
 # Title
 st.title('Financial Markets Explorer')
 
-# About the App
-with st.sidebar.expander("About this application"):
-    st.markdown('''
-                - Retrieves data for the selected ticker from Yahoo Finance.
-                - Applies LOWESS smoothing to the time series to identify the trend.
-                - Calculates and standardize residuals, which can be used as an oscillator.
-                - Plots the smoothed series and the oscillator
-                ''')
-
 # Get parameters from user
 st.sidebar.header('Parameters')
 
@@ -116,6 +107,14 @@ with tab_plot: # third tab
     y_grid = st.number_input('Y-axis grid',value=0.0,
         min_value=0.0, step=0.1, help = 'Enter `0` for automatic selection') 
 
+# About the App
+with st.sidebar.expander("About this application"):
+    st.markdown('''
+                - Retrieves data for the selected ticker from Yahoo Finance.
+                - Applies LOWESS smoothing to the time series to identify the trend.
+                - Calculates and standardize residuals, which can be used as an oscillator.
+                - Plots the smoothed series and the oscillator
+                ''')
 # ------------------------------------------------------------------------------ 
 # Get data
 # ------------------------------------------------------------------------------
