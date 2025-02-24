@@ -58,7 +58,7 @@ with tab_data: # first tab
         default='1wk', selection_mode="single")
     
     # horizontal line
-    st.divider()
+    # st.divider()
     
     # Data range: can be either a data window or from and to date
     # if from date is empty, first data point is used
