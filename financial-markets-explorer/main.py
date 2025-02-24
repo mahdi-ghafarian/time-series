@@ -310,7 +310,7 @@ bot_fig.for_each_trace(lambda trace: trace.update(
 for trace in top_fig.data:
     main_fig.add_trace(trace, row=1, col=1)
 # Add the trace from the bot_fig the subplot (main_fig)
-main_fig.add_trace(bot_fig, row=2, col=1)
+main_fig.add_trace(bot_fig.data, row=2, col=1)
 
 # show the plot
 st.plotly_chart(main_fig)
