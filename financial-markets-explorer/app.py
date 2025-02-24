@@ -12,6 +12,9 @@ from datetime import datetime, timedelta
 # UI
 # ------------------------------------------------------------------------------
 
+# Set page layout to wide
+st.set_page_config(layout="wide")
+
 #App Title is used as tab title and also as app name in community cloud
 st.set_page_config(page_title="Financial Markets Explorer")
 
@@ -29,9 +32,13 @@ st.header('Parameters')
 
 # Get parameters from user
 
+# Create two equal columns
+col1, col2 = st.columns(2)
+
 # create three tabs for parameters
-tab_data, tab_smoothing, \
-tab_plot = st.tabs(["Data", "Smoothing", "Plot"])
+with col1:
+    tab_data, tab_smoothing, tab_plot = \
+    st.tabs(["Data", "Smoothing", "Plot"])
 
 with tab_data: # first tab
     # ticker symbol: find from Yahoo Finance
