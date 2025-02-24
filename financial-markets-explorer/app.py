@@ -183,18 +183,21 @@ df['std_residual'] = (df['residual'] - res_mean)/res_std
 # Set the default template
 pio.templates.default = "seaborn"
 
+# Display section header
+st.header('Chart')
+
+# Create a figure with 2 rows and 1 column, sharing the x-axis
+main_fig = make_subplots(rows=2, cols=1, shared_xaxes=True, 
+                    row_heights=[0.75, 0.25], vertical_spacing=0.01)
+
 # Create chart title
 if(use_period == True):
     title = f'{ticker_symbol}: LOWESS Regression ({interval},{lt_period},{st_period})'
 else:
     title = f'{ticker_symbol}: LOWESS Regression ({interval},{lt_bw:.2f},{st_bw:.2f})'
-
-# Display the title for main figure
-st.header(title)
-
-# Create a figure with 2 rows and 1 column, sharing the x-axis
-main_fig = make_subplots(rows=2, cols=1, shared_xaxes=True, 
-                    row_heights=[0.75, 0.25], vertical_spacing=0.01)
+    
+# Update the figure title
+main_fig.update_layout(title=title)
 
 # Update the figure size 
 main_fig.update_layout(height=height)
