@@ -21,7 +21,7 @@ st.set_page_config(layout="wide", # centered
                     initial_sidebar_state="expanded")
 
 # Title
-# st.title('Financial Markets Explorer')
+st.title('Financial Markets Explorer')
 
 # Get parameters from user
 st.sidebar.header('Parameters')
