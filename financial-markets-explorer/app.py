@@ -153,20 +153,20 @@ if(len(df)==0):
 df['avg'] = (df['High']+df['Low']+df['Close']) / 3
 df['l_avg'] = np.log(df['avg'])
 
-# number of data points
+# Number of data points
 n_rows = len(df)
 
-#calculate badwidth from smoothing periods
-if(
-    (use_period == True) and
-    (lt_period < n_rows ) and
-    (st_period < n_rows )
-):
-    lt_bw = lt_period/n_rows
-    st_bw = st_period/n_rows
-elif (use_period == True): # lt_period > n_rows or  st_period > n_rows
-    st.warning('Not enough data. Increase data window.', icon="⚠️")
-    st.stop()  
+# Calculate badwidth from smoothing periods whe use_period is true
+if (use_period == True):
+    enough_data = (lt_period < n_rows ) and (st_period < n_rows )
+    # enough data exists
+    if(enough_data):
+        lt_bw = lt_period/n_rows
+        st_bw = st_period/n_rows
+    # lt_period > n_rows or  st_period > n_rows
+    else: 
+        st.warning('Not enough data. Increase data window.', icon="⚠️")
+        st.stop()  
 
 #LOESS
 lt_loess = sm.nonparametric.lowess(df['l_avg'], np.arange(len(df)),it=it, frac=lt_bw)
