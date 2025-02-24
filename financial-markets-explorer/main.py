@@ -266,7 +266,7 @@ with st.expander("View data"):
     st.write('Latest Data:',df[['avg','l_avg']].tail(10))
 
 # show the plot
-# st.plotly_chart(fig)
+st.plotly_chart(fig)
 
 
 # ------------------------------------------------------------------------------ 
