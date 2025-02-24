@@ -216,7 +216,8 @@ for year in range(df.index.year.min()+1, df.index.year.max() + 1):
 main_fig.update_yaxes(dtick=1, row=2, col=1)
 
 # Update y-axis label
-main_fig.update_yaxes(title_text='Log Price')
+main_fig.update_yaxes(title_text='Log Price', row=1, col=1)
+main_fig.update_yaxes(title_text='Std. Residual', row=2, col=1)
 
 # ------------------------------------------------------------------------------ 
 # Top Figure
@@ -269,7 +270,7 @@ for trace in top_fig.data:
     main_fig.add_trace(trace, row=1, col=1)
 # Add the trace from the bot_fig to the subplot (main_fig)
 for trace in bot_fig.data:
-    main_fig.add_trace(trace, row=2, col=1)
+    main_fig.add_trace(trace, row=2, col=1,showlegend=False)
 
 # show the plot
 st.plotly_chart(main_fig)
