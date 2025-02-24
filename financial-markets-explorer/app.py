@@ -51,6 +51,13 @@ with tab_data: # first tab
             - **Stock**: GOOG, MSFT, NVDA, AAPL, AMZN, META, TSLA
             '''
         )
+    # Timeframe
+    tf_options = {'1d':'Daily', '1wk':'Weekly', '1mo':'Monthly'}
+    interval = st.pills(label="Timeframe", options=tf_options, 
+        default='1wk', selection_mode="single",
+        help = 'Duration of time that each data point on the chart \
+            represents.')
+    
     # Data range: can be either a data window or from and to date
     # if from date is empty, first data point is used
     # if end date is empty, last data point is used
@@ -75,14 +82,6 @@ with tab_data: # first tab
             value = two_years_ago)
         end_date = st.date_input("End date",format='YYYY-MM-DD',
             value = today)
-    
-    # Timeframe
-    tf_options = {'1d':'Daily', '1wk':'Weekly', '1mo':'Monthly'}
-    interval = st.pills(label="Timeframe", options=tf_options, 
-        default='1wk', selection_mode="single",
-        help = 'Duration of time that each data point on the chart \
-            represents.')
-
 
 with tab_smoothing: # second tab
     # LOWESS parameters
