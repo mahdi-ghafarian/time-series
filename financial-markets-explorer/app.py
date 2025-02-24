@@ -160,11 +160,11 @@ n_rows = len(df)
 if(
     (use_period == True) and
     (lt_period < n_rows ) and
-    (lt_period < n_rows )
+    (st_period < n_rows )
 ):
     lt_bw = lt_period/n_rows
     st_bw = st_period/n_rows
-else:
+elif (use_period == True): # lt_period > n_rows or  st_period > n_rows
     st.warning('Not enough data. Increase data window.', icon="⚠️")
     st.stop()  
 
