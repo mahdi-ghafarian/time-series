@@ -184,7 +184,7 @@ df['std_residual'] = (df['residual'] - res_mean)/res_std
 pio.templates.default = "seaborn"
 
 # Display section header
-st.header('Chart')
+st.subheader('Chart')
 
 # Create a figure with 2 rows and 1 column, sharing the x-axis
 main_fig = make_subplots(rows=2, cols=1, shared_xaxes=True, 
