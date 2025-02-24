@@ -280,7 +280,7 @@ fig.add_trace(px.line(df, x=df.index, y=['std_residual'],
 
 # Change the y-axis label 
 #fig2.update_layout(yaxis_title='Standard Residual')
-'''
+
 # Update the figure size 
 if (width != 0):
     fig2.update_layout(width=width, height=height/2)
@@ -289,7 +289,7 @@ else:
     
 # Update the y-axis to have grid lines at each integer
 fig2.update_yaxes(dtick=1)
-'''
+
 # Add hrizontal lines
 # y = 1
 fig.add_shape(
