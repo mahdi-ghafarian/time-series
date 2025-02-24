@@ -68,7 +68,7 @@ with tab_data: # first tab
     
     # horizontal line
     st.divider()
-
+    
     # use a data window
     if(use_data_window):
         dw_options = ['3mo','6mo','1y','2y','5y'
