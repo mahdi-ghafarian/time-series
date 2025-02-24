@@ -66,13 +66,8 @@ with tab_data: # first tab
             default='2y', selection_mode="single",
             help = 
                 '''
-                Use [Yahoo Finance](https://finance.yahoo.com) to find the ticker.
-                Examples include:
-                - **Crypto**: SPY, BTC-USD, ETH-USD
-                Recommended data window for each timeframe:
-                - Daily:  3mo - 6mo
-                - Weekly: 2y
-                - Monthly: 10y
+                Recommended windows are:
+                daily: 3mo - 6mo, weekly:2y, and monthly: 10y
                 '''
         )
 
