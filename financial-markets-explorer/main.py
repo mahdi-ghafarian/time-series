@@ -272,7 +272,7 @@ with st.expander("View data"):
 # ------------------------------------------------------------------------------ 
 # Plot Oscillator
 # ------------------------------------------------------------------------------
-
+'''
 # Standard residual figure
 fig.add_trace(px.line(df, x=df.index, y=['std_residual'], 
               labels={'variable': 'Time Series'},
@@ -344,3 +344,5 @@ st.plotly_chart(fig)
 # Residuals statistics
 st.write('Residuals Mean:',round(res_mean,2))
 st.write('Residuals Standard Deviation:',round(res_std,2))
+
+'''
