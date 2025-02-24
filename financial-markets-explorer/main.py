@@ -21,7 +21,7 @@ st.set_page_config(layout="wide", # centered
                     initial_sidebar_state="expanded")
 
 # Title
-st.title('Financial Markets Explorer')
+# st.title('Financial Markets Explorer')
 
 # Get parameters from user
 st.sidebar.header('Parameters')
@@ -140,7 +140,6 @@ if(len(df)==0):
         Check [Yahoo Finance](https://finance.yahoo.com) to find the \
             correct format.', icon="⚠️")
     st.stop()
-
 
 # ------------------------------------------------------------------------------ 
 # Calculations
