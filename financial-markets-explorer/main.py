@@ -313,13 +313,16 @@ for trace in bot_fig.data:
 # show the plot
 st.plotly_chart(main_fig)
 
+# Display a divider
+st.divider()
+
+# Display Statistics
 st.subheader('Statistics')
-# Residuals statistics
+# Residuals
 st.write('Residuals Mean:',round(res_mean,2))
 st.write('Residuals Standard Deviation:',round(res_std,2))
 
 # Display latest data
 st.subheader('Latest Data')
-# Table
 st.write('Number of data points: ', df.shape[0])
-st.write('Latest Data:',df[['avg','l_avg']].tail(10))
+st.write(df[['avg','l_avg']].tail(10))
