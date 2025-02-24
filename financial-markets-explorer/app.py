@@ -250,7 +250,7 @@ top_fig.for_each_trace(lambda trace: trace.update(
 # Standard residual figure
 bot_fig = px.line(df, x=df.index, y=['std_residual'], 
               labels={'variable': 'Time Series'},
-              title = 'Residual Oscillator', showlegend=False)
+              title = 'Residual Oscillator')
 
 # Update the y-axis to have grid lines at each integer
 bot_fig.update_yaxes(dtick=1)
