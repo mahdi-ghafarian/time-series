@@ -210,11 +210,13 @@ else:
 colors = ['#00CC96','#EF553B','#636EFA']
 
 # Plot time series, short-term and long-term smoothed series
-fig.add_trace(px.line(df, x=df.index, y='l_avg', 
+top_fig = px.line(df, x=df.index, y=['l_avg','st_lowess','lt_lowess'], 
               title=title, labels={'variable': 'Time Series'},
-              color_discrete_sequence=colors), row=1, col=1)
+              color_discrete_sequence=colors)
 
-
+# Add the trace from the line plot to the subplot
+for trace in top_fig.data:
+    fig.add_trace(trace, row=1, col=1)
 
 # Change the y-axis label 
 fig.update_layout(yaxis_title='Log Price')
