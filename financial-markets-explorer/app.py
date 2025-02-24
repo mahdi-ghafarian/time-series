@@ -215,6 +215,9 @@ for year in range(df.index.year.min()+1, df.index.year.max() + 1):
 # Update y-axis tick distance for bottom figure
 main_fig.update_yaxes(dtick=1, row=2, col=1)
 
+# Update y-axis label
+main_fig.update_yaxes(title_text='Log Price')
+
 # ------------------------------------------------------------------------------ 
 # Top Figure
 # ------------------------------------------------------------------------------
