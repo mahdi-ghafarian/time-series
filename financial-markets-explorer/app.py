@@ -272,7 +272,7 @@ fig2.add_shape(
     y1=1,
     line=dict(color='black', width=0.5, dash='dot'),
 )
-# y= -1
+# y = -1
 fig2.add_shape(
     type='line',
     x0=df.index.min(),
@@ -301,7 +301,7 @@ for year in range(df.index.year.min()+1, df.index.year.max() + 1):
         y1=1,
         xref='x',
         yref='paper',
-        line=dict(color='black', width=0.5, dash='dot')
+        line=dict(color='gray', width=0.5, dash='solid')
 )
 
 # Update the legend labels for each line
