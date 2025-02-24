@@ -23,7 +23,7 @@ st.set_page_config(layout="wide", # centered
 st.title('Financial Markets Explorer')
 
 # About the App
-with st.expander("About this application"):
+with st.sidebar.expander("About this application"):
     st.markdown('''
                 - Retrieves data for the selected ticker from Yahoo Finance.
                 - Applies LOWESS smoothing to the time series to identify the trend.
@@ -123,7 +123,7 @@ with tab_plot: # third tab
 warnings.filterwarnings('ignore')
 
 # Create a divider
-st.divider()
+# st.divider()
 
 # Create a ticker object
 ticker = yf.Ticker(ticker_symbol)
