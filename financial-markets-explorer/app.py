@@ -261,6 +261,9 @@ bot_fig.for_each_trace(lambda trace: trace.update(
     )
 )
 
+# Hide the legend
+bot_fig.update_layout(showlegend=False)
+
 # ------------------------------------------------------------------------------ 
 # Display Output
 # ------------------------------------------------------------------------------
