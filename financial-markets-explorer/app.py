@@ -15,7 +15,9 @@ from datetime import datetime, timedelta
 # Set page layout to wide
 # Set title which is used as tab title and also as app name in 
 # community cloud
-st.set_page_config(layout="centered",page_title="Financial Markets Explorer")
+st.set_page_config(layout="centered",
+                   page_title="Financial Markets Explorer",
+                    initial_sidebar_state="expanded")
 
 # Title
 st.title('Financial Markets Explorer')
@@ -30,7 +32,7 @@ with st.expander("About this application"):
                 ''')
 
 # Get parameters from user
-st.header('Parameters')
+st.sidebar.header('Parameters')
 
 # create three tabs for parameters
 tab_data, tab_smoothing, tab_plot = \
