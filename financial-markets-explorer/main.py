@@ -202,6 +202,19 @@ main_fig = make_subplots(rows=2, cols=1, shared_xaxes=True,
 # Update the figure size 
 main_fig.update_layout(height=height)
 
+# Add vertical lines at the start of each year
+for year in range(df.index.year.min()+1, df.index.year.max() + 1):
+    main_fig.add_shape(
+        type='line',
+        x0=pd.Timestamp(f'{year}-01-01'),
+        y0=0,
+        x1=pd.Timestamp(f'{year}-01-01'),
+        y1=1,
+        xref='x',
+        yref='paper',
+        line=dict(color='gray', width=0.5, dash='solid')
+    )
+
 # ------------------------------------------------------------------------------ 
 # Top Figure
 # ------------------------------------------------------------------------------
@@ -234,19 +247,6 @@ top_fig.for_each_trace(lambda trace: trace.update(
     replace('st_lowess', 'Short-term Trend')
     )
 )
-
-# Add vertical lines at the start of each year
-for year in range(df.index.year.min()+1, df.index.year.max() + 1):
-    top_fig.add_shape(
-        type='line',
-        x0=pd.Timestamp(f'{year}-01-01'),
-        y0=0,
-        x1=pd.Timestamp(f'{year}-01-01'),
-        y1=1,
-        xref='x',
-        yref='paper',
-        line=dict(color='gray', width=0.5, dash='solid')
-    )
 
 # ------------------------------------------------------------------------------ 
 # Bottom Figure
@@ -299,6 +299,10 @@ bot_fig.for_each_trace(lambda trace: trace.update(
     )
 )
 
+# ------------------------------------------------------------------------------ 
+# Display Output
+# ------------------------------------------------------------------------------
+
 # Add the trace from the top_fig the subplot (main_fig)
 for trace in top_fig.data:
     main_fig.add_trace(trace, row=1, col=1)
@@ -309,12 +313,13 @@ for trace in bot_fig.data:
 # show the plot
 st.plotly_chart(main_fig)
 
+st.subheader('Statistics')
 # Residuals statistics
 st.write('Residuals Mean:',round(res_mean,2))
 st.write('Residuals Standard Deviation:',round(res_std,2))
 
 # Display latest data
-with st.expander("View data"):
-    # Table
-    st.write('Number of data points: ', df.shape[0])
-    st.write('Latest Data:',df[['avg','l_avg']].tail(10))
+st.subheader('Latest Data')
+# Table
+st.write('Number of data points: ', df.shape[0])
+st.write('Latest Data:',df[['avg','l_avg']].tail(10))
