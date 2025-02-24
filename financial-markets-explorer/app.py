@@ -63,11 +63,7 @@ with tab_data: # first tab
         dw_options = ['3mo','6mo','1y','2y','5y'
             ,'10y','ytd','max'] # '1d','5d', '1mo' are also available in YF
         data_window = st.pills(label="Data window", options=dw_options, 
-            default='2y', selection_mode="single",
-            help = 'Recommended windows are - daily: 3mo - 6mo, \
-            weekly:2y, and monthly: 10y'
-        )
-
+            default='2y', selection_mode="single")
     # use start date and end date
     else:
         # Get today's date
