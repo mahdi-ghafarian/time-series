@@ -17,26 +17,30 @@ from datetime import datetime, timedelta
 # community cloud
 st.set_page_config(layout="wide",page_title="Financial Markets Explorer")
 
-# Introduction
+# Create two equal columns
+# we may use col1, col2 or none (full width)
+col1, col2 = st.columns(2)
+
+# Title
 st.title('Financial Markets Explorer')
-with st.expander("About this application"):
-    st.markdown('''
-                - Retrieves data for the selected ticker from Yahoo Finance.
-                - Applies LOWESS smoothing to the time series to identify the trend.
-                - Calculates and standardize residuals, which can be used as an oscillator.
-                - Plots the smoothed series and the oscillator
-                ''')
+
+# About the App
+with col1: # half the page width
+    with st.expander("About this application"):
+        st.markdown('''
+                    - Retrieves data for the selected ticker from Yahoo Finance.
+                    - Applies LOWESS smoothing to the time series to identify the trend.
+                    - Calculates and standardize residuals, which can be used as an oscillator.
+                    - Plots the smoothed series and the oscillator
+                    ''')
 
 # Parameters
 st.header('Parameters')
 
 # Get parameters from user
 
-# Create two equal columns
-col1, col2 = st.columns(2)
-
 # create three tabs for parameters
-with col1:
+with col1:  # half the page width
     tab_data, tab_smoothing, tab_plot = \
     st.tabs(["Data", "Smoothing", "Plot"])
 
