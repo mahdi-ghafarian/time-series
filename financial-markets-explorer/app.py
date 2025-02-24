@@ -100,7 +100,13 @@ with tab_smoothing: # second tab
 
 with tab_plot: # third tab
     # Plot parameters
-    height = st.number_input('Heigth',value=750, min_value=0)  
+    # Chart height
+    height = st.number_input('Heigth',value=750, min_value=0)
+    
+    # y-axis ticks distance for top plot
+    # 0: program selects the y_grid
+    y_grid = st.number_input('Y-axis grid',value=0.0,
+        min_value=0.0, step=0.1, help = 'Enter `0` for automatic selection')   
 
 # About the App
 st.sidebar.header('About')
@@ -228,6 +234,9 @@ main_fig.update_yaxes(dtick=1, row=2, col=1)
 # Update y-axis label
 main_fig.update_yaxes(title_text='Log Price', row=1, col=1)
 main_fig.update_yaxes(title_text='Std. Residual', row=2, col=1)
+
+# Update the y-axis grid distance
+main_fig.update_yaxes(dtick=y_grid)
 
 # ------------------------------------------------------------------------------ 
 # Top Figure
