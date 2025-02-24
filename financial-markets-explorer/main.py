@@ -210,7 +210,7 @@ else:
 colors = ['#00CC96','#EF553B','#636EFA']
 
 # Plot time series, short-term and long-term smoothed series
-fig.add_trace(px.line(df, x=df.index, y=['l_avg','st_lowess','lt_lowess'], 
+fig.add_trace(px.line(df, x=df.index, y='l_avg', 
               title=title, labels={'variable': 'Time Series'},
               color_discrete_sequence=colors), row=1, col=1)
 
