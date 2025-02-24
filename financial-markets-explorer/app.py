@@ -261,9 +261,6 @@ bot_fig.for_each_trace(lambda trace: trace.update(
     )
 )
 
-# Hide the legend
-bot_fig.update_layout(showlegend=False)
-
 # ------------------------------------------------------------------------------ 
 # Display Output
 # ------------------------------------------------------------------------------
@@ -274,6 +271,9 @@ for trace in top_fig.data:
 # Add the trace from the bot_fig to the subplot (main_fig)
 for trace in bot_fig.data:
     main_fig.add_trace(trace, row=2, col=1)
+    
+# Hide the legend for the first subplot
+main_fig.update_traces(showlegend=False, row=1, col=1)
 
 # show the plot
 st.plotly_chart(main_fig)
