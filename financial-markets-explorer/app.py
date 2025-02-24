@@ -197,7 +197,13 @@ else:
     title = f'{ticker_symbol}: LOWESS Regression ({interval},{lt_bw:.2f},{st_bw:.2f})'
     
 # Update the figure title
-main_fig.update_layout(title=title)
+main_fig.update_layout(
+    title={
+        'text': title,
+        'x': 0.5,
+        'xanchor': 'center'
+    }
+)
 
 # Update the figure size 
 main_fig.update_layout(height=height)
