@@ -34,7 +34,7 @@ st.header('Parameters')
 
 # create three tabs for parameters
 tab_data, tab_smoothing, tab_plot = \
-st.tabs(["Data", "Smoothing", "Plot"])
+st.sidebar.tabs(["Data", "Smoothing", "Plot"])
 
 with tab_data: # first tab
     # ticker symbol: find from Yahoo Finance
