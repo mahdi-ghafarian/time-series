@@ -106,7 +106,7 @@ with tab_plot: # third tab
     height = st.number_input('Heigth',value=750,
         min_value=0)  
     # 0: program selects the y_grid
-    y_grid = st.number_input('Y-axis grid',value=0,
+    y_grid = st.number_input('Y-axis grid',value=0.0,
         min_value=0, help = 'Enter `0` for automatic selection') 
 
 # ------------------------------------------------------------------------------ 
