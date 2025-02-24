@@ -302,7 +302,7 @@ for year in range(df.index.year.min()+1, df.index.year.max() + 1):
         xref='x',
         yref='paper',
         line=dict(color='black', width=0.5, opacity = 0.5, dash='solid')
-)
+    )
 
 # Update the legend labels for each line
 fig2.for_each_trace(lambda trace: trace.update( 
