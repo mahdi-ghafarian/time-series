@@ -300,18 +300,21 @@ st.plotly_chart(main_fig)
 # Display a divider
 st.divider()
 
+# New section
+st.subheader('Data')
+
 # Display Statistics
-with st.expander('## Statistics'):
-    #st.subheader('Statistics')
+with st.expander('Statistics'):
     # Residuals
     st.write('Residuals Mean:',round(res_mean,2))
     st.write('Residuals Standard Deviation:',round(res_std,2))
 
 # Display latest data
-st.subheader('Latest Data')
+#st.subheader('Latest Data')
 # Create Dataframe to display latest data
-latest = df[['avg','l_avg']].tail(10)
-latest.index = latest.index.strftime('%Y-%m-%d')
-# Display number of data points and latest data
-st.write('Number of data points: ', df.shape[0])
-st.write(latest)
+with st.expander('Latest Data'):
+    latest = df[['avg','l_avg']].tail(10)
+    latest.index = latest.index.strftime('%Y-%m-%d')
+    # Display number of data points and latest data
+    st.write('Number of data points: ', df.shape[0])
+    st.write(latest)
