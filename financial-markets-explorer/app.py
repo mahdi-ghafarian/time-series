@@ -15,34 +15,26 @@ from datetime import datetime, timedelta
 # Set page layout to wide
 # Set title which is used as tab title and also as app name in 
 # community cloud
-st.set_page_config(layout="wide",page_title="Financial Markets Explorer")
-
-# Create two equal columns
-# we may use col1, col2 or none (full width)
-col1, col2 = st.columns(2)
+st.set_page_config(layout="centered",page_title="Financial Markets Explorer")
 
 # Title
 st.title('Financial Markets Explorer')
 
 # About the App
-with col1: # half the page width
-    with st.expander("About this application"):
-        st.markdown('''
-                    - Retrieves data for the selected ticker from Yahoo Finance.
-                    - Applies LOWESS smoothing to the time series to identify the trend.
-                    - Calculates and standardize residuals, which can be used as an oscillator.
-                    - Plots the smoothed series and the oscillator
-                    ''')
-
-# Parameters
-st.header('Parameters')
+with st.expander("About this application"):
+    st.markdown('''
+                - Retrieves data for the selected ticker from Yahoo Finance.
+                - Applies LOWESS smoothing to the time series to identify the trend.
+                - Calculates and standardize residuals, which can be used as an oscillator.
+                - Plots the smoothed series and the oscillator
+                ''')
 
 # Get parameters from user
+st.header('Parameters')
 
 # create three tabs for parameters
-with col1:  # half the page width
-    tab_data, tab_smoothing, tab_plot = \
-    st.tabs(["Data", "Smoothing", "Plot"])
+tab_data, tab_smoothing, tab_plot = \
+st.tabs(["Data", "Smoothing", "Plot"])
 
 with tab_data: # first tab
     # ticker symbol: find from Yahoo Finance
