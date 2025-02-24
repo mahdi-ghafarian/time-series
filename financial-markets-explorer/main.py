@@ -100,9 +100,6 @@ with tab_smoothing: # second tab
 with tab_plot: # third tab
     # Plot parameters
     height = st.number_input('Heigth',value=1000, min_value=0)  
-    # 0: program selects the y_grid
-    y_grid = st.number_input('Y-axis grid',value=0.0,
-        min_value=0.0, step=0.1, help = 'Enter `0` for automatic selection') 
 
 # About the App
 st.sidebar.header('About')
@@ -215,6 +212,38 @@ for year in range(df.index.year.min()+1, df.index.year.max() + 1):
         line=dict(color='gray', width=0.5, dash='solid')
     )
 
+# Add the y-axis label 
+main_fig.update_layout(yaxis_title='Log Price')
+
+# Add hrizontal lines
+# y = 1
+main_fig.add_shape(
+    type='line',
+    x0=df.index.min(),
+    y0=1,
+    x1=df.index.max(),
+    y1=1,
+    line=dict(color='black', width=0.5, dash='dot'),
+)
+# y = -1
+main_fig.add_shape(
+    type='line',
+    x0=df.index.min(),
+    y0=-1,
+    x1=df.index.max(),
+    y1=-1,
+    line=dict(color='black', width=0.5, dash='dot'),
+)
+# y = 0
+main_fig.add_shape(
+    type='line',
+    x0=df.index.min(),
+    y0=0,
+    x1=df.index.max(),
+    y1=0,
+    line=dict(color='black', width=0.5, dash='solid'),
+)
+
 # ------------------------------------------------------------------------------ 
 # Top Figure
 # ------------------------------------------------------------------------------
@@ -225,15 +254,6 @@ colors = ['#00CC96','#EF553B','#636EFA']
 top_fig = px.line(df, x=df.index, y=['l_avg','st_lowess','lt_lowess'], 
               title=title, labels={'variable': 'Time Series'},
               color_discrete_sequence=colors)
-
-# Change the y-axis label 
-top_fig.update_layout(yaxis_title='Log Price')
-    
-# Update the y-axis to have grid lines at each integer
-top_fig.update_yaxes(dtick=y_grid)
-
-# Center the title
-# fig1.update_layout(title_x=0.5)
 
 # Update the visibility of one of the traces to be 'legendonly'
 for trace in top_fig.data:
@@ -257,41 +277,8 @@ bot_fig = px.line(df, x=df.index, y=['std_residual'],
               labels={'variable': 'Time Series'},
               title = 'Residual Oscillator')
 
-# Change the y-axis label 
-#fig2.update_layout(yaxis_title='Standard Residual')
-
-
 # Update the y-axis to have grid lines at each integer
 bot_fig.update_yaxes(dtick=1)
-
-# Add hrizontal lines
-# y = 1
-bot_fig.add_shape(
-    type='line',
-    x0=df.index.min(),
-    y0=1,
-    x1=df.index.max(),
-    y1=1,
-    line=dict(color='black', width=0.5, dash='dot'),
-)
-# y = -1
-bot_fig.add_shape(
-    type='line',
-    x0=df.index.min(),
-    y0=-1,
-    x1=df.index.max(),
-    y1=-1,
-    line=dict(color='black', width=0.5, dash='dot'),
-)
-# y = 0
-bot_fig.add_shape(
-    type='line',
-    x0=df.index.min(),
-    y0=0,
-    x1=df.index.max(),
-    y1=0,
-    line=dict(color='black', width=0.5, dash='solid'),
-)
 
 # Update the legend labels for each line
 bot_fig.for_each_trace(lambda trace: trace.update( 
