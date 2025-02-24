@@ -64,11 +64,8 @@ with tab_data: # first tab
             ,'10y','ytd','max'] # '1d','5d', '1mo' are also available in YF
         data_window = st.pills(label="Data window", options=dw_options, 
             default='2y', selection_mode="single",
-            help = 
-                '''
-                Recommended windows are:
-                daily: 3mo - 6mo, weekly:2y, and monthly: 10y
-                '''
+            help = 'Recommended windows are - daily: 3mo - 6mo, \
+            weekly:2y, and monthly: 10y'
         )
 
     # use start date and end date
