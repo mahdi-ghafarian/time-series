@@ -197,7 +197,7 @@ pio.templates.default = "seaborn"
 
 
 # Create a figure with 2 rows and 1 column, sharing the x-axis
-fig = make_subplots(rows=2, cols=1, shared_xaxes=True, 
+main_fig = make_subplots(rows=2, cols=1, shared_xaxes=True, 
                     row_heights=[0.75, 0.25], vertical_spacing=0.01)
 
 # Create chart title
@@ -214,32 +214,28 @@ top_fig = px.line(df, x=df.index, y=['l_avg','st_lowess','lt_lowess'],
               title=title, labels={'variable': 'Time Series'},
               color_discrete_sequence=colors)
 
-# Add the trace from the line plot to the subplot
-for trace in top_fig.data:
-    fig.add_trace(trace, row=1, col=1)
-
 # Change the y-axis label 
-fig.update_layout(yaxis_title='Log Price')
+top_fig.update_layout(yaxis_title='Log Price')
 
 # Update the figure size 
 if (width != 0):
-    fig.update_layout(width=width, height=height)
+    top_fig.update_layout(width=width, height=height)
 else:
-    fig.update_layout(height=height)
+    top_fig.update_layout(height=height)
     
 # Update the y-axis to have grid lines at each integer
-fig.update_yaxes(dtick=y_grid)
+top_fig.update_yaxes(dtick=y_grid)
 
 # Center the title
 # fig1.update_layout(title_x=0.5)
 
 # Update the visibility of one of the traces to be 'legendonly'
-for trace in fig.data:
+for trace in top_fig.data:
     if trace.name == 'st_lowess':
         trace.visible = 'legendonly'  # Hide l_avg by default
         
 # Update the legend labels for each line
-fig.for_each_trace(lambda trace: trace.update( 
+top_fig.for_each_trace(lambda trace: trace.update( 
     name=trace.name.replace('l_avg', 'Log Price').
     replace('lt_lowess', 'Long-term Trend').
     replace('st_lowess', 'Short-term Trend')
@@ -248,7 +244,7 @@ fig.for_each_trace(lambda trace: trace.update(
 
 # Add vertical lines at the start of each year
 for year in range(df.index.year.min()+1, df.index.year.max() + 1):
-    fig.add_shape(
+    top_fig.add_shape(
         type='line',
         x0=pd.Timestamp(f'{year}-01-01'),
         y0=0,
@@ -259,40 +255,25 @@ for year in range(df.index.year.min()+1, df.index.year.max() + 1):
         line=dict(color='gray', width=0.5, dash='solid')
     )
 
-with st.expander("View data"):
-    # Display latest data
-    # Table
-    st.write('Number of data points: ', df.shape[0])
-    st.write('Latest Data:',df[['avg','l_avg']].tail(10))
-
-# show the plot
-st.plotly_chart(fig)
-
-
 # ------------------------------------------------------------------------------ 
 # Plot Oscillator
 # ------------------------------------------------------------------------------
-'''
+
 # Standard residual figure
-fig.add_trace(px.line(df, x=df.index, y=['std_residual'], 
+bot_fig = px.line(df, x=df.index, y=['std_residual'], 
               labels={'variable': 'Time Series'},
-              title = 'Residual Oscillator'), row=2, col=1)
+              title = 'Residual Oscillator')
 
 # Change the y-axis label 
 #fig2.update_layout(yaxis_title='Standard Residual')
 
-# Update the figure size 
-if (width != 0):
-    fig2.update_layout(width=width, height=height/2)
-else:
-    fig2.update_layout(height=height/2)
-    
+
 # Update the y-axis to have grid lines at each integer
-fig2.update_yaxes(dtick=1)
+bot_fig.update_yaxes(dtick=1)
 
 # Add hrizontal lines
 # y = 1
-fig.add_shape(
+bot_fig.add_shape(
     type='line',
     x0=df.index.min(),
     y0=1,
@@ -301,7 +282,7 @@ fig.add_shape(
     line=dict(color='black', width=0.5, dash='dot'),
 )
 # y = -1
-fig.add_shape(
+bot_fig.add_shape(
     type='line',
     x0=df.index.min(),
     y0=-1,
@@ -310,7 +291,7 @@ fig.add_shape(
     line=dict(color='black', width=0.5, dash='dot'),
 )
 # y = 0
-fig.add_shape(
+bot_fig.add_shape(
     type='line',
     x0=df.index.min(),
     y0=0,
@@ -319,30 +300,27 @@ fig.add_shape(
     line=dict(color='black', width=0.5, dash='solid'),
 )
 
-# Add vertical lines at the start of each year
-for year in range(df.index.year.min()+1, df.index.year.max() + 1):
-    fig.add_shape(
-        type='line',
-        x0=pd.Timestamp(f'{year}-01-01'),
-        y0=0,
-        x1=pd.Timestamp(f'{year}-01-01'),
-        y1=1,
-        xref='x',
-        yref='paper',
-        line=dict(color='gray', width=0.5, dash='solid')
-    )
-
 # Update the legend labels for each line
-fig.for_each_trace(lambda trace: trace.update( 
+bot_fig.for_each_trace(lambda trace: trace.update( 
     name=trace.name.replace('std_residual', 'Std. Residual')
     )
 )
 
-# Plot standard residual
-st.plotly_chart(fig)
+# Add the trace from the top_fig the subplot (main_fig)
+for trace in top_fig.data:
+    main_fig.add_trace(trace, row=1, col=1)
+# Add the trace from the bot_fig the subplot (main_fig)
+main_fig.add_trace(bot_fig, row=2, col=1)
+
+# show the plot
+st.plotly_chart(main_fig)
 
 # Residuals statistics
 st.write('Residuals Mean:',round(res_mean,2))
 st.write('Residuals Standard Deviation:',round(res_std,2))
 
-'''
+# Display latest data
+with st.expander("View data"):
+    # Table
+    st.write('Number of data points: ', df.shape[0])
+    st.write('Latest Data:',df[['avg','l_avg']].tail(10))
