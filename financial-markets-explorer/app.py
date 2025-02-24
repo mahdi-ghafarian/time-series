@@ -134,7 +134,7 @@ df = pd.DataFrame(data)
 if(len(df)==0):
     st.warning('Ticker does not exist.\
         Check [Yahoo Finance](https://finance.yahoo.com) to find the \
-            correct format', icon="⚠️")
+            correct format.', icon="⚠️")
     st.stop()
 
 
@@ -158,7 +158,7 @@ if(
     lt_bw = lt_period/n_rows
     st_bw = st_period/n_rows
 else:
-    st.warning('Not enough data. Increase data window', icon="⚠️")
+    st.warning('Not enough data. Increase data window.', icon="⚠️")
     st.stop()  
 
 #LOESS
