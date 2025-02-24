@@ -310,9 +310,8 @@ with st.expander('Statistics'):
     st.write('Residuals Standard Deviation:',round(res_std,2))
 
 # Display latest data
-#st.subheader('Latest Data')
-# Create Dataframe to display latest data
 with st.expander('Latest Data'):
+    # Create Dataframe to display latest data
     latest = df[['avg','l_avg']].tail(10)
     latest.index = latest.index.strftime('%Y-%m-%d')
     # Display number of data points and latest data
