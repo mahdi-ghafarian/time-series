@@ -15,7 +15,7 @@ from datetime import datetime, timedelta
 # Set page layout to wide
 # Set title which is used as tab title and also as app name in 
 # community cloud
-st.set_page_config(layout="centered",
+st.set_page_config(layout="wide", # centered
                    page_title="Financial Markets Explorer",
                     initial_sidebar_state="expanded")
 
