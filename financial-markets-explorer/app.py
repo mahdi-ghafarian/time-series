@@ -52,22 +52,19 @@ with tab_data: # first tab
             '''
         )
     
-    # horizontal line
-    st.divider()
-    
     # Timeframe
     tf_options = {'1d':'Daily', '1wk':'Weekly', '1mo':'Monthly'}
     interval = st.pills(label="Timeframe", options=tf_options, 
         default='1wk', selection_mode="single")
+    
+    # horizontal line
+    st.divider()
     
     # Data range: can be either a data window or from and to date
     # if from date is empty, first data point is used
     # if end date is empty, last data point is used
     use_data_window = st.checkbox(label='Use data window',value=True,
         help='Select data range method: data window or dates')
-    
-    # horizontal line
-    st.divider()
     
     # use a data window
     if(use_data_window):
