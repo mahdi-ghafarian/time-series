@@ -99,11 +99,7 @@ with tab_smoothing: # second tab
 
 with tab_plot: # third tab
     # Plot parameters
-    # 0: use available width
-    width = st.number_input('Width',value=1100,
-        min_value=0, help = 'Enter `0` to use available width')
-    height = st.number_input('Heigth',value=750,
-        min_value=0)  
+    height = st.number_input('Heigth',value=1000, min_value=0)  
     # 0: program selects the y_grid
     y_grid = st.number_input('Y-axis grid',value=0.0,
         min_value=0.0, step=0.1, help = 'Enter `0` for automatic selection') 
@@ -186,19 +182,10 @@ res_std = df['residual'].std()
 df['std_residual'] = (df['residual'] - res_mean)/res_std
 
 # ------------------------------------------------------------------------------ 
-# Plot Time Series
+# Main Figure
 # ------------------------------------------------------------------------------
-st.header('Charts')
-
-# Plot time series
-
 # Set the default template
 pio.templates.default = "seaborn"
-
-
-# Create a figure with 2 rows and 1 column, sharing the x-axis
-main_fig = make_subplots(rows=2, cols=1, shared_xaxes=True, 
-                    row_heights=[0.75, 0.25], vertical_spacing=0.01)
 
 # Create chart title
 if(use_period == True):
@@ -206,6 +193,16 @@ if(use_period == True):
 else:
     title = f'{ticker_symbol}: LOWESS Regression ({interval},{lt_bw:.2f},{st_bw:.2f})'
 
+# Create a figure with 2 rows and 1 column, sharing the x-axis
+main_fig = make_subplots(rows=2, cols=1, shared_xaxes=True, 
+                    row_heights=[0.75, 0.25], vertical_spacing=0.01, title = title)
+
+# Update the figure size 
+main_fig.update_layout(height=height)
+
+# ------------------------------------------------------------------------------ 
+# Top Figure
+# ------------------------------------------------------------------------------
 # colors of lines
 colors = ['#00CC96','#EF553B','#636EFA']
 
@@ -216,12 +213,6 @@ top_fig = px.line(df, x=df.index, y=['l_avg','st_lowess','lt_lowess'],
 
 # Change the y-axis label 
 top_fig.update_layout(yaxis_title='Log Price')
-
-# Update the figure size 
-if (width != 0):
-    top_fig.update_layout(width=width, height=height)
-else:
-    top_fig.update_layout(height=height)
     
 # Update the y-axis to have grid lines at each integer
 top_fig.update_yaxes(dtick=y_grid)
@@ -256,7 +247,7 @@ for year in range(df.index.year.min()+1, df.index.year.max() + 1):
     )
 
 # ------------------------------------------------------------------------------ 
-# Plot Oscillator
+# Bottom Figure
 # ------------------------------------------------------------------------------
 
 # Standard residual figure
