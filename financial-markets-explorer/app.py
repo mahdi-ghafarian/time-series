@@ -108,6 +108,7 @@ with tab_plot: # third tab
         min_value=0.0, step=0.1, help = 'Enter `0` for automatic selection') 
 
 # About the App
+st.sidebar.header('About')
 with st.sidebar.expander(label='About this application...'):
     st.markdown('''
                 - Retrieves data for the selected ticker from Yahoo Finance.
