@@ -51,6 +51,11 @@ with tab_data: # first tab
             - **Stock**: GOOG, MSFT, NVDA, AAPL, AMZN, META, TSLA
             '''
         )
+    # Data range: can be either a data window or from and to date
+    # if from date is empty, first data point is used
+    # if end date is empty, last data point is used
+    use_data_window = st.checkbox(label='Use data window',value=True,
+        help='Select data range method: data window or dates')
     
     # Timeframe
     tf_options = {'1d':'Daily', '1wk':'Weekly', '1mo':'Monthly'}
@@ -59,12 +64,6 @@ with tab_data: # first tab
     
     # horizontal line
     # st.divider()
-    
-    # Data range: can be either a data window or from and to date
-    # if from date is empty, first data point is used
-    # if end date is empty, last data point is used
-    use_data_window = st.checkbox(label='Use data window',value=True,
-        help='Select data range method: data window or dates')
     
     # use a data window
     if(use_data_window):
