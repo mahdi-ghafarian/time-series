@@ -13,11 +13,11 @@ from datetime import datetime, timedelta
 # ------------------------------------------------------------------------------
 
 # Set page layout to wide
-st.set_page_config(layout="wide")
+# Set title which is used as tab title and also as app name in 
+# community cloud
+st.set_page_config(layout="wide",page_title="Financial Markets Explorer")
 
-#App Title is used as tab title and also as app name in community cloud
-st.set_page_config(page_title="Financial Markets Explorer")
-
+# Introduction
 st.title('Financial Markets Explorer')
 with st.expander("About this application"):
     st.markdown('''
@@ -27,7 +27,7 @@ with st.expander("About this application"):
                 - Plots the smoothed series and the oscillator
                 ''')
 
-
+# Parameters
 st.header('Parameters')
 
 # Get parameters from user
