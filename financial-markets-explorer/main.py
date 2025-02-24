@@ -12,6 +12,9 @@ from datetime import datetime, timedelta
 # UI
 # ------------------------------------------------------------------------------
 
+#App Title is used as tab title and also as app name in community cloud
+st.set_page_config(page_title="Financial Markets Explorer")
+
 st.title('Financial Markets Explorer')
 with st.expander("About this application"):
     st.markdown('''
