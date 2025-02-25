@@ -316,16 +316,9 @@ with st.expander('Latest Data'):
     # Display number of data points and latest data
     st.write('Number of data points: ', df.shape[0])
     #Display format
-    st.data_editor(
-    df2,
     column_config={
-        'Change (%)': st.column_config.NumberColumn(
-            min_value=0,
-            max_value=1000,
-            step=1,
-            format='%.1f'
-        )
-    })
+    'Change (%)': st.column_config.NumberColumn(format='%.1f')
+    }
     # Display latest data
     st.dataframe(df2.tail(10))
     
