@@ -75,6 +75,14 @@ with tab_data: # first tab
             value = two_years_ago)
         end_date = st.date_input("End date",format='YYYY-MM-DD',
             value = today)
+    
+    # Set default values of data window based on Timeframe
+    if(interval == '1d'):
+        data_window = '3m'
+    elif (interval == '1w'):
+        data_window = '2y'
+    elif (interval == '1mo'):
+        data_window = '10y'       
 
 with tab_smoothing: # second tab
     # LOWESS parameters
