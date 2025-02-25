@@ -27,6 +27,16 @@ st.set_page_config(layout="wide", # centered
 # Get parameters from user
 st.sidebar.header('Parameters')
 
+# Set the default data_window based on interval value
+# by using session state, this is a callback function
+def set_data_window():
+    if(st.session_state.interval == '1d'):
+        st.session_state.data_window = '3m'
+    elif (st.session_state.interval == '1w'):
+        st.session_state.data_window = '2y'
+    elif (st.session_state.interval == '1mo'):
+        st.session_state.data_window = '10y'
+
 # create three tabs for parameters
 tab_data, tab_smoothing, tab_plot = \
 st.sidebar.tabs(["Data", "Smoothing", "Plot"])
@@ -49,7 +59,7 @@ with tab_data: # first tab
     interval = st.pills(label="Timeframe", options=tf_options, 
         default='1wk', selection_mode="single", key='interval',
         help = 'Duration of time that each data point on the chart \
-            represents.')
+            represents.', on_change = set_data_window)
     
     # Data range: can be either a data window or from and to date
     # if from date is empty, first data point is used
@@ -75,14 +85,6 @@ with tab_data: # first tab
             value = two_years_ago)
         end_date = st.date_input("End date",format='YYYY-MM-DD',
             value = today)
-    
-    # Set default values of data window based on Timeframe
-    if(interval == '1d'):
-        st.session_state.data_window = '3m'
-    elif (interval == '1w'):
-        st.session_state.data_window = '2y'
-    elif (interval == '1mo'):
-        st.session_state.data_window = '10y'       
 
 with tab_smoothing: # second tab
     # LOWESS parameters
