@@ -310,12 +310,17 @@ with st.expander('Statistics'):
     st.write('Residuals Standard Deviation:',round(res_std,2))
 
 # Display latest data
-with st.expander('Latest Data'):
+with st.expander('Latest'):
     # Create Dataframe to display latest data
-    latest = df[['avg','l_avg']].tail(10)
-    latest.index = latest.index.strftime('%Y-%m-%d')
+    df2 = df[['Open','High','Low','Close','avg','l_avg']]
+    # Calculate percentage change
+    df2[['Change (%)']] = df2.Close.pct_change() * 100
+    # Change index display format
+    df2.index = df2.index.strftime('%Y-%m-%d')
+    # Rename columns
+    df2 = df2.rename(columns={'avg': 'Average (HLC3)', 'l_avg': 'Log Average'})
     # Display number of data points and latest data
     st.write('Number of data points: ', df.shape[0])
-    st.write(latest)
-    
-df
+    # Display latest data
+    st.write(df2.tail(20))
+
