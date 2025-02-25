@@ -310,12 +310,12 @@ with st.expander('Statistics'):
     st.write('Residuals Standard Deviation:',round(res_std,2))
 
 # Display latest data
-with st.expander('Latest'):
+with st.expander('Latest Data'):
     # Create Dataframe to display latest data
     df2 = df[['Open','High','Low','Close','avg','l_avg']]
     # Calculate percentage change
     
-    st.write(df2.info())
+    print(df2.info())
     
     # df2[['Change (%)']] = df2['Close'].pct_change() * 100
     # Change index display format
