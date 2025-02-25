@@ -45,7 +45,7 @@ with tab_data: # first tab
             '''
         )
     # Timeframe
-    tf_options = {'1d':'Daily', '1wk':'Weekly', '1mo':'Monthly'}
+    tf_options = ['1d','1wk','1mo']
     interval = st.pills(label="Timeframe", options=tf_options, 
         default='1wk', selection_mode="single", key='interval',
         help = 'Duration of time that each data point on the chart \
