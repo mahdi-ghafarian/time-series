@@ -316,7 +316,7 @@ with st.expander('Latest Data'):
     # Display number of data points and latest data
     st.write('Number of data points: ', df.shape[0])
     # Display latest data
-    st.write(df2.tail(10))
+    st.dataframe(df2.tail(10))
     
 # Display Statistics
 with st.expander('Statistics'):
