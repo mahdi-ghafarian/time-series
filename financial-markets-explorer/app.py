@@ -111,9 +111,10 @@ with tab_plot: # third tab
 # Back Transformation
 st.sidebar.header('Back Transformation')
 # get input from user
-log_price = st.number_input('Log Price',value=1)
+log_price = st.sidebar.number_input('Log Price')
 # write the back transformation
-st.write(f'Price: `{np.exp(log_price)}`')
+if (log_price):
+    st.sidebar.write(f'Price: `{np.exp(log_price)}`')
 
 # About the App
 st.sidebar.header('About')
