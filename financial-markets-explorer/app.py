@@ -303,12 +303,6 @@ st.divider()
 # New section
 st.subheader('Data')
 
-# Display Statistics
-with st.expander('Statistics'):
-    # Residuals
-    st.write('Residuals Mean:',round(res_mean,2))
-    st.write('Residuals Standard Deviation:',round(res_std,2))
-
 # Display latest data
 with st.expander('Latest Data'):
     # Create Dataframe to display latest data
@@ -323,4 +317,10 @@ with st.expander('Latest Data'):
     st.write('Number of data points: ', df.shape[0])
     # Display latest data
     st.write(df2.tail(10))
+    
+# Display Statistics
+with st.expander('Statistics'):
+    # Residuals
+    st.write('Residuals Mean:',round(res_mean,2))
+    st.write('Residuals Standard Deviation:',round(res_std,2))
 
