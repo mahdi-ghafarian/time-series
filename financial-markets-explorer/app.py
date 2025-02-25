@@ -308,13 +308,24 @@ with st.expander('Latest Data'):
     # Create Dataframe to display latest data
     df2 = df[['Open','High','Low','Close','avg','l_avg']]
     # Calculate percentage change
-    df2['Change (%)'] = df2['Close'].pct_change() * 100
+    df2['Change (%)'] = df2['Close'].pct_change()
     # Change index display format
     df2.index = df2.index.strftime('%Y-%m-%d')
     # Rename columns
     df2 = df2.rename(columns={'avg': 'Avg (HLC3)', 'l_avg': 'Log Avg'})
     # Display number of data points and latest data
     st.write('Number of data points: ', df.shape[0])
+    #Display format
+    st.data_editor(
+    df2,
+    column_config={
+        'Change (%)': st.column_config.NumberColumn(
+            min_value=0,
+            max_value=1000,
+            step=1,
+            format='%.1f'
+        )
+    })
     # Display latest data
     st.dataframe(df2.tail(10))
     
