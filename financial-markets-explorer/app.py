@@ -10,7 +10,7 @@ import streamlit as st
 from datetime import datetime, timedelta
 
 # ------------------------------------------------------------------------------
-# UI
+# UI Configuration
 # ------------------------------------------------------------------------------
 
 # Set page layout to wide
@@ -20,9 +20,9 @@ st.set_page_config(layout="wide", # centered
                    page_title="Financial Markets Explorer",
                     initial_sidebar_state="expanded")
 
-# Title
-st.header('Financial Markets Explorer')
-st.divider()
+# ------------------------------------------------------------------------------
+# Sidebar - Get parameters
+# ------------------------------------------------------------------------------
 
 # Get parameters from user
 st.sidebar.header('Parameters')
@@ -281,8 +281,16 @@ bot_fig.for_each_trace(lambda trace: trace.update(
 )
 
 # ------------------------------------------------------------------------------ 
-# Display Output
+# UI - Display Main Output
 # ------------------------------------------------------------------------------
+# Title
+st.header('Financial Markets Explorer')
+
+# Display a divider
+st.divider()
+
+# ------------------------------------------------------------------------------
+# Top section - Chart
 
 # Add the trace from the top_fig the subplot (main_fig)
 for trace in top_fig.data:
@@ -300,9 +308,11 @@ st.plotly_chart(main_fig)
 # Display a divider
 st.divider()
 
+# ------------------------------------------------------------------------------
+# Bottom section - Data and other extra information
+
 # New section
 st.subheader('Data')
-
 
 # Create Dataframe to display latest data
 df2 = df[['Open','High','Low','Close','avg','l_avg']]
@@ -318,23 +328,17 @@ df2 = df2.tail(10)
 column_config={
 'Change (%)': st.column_config.NumberColumn(format='%.1f %%')
 }
-# Define a function to apply color based on value
-def color_value(val):
-    color = 'green' if val > 0 else 'red'
-    return f'foreground-color: {color}'
-# Apply the function to the DataFrame
-styled_df2 = df2.style.applymap(color_value, subset=['Change (%)'])
 
 # Display latest data
 with st.expander('Latest Data'):
     # Display number of data points and latest data
     st.write('Number of data points: ', df.shape[0])
     # Display latest data
-    st.dataframe(styled_df2,column_config = column_config)
+    st.dataframe(df2,column_config = column_config)
     
 # Display Statistics
 with st.expander('Statistics'):
     # Residuals
     st.write('Residuals Mean:',round(res_mean,2))
     st.write('Residuals Standard Deviation:',round(res_std,2))
-
+# ------------------------------------------------------------------------------
