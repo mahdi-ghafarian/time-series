@@ -112,10 +112,10 @@ with tab_plot: # third tab
 st.sidebar.divider()
 st.sidebar.header('Back Transformation')
 # get input from user
-log_price = st.sidebar.number_input('Log Price',value = 10.0)
+log_price = st.sidebar.number_input('Log Price',step = 0.0001)
 # write the back transformation
 if (log_price):
-    st.sidebar.write(f'Price: `{np.exp(log_price)}`')
+    st.sidebar.write(f'Price: `{np.exp(log_price):.4f}`')
 
 # About the App
 st.sidebar.divider()
@@ -199,9 +199,6 @@ df['std_residual'] = (df['residual'] - res_mean)/res_std
 # ------------------------------------------------------------------------------
 # Set the default template
 pio.templates.default = "seaborn"
-
-# Display section header
-st.subheader('Long-Term Trend')
 
 # Create a figure with 2 rows and 1 column, sharing the x-axis
 main_fig = make_subplots(rows=2, cols=1, shared_xaxes=True, 
@@ -301,6 +298,9 @@ st.divider()
 
 # ------------------------------------------------------------------------------
 # Top section - Chart
+
+# Display section header
+st.subheader('Long-Term Trend')
 
 # Add the trace from the top_fig the subplot (main_fig)
 for trace in top_fig.data:
