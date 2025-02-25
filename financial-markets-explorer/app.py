@@ -312,6 +312,8 @@ df2['Change (%)'] = df2['Close'].pct_change() * 100
 df2.index = df2.index.strftime('%Y-%m-%d')
 # Rename columns
 df2 = df2.rename(columns={'avg': 'Avg (HLC3)', 'l_avg': 'Log Avg'})
+# Keep the tail
+df2 = df2.tail(10)
 #Display format
 column_config={
 'Change (%)': st.column_config.NumberColumn(format='%.1f %%')
@@ -328,7 +330,7 @@ with st.expander('Latest Data'):
     # Display number of data points and latest data
     st.write('Number of data points: ', df.shape[0])
     # Display latest data
-    st.dataframe(styled_df2.tail(10),column_config = column_config)
+    st.dataframe(styled_df2,column_config = column_config)
     
 # Display Statistics
 with st.expander('Statistics'):
