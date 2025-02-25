@@ -112,7 +112,7 @@ with tab_plot: # third tab
 st.sidebar.divider()
 st.sidebar.header('Back Transformation')
 # get input from user
-log_price = st.sidebar.number_input('Log Price',step = 0.0001)
+log_price = st.sidebar.number_input('Log Price', value=1.0)
 # write the back transformation
 if (log_price):
     st.sidebar.write(f'Price: `{np.exp(log_price):.4f}`')
