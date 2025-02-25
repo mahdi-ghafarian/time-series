@@ -28,13 +28,15 @@ st.set_page_config(layout="wide", # centered
 st.sidebar.header('Parameters')
 
 # Initialize session state
+# This is not necessary in this app, because all widgets are created
+# and theirs keys stored in session_state when on_change
+# callback is triggered for timeframe. Kept for future reference.
 '''
 if ('interval' not in st.session_state):
     st.session_state.interval='1wk'
 if ('data_window' not in st.session_state):
     st.session_state.data_window='2y'
 '''
-
 # Set the default data_window based on interval value
 # by using session state, this is a callback function
 def set_data_window():
@@ -375,6 +377,6 @@ with st.expander('Statistics'):
 # ------------------------------------------------------------------------------
 # Debug
 # ------------------------------------------------------------------------------
-st.session_state
+# st.session_state
 
 # ------------------------------------------------------------------------------
