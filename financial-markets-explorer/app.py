@@ -320,7 +320,7 @@ with st.expander('Latest Data'):
     'Change (%)': st.column_config.NumberColumn(format='%.1f')
     }
     # Display latest data
-    st.dataframe(df2.tail(10))
+    st.dataframe(df2.tail(10),column_config = column_config)
     
 # Display Statistics
 with st.expander('Statistics'):
