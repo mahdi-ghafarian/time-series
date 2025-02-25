@@ -314,7 +314,11 @@ with st.expander('Latest'):
     # Create Dataframe to display latest data
     df2 = df[['Open','High','Low','Close','avg','l_avg']]
     # Calculate percentage change
-    df2[['Change (%)']] = df2['Close'].pct_change() * 100
+    df2
+    
+    df2.info()
+    
+    # df2[['Change (%)']] = df2['Close'].pct_change() * 100
     # Change index display format
     df2.index = df2.index.strftime('%Y-%m-%d')
     # Rename columns
