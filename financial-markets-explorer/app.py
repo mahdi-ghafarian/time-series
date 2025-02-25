@@ -374,8 +374,6 @@ with st.expander('Statistics'):
     # Residuals
     st.write('Residuals Mean:',round(res_mean,2))
     st.write('Residuals Standard Deviation:',round(res_std,2))
-    
-st.sidebar.log_price = df.iloc[-1]['Close']
 
 # ------------------------------------------------------------------------------
 # Debug
