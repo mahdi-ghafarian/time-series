@@ -303,22 +303,30 @@ st.divider()
 # New section
 st.subheader('Data')
 
+
+# Create Dataframe to display latest data
+df2 = df[['Open','High','Low','Close','avg','l_avg']]
+# Calculate percentage change
+df2['Change (%)'] = df2['Close'].pct_change() * 100
+# Change index display format
+df2.index = df2.index.strftime('%Y-%m-%d')
+# Rename columns
+df2 = df2.rename(columns={'avg': 'Avg (HLC3)', 'l_avg': 'Log Avg'})
+#Display format
+column_config={
+'Change (%)': st.column_config.NumberColumn(format='%.1f %%')
+}
+# Define a function to apply color based on value
+def color_value(val):
+    color = 'green' if val > 0 else 'red'
+    return f'foreground-color: {color}'
+# Apply the function to the DataFrame
+styled_df2 = df2.style.applymap(color_value, subset=['Change (%)'])
+
 # Display latest data
 with st.expander('Latest Data'):
-    # Create Dataframe to display latest data
-    df2 = df[['Open','High','Low','Close','avg','l_avg']]
-    # Calculate percentage change
-    df2['Change (%)'] = df2['Close'].pct_change() * 100
-    # Change index display format
-    df2.index = df2.index.strftime('%Y-%m-%d')
-    # Rename columns
-    df2 = df2.rename(columns={'avg': 'Avg (HLC3)', 'l_avg': 'Log Avg'})
     # Display number of data points and latest data
     st.write('Number of data points: ', df.shape[0])
-    #Display format
-    column_config={
-    'Change (%)': st.column_config.NumberColumn(format='%.1f %%')
-    }
     # Display latest data
     st.dataframe(df2.tail(10),column_config = column_config)
     
