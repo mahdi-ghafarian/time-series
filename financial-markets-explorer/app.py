@@ -328,7 +328,7 @@ with st.expander('Latest Data'):
     # Display number of data points and latest data
     st.write('Number of data points: ', df.shape[0])
     # Display latest data
-    st.dataframe(df2.tail(10),column_config = column_config)
+    st.dataframe(styled_df2.tail(10),column_config = column_config)
     
 # Display Statistics
 with st.expander('Statistics'):
