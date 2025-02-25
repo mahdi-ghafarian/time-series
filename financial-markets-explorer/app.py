@@ -133,7 +133,8 @@ st.sidebar.divider()
 st.sidebar.header('Back Transformation',help='Convert the figures from the chart back \
     to their original prices.')
 # get input from user
-log_price = st.sidebar.number_input('Log Price', value=1.0, key='log_price')
+log_price = st.sidebar.number_input('Log Price' 
+    ,value=lambda df: df['Close'].iloc[-1] if len(df) > 0 else 1.0)
 # write the back transformation
 if (log_price):
     st.sidebar.write(f'Price: `{np.exp(log_price):.4f}`')
@@ -175,8 +176,6 @@ if(len(df)==0):
         Check [Yahoo Finance](https://finance.yahoo.com) to find the \
             correct format.', icon="⚠️")
     st.stop()
-else:
-    st.session_state.log_price = df.iloc[-1]['Close']
 
 # ------------------------------------------------------------------------------ 
 # Calculations
