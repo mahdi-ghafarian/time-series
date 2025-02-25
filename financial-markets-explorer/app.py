@@ -38,7 +38,7 @@ if ('data_window' not in st.session_state):
 def set_data_window():
     if(st.session_state.interval == '1d'):
         st.session_state.data_window = '3mo'
-    elif (st.session_state.interval == '1w'):
+    elif (st.session_state.interval == '1wk'):
         st.session_state.data_window = '2y'
     elif (st.session_state.interval == '1mo'):
         st.session_state.data_window = '10y'
