@@ -317,3 +317,5 @@ with st.expander('Latest Data'):
     # Display number of data points and latest data
     st.write('Number of data points: ', df.shape[0])
     st.write(latest)
+    
+df
