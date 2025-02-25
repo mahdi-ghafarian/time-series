@@ -317,7 +317,7 @@ with st.expander('Latest Data'):
     st.write('Number of data points: ', df.shape[0])
     #Display format
     column_config={
-    'Change (%)': st.column_config.NumberColumn(format='%.1f')
+    'Change (%)': st.column_config.NumberColumn(format='%.1f %%')
     }
     # Display latest data
     st.dataframe(df2.tail(10),column_config = column_config)
