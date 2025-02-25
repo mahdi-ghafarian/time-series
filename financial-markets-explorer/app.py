@@ -47,7 +47,7 @@ with tab_data: # first tab
     # Timeframe
     tf_options = {'1d':'Daily', '1wk':'Weekly', '1mo':'Monthly'}
     interval = st.pills(label="Timeframe", options=tf_options, 
-        default='1wk', selection_mode="single",
+        default='1wk', selection_mode="single", key='interval'
         help = 'Duration of time that each data point on the chart \
             represents.')
     
@@ -62,7 +62,7 @@ with tab_data: # first tab
         dw_options = ['3mo','6mo','1y','2y','5y'
             ,'10y','ytd','max'] # '1d','5d', '1mo' are also available in YF
         data_window = st.pills(label="", options=dw_options, 
-            default='2y', selection_mode="single",
+            default='2y', selection_mode="single", key='data_window'
             label_visibility="collapsed")
     # use start date and end date
     else:
@@ -78,11 +78,11 @@ with tab_data: # first tab
     
     # Set default values of data window based on Timeframe
     if(interval == '1d'):
-        data_window = '3m'
+        st.session_state.data_window = '3m'
     elif (interval == '1w'):
-        data_window = '2y'
+        st.session_state.data_window = '2y'
     elif (interval == '1mo'):
-        data_window = '10y'       
+        st.session_state.data_window = '10y'       
 
 with tab_smoothing: # second tab
     # LOWESS parameters
