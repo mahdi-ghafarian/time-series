@@ -108,6 +108,13 @@ with tab_plot: # third tab
     y_grid = st.number_input('Y-axis grid',value=0.0,
         min_value=0.0, step=0.1, help = 'Enter `0` for automatic selection')   
 
+# Back Transformation
+st.sidebar.header('Back Transformation')
+# get input from user
+log_price = st.number_input('Log Price')
+# write the back transformation
+st.write(f'Price: `{np.exp(log_price)}`')
+
 # About the App
 st.sidebar.header('About')
 with st.sidebar.expander(label='About this application...'):
