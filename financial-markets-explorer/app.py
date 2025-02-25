@@ -316,6 +316,8 @@ st.subheader('Data')
 
 # Create Dataframe to display latest data
 df2 = df[['Open','High','Low','Close','avg','l_avg']]
+# Calculate change
+df2['Change'] = df2['Close'].diff()
 # Calculate percentage change
 df2['Change (%)'] = df2['Close'].pct_change() * 100
 # Change index display format
