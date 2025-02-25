@@ -27,6 +27,12 @@ st.set_page_config(layout="wide", # centered
 # Get parameters from user
 st.sidebar.header('Parameters')
 
+# Initialize session state
+if ('interval' not in st.session_state):
+    st.session_state.interval='1wk'
+if ('data_window' not in st.session_state):
+    st.session_state.data_window='2y'
+
 # Set the default data_window based on interval value
 # by using session state, this is a callback function
 def set_data_window():
