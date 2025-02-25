@@ -318,7 +318,7 @@ with st.expander('Latest Data'):
     # Change index display format
     df2.index = df2.index.strftime('%Y-%m-%d')
     # Rename columns
-    df2 = df2.rename(columns={'avg': 'Average (HLC3)', 'l_avg': 'Log Average'})
+    df2 = df2.rename(columns={'avg': 'Avg. (HLC3)', 'l_avg': 'Log Avg.'})
     # Display number of data points and latest data
     st.write('Number of data points: ', df.shape[0])
     # Display latest data
