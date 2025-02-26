@@ -305,7 +305,7 @@ main_fig.add_shape(
         y0=1,
         y1=1,
         line=dict(
-            color="red",
+            color="orange",
             width=1,
             dash="dot"
         )
@@ -322,7 +322,7 @@ main_fig.add_shape(
         y0=-1,
         y1=-1,
         line=dict(
-            color="red",
+            color="orange",
             width=1,
             dash="dot"
         )
