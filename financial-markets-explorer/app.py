@@ -278,7 +278,7 @@ main_fig.add_shape(
     y0=log_last_close,
     y1=log_last_close,
     line=dict(
-        color="Red",
+        color="darkorange",
         width=1,
         dash="dot"
     )
@@ -292,7 +292,7 @@ main_fig.add_annotation(
     showarrow=False,
     yshift=10,
     xshift=50,
-    bgcolor='Red',
+    bgcolor='darkorange',
     font=dict(color="white")           
 )
 
