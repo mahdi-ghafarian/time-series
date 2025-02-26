@@ -277,9 +277,9 @@ main_fig.add_shape(
     y0=log_last_close,
     y1=log_last_close,
     line=dict(
-        color="Orange",
+        color="Red",
         width=2,
-        dash="dash",  # Change the dash style if you want
+        dash="dot",  # Change the dash style if you want
     )
 )
 
