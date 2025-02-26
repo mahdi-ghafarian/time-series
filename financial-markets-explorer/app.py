@@ -278,7 +278,7 @@ main_fig.add_shape(
     y1=log_last_close,
     line=dict(
         color="Red",
-        width=2,
+        width=1,
         dash="dot",  # Change the dash style if you want
     )
 )
@@ -288,7 +288,8 @@ main_fig.add_annotation(
     x=df.index.mean(),  # Position the label at the middle of the x-axis
     y=log_last_close,
     text=f"Close: {log_last_close:.2f} ({last_close:.4f})",
-    showarrow=False    
+    showarrow=False,
+    yshift=10    
 )
 # ------------------------------------------------------------------------------ 
 # Top Figure
