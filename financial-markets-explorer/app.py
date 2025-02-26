@@ -48,8 +48,8 @@ def set_data_window():
         st.session_state.data_window = '10y'
 
 # create three tabs for parameters
-tab_data, tab_smoothing, tab_plot = \
-st.sidebar.tabs(["Data", "Smoothing", "Plot"])
+tab_data, tab_smoothing, tab_format = \
+st.sidebar.tabs(["Data", "Smoothing", "Format"])
 
 with tab_data: # first tab
     # ticker symbol: find from Yahoo Finance
@@ -118,15 +118,20 @@ with tab_smoothing: # second tab
         st_bw = st.number_input('Long-term bandwidth',value=0.05,
             min_value=0.01, max_value=1.0)
 
-with tab_plot: # third tab
-    # Plot parameters
+with tab_format: # third tab
+    # Format parameters
     # Chart height
-    height = st.number_input('Heigth',value=750, min_value=0, step=25)
+    height = st.number_input('Plot heigth',value=750, min_value=0, step=25)
     
     # y-axis ticks distance for top plot
     # 0: program selects the y_grid
     y_grid = st.number_input('Y-axis grid',value=0.0,
-        min_value=0.0, step=0.1, help = 'Enter `0` for automatic selection')   
+        min_value=0.0, step=0.1, help = 'Enter `0` for automatic selection') 
+    
+    # Decimal places, override streamlit four decimals
+    decimal_places = st.number_input('Decimal places',value=2, 
+            min_value=0, max_value = 4, step=1)
+
 
 # Back Transformation
 st.sidebar.divider()
@@ -288,7 +293,7 @@ main_fig.add_shape(
 main_fig.add_annotation(
     x=df.index.max(),
     y=log_last_close,
-    text=f"{log_last_close:.2f} ({last_close:.4f})",
+    text=f"{log_last_close:.{decimal_places}f} ({last_close:.{decimal_places}f})",
     showarrow=False,
     yshift=10,
     xshift=50,
@@ -423,6 +428,13 @@ df2 = df2.rename(columns={'avg': 'Avg (HLC3)', 'l_avg': 'Log Avg'})
 df2 = df2.tail(10)
 #Display format
 column_config={
+'Open': st.column_config.NumberColumn(format=f'%.{decimal_places}f'),
+'High': st.column_config.NumberColumn(format=f'%.{decimal_places}f'),
+'Low': st.column_config.NumberColumn(format=f'%.{decimal_places}f'),
+'Close': st.column_config.NumberColumn(format=f'%.{decimal_places}f'),
+'Avg(HLC3)': st.column_config.NumberColumn(format=f'%.{decimal_places}f'),
+'Log Avg': st.column_config.NumberColumn(format=f'%.{decimal_places}f'),
+'Change': st.column_config.NumberColumn(format=f'%.{decimal_places}f'),
 'Change (%)': st.column_config.NumberColumn(format='%.1f %%')
 }
 
@@ -443,6 +455,6 @@ with st.expander('Statistics'):
 # Debug
 # ------------------------------------------------------------------------------
 # st.session_state
-st.write(df.tail())
+# st.write(df.tail())
 
 # ------------------------------------------------------------------------------
