@@ -381,10 +381,10 @@ bot_fig.for_each_trace(lambda trace: trace.update(
 # UI - Display Main Output
 # ------------------------------------------------------------------------------
 # Title
-# st.header('Financial Markets Explorer')
+st.header('Financial Markets Explorer')
 
 # Display a divider
-# st.divider()
+st.divider()
 
 # ------------------------------------------------------------------------------
 # Top section - Chart
