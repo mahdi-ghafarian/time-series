@@ -58,7 +58,7 @@ with tab_data: # first tab
         help = '''
             Use [Yahoo Finance](https://finance.yahoo.com) to find the ticker.
             Examples include:
-            - **Crypto**: SPY, BTC-USD, ETH-USD
+            - **Crypto**: SPY, BTC-USD, ETH-USD, PAXG-USD
             - **ETF**: SPY, QQQ, GLD
             - **Forex**: EURUSD=X, USDCAD=X
             - **Index**:  ^DJI, ^IXIC, ^GSPC
