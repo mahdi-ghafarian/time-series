@@ -290,7 +290,8 @@ main_fig.add_annotation(
     y=log_last_close,
     text=f"Close: {log_last_close:.2f} ({last_close:.4f})",
     showarrow=False,
-    yshift=10    
+    yshift=10,
+    xshift=10      
 )
 # ------------------------------------------------------------------------------ 
 # Top Figure
