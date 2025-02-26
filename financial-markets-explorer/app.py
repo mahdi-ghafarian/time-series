@@ -266,6 +266,33 @@ main_fig.update_yaxes(dtick=1, row=2, col=1)
 main_fig.update_yaxes(title_text='Log Price', row=1, col=1)
 main_fig.update_yaxes(title_text='Std. Residual', row=2, col=1)
 
+# Add a horizontal line at Latest Close
+last_close = df.iloc[-1]['Close']
+log_last_close = np.log(last_close)
+
+main_fig.add_shape(
+    type="line",
+    x0=df.index.min(),
+    x1=df.index.max(),
+    y0=log_last_close,
+    y1=log_last_close,
+    line=dict(
+        color="Orange",
+        width=2,
+        dash="dash",  # Change the dash style if you want
+    )
+)
+
+# Add annotation for the horizontal line
+main_fig.add_annotation(
+    x=df.index.max(),  # Position the label at the middle of the x-axis
+    y=log_last_close,
+    text=f"Close: {log_last_close:.4f} ({last_close})",
+    showarrow=True,
+    arrowhead=1,
+    ax=0,
+    ay=-40  # Adjust this value to position the label vertically
+)
 # ------------------------------------------------------------------------------ 
 # Top Figure
 # ------------------------------------------------------------------------------
