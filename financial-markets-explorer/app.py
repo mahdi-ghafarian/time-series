@@ -266,10 +266,11 @@ main_fig.update_yaxes(dtick=1, row=2, col=1)
 main_fig.update_yaxes(title_text='Log Price', row=1, col=1)
 main_fig.update_yaxes(title_text='Std. Residual', row=2, col=1)
 
-# Add a horizontal line at Latest Close
+# last close and its log
 last_close = df.iloc[-1]['Close']
 log_last_close = np.log(last_close)
 
+# Add a horizontal line at Latest Close
 main_fig.add_shape(
     type="line",
     x0=df.index.min(),
