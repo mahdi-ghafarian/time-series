@@ -21,7 +21,7 @@ st.set_page_config(layout="wide", # centered
                     initial_sidebar_state="expanded")
 
 # ------------------------------------------------------------------------------
-# Sidebar - Get parameters
+# Create sidebar to get parameters
 # ------------------------------------------------------------------------------
 
 # Get parameters from user
@@ -60,6 +60,7 @@ with tab_data: # first tab
             Examples include:
             - **Crypto**: SPY, BTC-USD, ETH-USD
             - **ETF**: SPY, QQQ, GLD
+            - **Forex**: EURUSD=X, USDCAD=X
             - **Index**:  ^DJI, ^IXIC, ^GSPC
             - **Stock**: GOOG, MSFT, NVDA, AAPL, AMZN, META, TSLA
             '''
@@ -132,7 +133,6 @@ with tab_format: # third tab
     decimal_places = st.number_input('Decimal places',value=2, 
             min_value=0, max_value = 4, step=1)
 
-
 # Back Transformation
 st.sidebar.divider()
 st.sidebar.header('Back Transformation',help='Convert the figures from the chart back \
@@ -154,13 +154,10 @@ with st.sidebar.expander(label='About this application...'):
                 - Plots the smoothed series and the oscillator
                 ''')
 # ------------------------------------------------------------------------------ 
-# Get data
+# Get data from Yahoo Finance
 # ------------------------------------------------------------------------------
 # Ignore all warnings 
 warnings.filterwarnings('ignore')
-
-# Create a divider
-# st.divider()
 
 # Create a ticker object
 ticker = yf.Ticker(ticker_symbol)
@@ -221,7 +218,7 @@ res_std = df['residual'].std()
 df['std_residual'] = (df['residual'] - res_mean)/res_std
 
 # ------------------------------------------------------------------------------ 
-# Main Figure
+# Create Main Figure
 # ------------------------------------------------------------------------------
 # Set the default template
 pio.templates.default = "seaborn"
@@ -301,42 +298,8 @@ main_fig.add_annotation(
     font=dict(color="white")           
 )
 
-# # Add a horizontal line at 1 for bottom chart
-# main_fig.add_shape(
-#     dict(
-#         type="line",
-#         x0=df.index.min(),
-#         x1=df.index.max(),
-#         y0=1,
-#         y1=1,
-#         line=dict(
-#             color="red",
-#             width=1,
-#             dash="dot"
-#         )
-#     )
-#     ,row=2, col=1
-# )
-
-# # Add a horizontal line at -1 for bottom chart
-# main_fig.add_shape(
-#     dict(
-#         type="line",
-#         x0=df.index.min(),
-#         x1=df.index.max(),
-#         y0=-1,
-#         y1=-1,
-#         line=dict(
-#             color="red",
-#             width=1,
-#             dash="dot"
-#         )
-#     )
-#     ,row=2, col=1
-# )
-
 # ------------------------------------------------------------------------------ 
-# Top Figure
+# Create Top Figure
 # ------------------------------------------------------------------------------
 # colors of lines
 colors = ['#00CC96','#EF553B','#636EFA']
@@ -360,7 +323,7 @@ top_fig.for_each_trace(lambda trace: trace.update(
 )
 
 # ------------------------------------------------------------------------------ 
-# Bottom Figure
+# Create Bottom Figure
 # ------------------------------------------------------------------------------
 
 # Standard residual figure
@@ -378,15 +341,9 @@ bot_fig.for_each_trace(lambda trace: trace.update(
 )
 
 # ------------------------------------------------------------------------------ 
-# UI - Display Main Output
+# Show Results  
 # ------------------------------------------------------------------------------
-# Title
-# st.header('Financial Markets Explorer')
 
-# Display a divider
-# st.divider()
-
-# ------------------------------------------------------------------------------
 # Top section - Chart
 
 # Display section header
