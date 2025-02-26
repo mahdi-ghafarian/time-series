@@ -288,10 +288,12 @@ main_fig.add_shape(
 main_fig.add_annotation(
     x=df.index.max(),
     y=log_last_close,
-    text=f"Close: {log_last_close:.2f} ({last_close:.4f})",
+    text=f"{log_last_close:.2f} ({last_close:.4f})",
     showarrow=False,
     yshift=10,
-    xshift=10      
+    xshift=20,
+    bgcolor='Red',
+    font=dict(color="white")           
 )
 # ------------------------------------------------------------------------------ 
 # Top Figure
