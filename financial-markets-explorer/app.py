@@ -308,6 +308,7 @@ main_fig.add_shape(
         width=1,
         dash="dot"
     )
+)
 
 # Add a horizontal line at -1
 main_fig.add_shape(
