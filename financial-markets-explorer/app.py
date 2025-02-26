@@ -298,15 +298,17 @@ main_fig.add_annotation(
 
 # Add a horizontal line at 1 for bottom chart
 main_fig.add_shape(
-    type="line",
-    x0=1,
-    x1=1,
-    y0=log_last_close,
-    y1=log_last_close,
-    line=dict(
-        color="red",
-        width=1,
-        dash="dot"
+    dict(
+        type="line",
+        x0=df.index.min(),
+        x1=df.index.max(),
+        y0=1,
+        y1=1,
+        line=dict(
+            color="red",
+            width=1,
+            dash="dot"
+        )
     )
     ,row=1, col=1
 )
