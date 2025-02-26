@@ -338,6 +338,19 @@ bot_fig.for_each_trace(lambda trace: trace.update(
     )
 )
 
+# Add a horizontal line at Latest Close
+bot_fig.add_shape(
+    type="line",
+    x0=df.index.min(),
+    x1=df.index.max(),
+    y0=0,
+    y1=0,
+    line=dict(
+        color="Red",
+        width=1,
+        dash="dot"
+    )
+)
 # ------------------------------------------------------------------------------ 
 # UI - Display Main Output
 # ------------------------------------------------------------------------------
