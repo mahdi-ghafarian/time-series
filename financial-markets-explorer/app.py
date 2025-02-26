@@ -390,7 +390,8 @@ bot_fig.for_each_trace(lambda trace: trace.update(
 # Top section - Chart
 
 # Display section header
-st.subheader('Long-Term Trend')
+# st.subheader('Long-Term Trend')
+st.subheader('Financial Markets Explorer')
 
 # Add the trace from the top_fig the subplot (main_fig)
 for trace in top_fig.data:
@@ -406,7 +407,7 @@ main_fig.update_traces(showlegend=False, row=2, col=1)
 st.plotly_chart(main_fig)
 
 # Display a divider
-st.divider()
+# st.divider()
 
 # ------------------------------------------------------------------------------
 # Bottom section - Data and other extra information
