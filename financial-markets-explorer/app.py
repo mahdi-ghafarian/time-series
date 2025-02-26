@@ -339,8 +339,8 @@ main_fig.add_shape(
         y0=0,
         y1=0,
         line=dict(
-            color="red",
-            width=1,
+            color="gray",
+            width=2,
             dash="solid"
         )
     )
