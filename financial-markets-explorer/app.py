@@ -330,6 +330,23 @@ main_fig.add_shape(
     ,row=2, col=1
 )
 
+# Add a horizontal line at 0 for bottom chart
+main_fig.add_shape(
+    dict(
+        type="line",
+        x0=df.index.min(),
+        x1=df.index.max(),
+        y0=0,
+        y1=0,
+        line=dict(
+            color="red",
+            width=1,
+            dash="solid"
+        )
+    )
+    ,row=2, col=1
+)
+
 
 # ------------------------------------------------------------------------------ 
 # Top Figure
