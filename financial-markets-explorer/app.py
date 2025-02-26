@@ -285,13 +285,10 @@ main_fig.add_shape(
 
 # Add annotation for the horizontal line
 main_fig.add_annotation(
-    x=df.index.max(),  # Position the label at the middle of the x-axis
+    x=df.index.mean(),  # Position the label at the middle of the x-axis
     y=log_last_close,
-    text=f"Close: {log_last_close:.4f} ({last_close})",
-    showarrow=True,
-    arrowhead=1,
-    ax=0,
-    ay=-40  # Adjust this value to position the label vertically
+    text=f"Close: {log_last_close:.2f} ({last_close:.4f})",
+    showarrow=False    
 )
 # ------------------------------------------------------------------------------ 
 # Top Figure
