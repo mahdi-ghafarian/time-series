@@ -60,7 +60,7 @@ with tab_data: # first tab
             Examples include:
             - **Crypto**: BTC-USD, ETH-USD, PAXG-USD
             - **ETF**: SPY, QQQ, GLD
-            - **Futures**: GC=F, CL=F
+            - **Futures**: GC=F, CL=F, DX=F
             - **Forex**: EURUSD=X, USDCAD=X
             - **Index**:  ^DJI, ^IXIC, ^GSPC
             - **Stock**: GOOG, MSFT, NVDA, AAPL, AMZN, META, TSLA
