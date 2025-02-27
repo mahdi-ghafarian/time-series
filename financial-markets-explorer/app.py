@@ -123,7 +123,7 @@ with tab_smoothing: # second tab
 with tab_format: # third tab
     # Format parameters
     # Chart height
-    height = st.number_input('Plot heigth',value=750, min_value=0, step=25)
+    height = st.number_input('Plot heigth',value=700, min_value=0, step=25)
     
     # y-axis ticks distance for top plot
     # 0: program selects the y_grid
