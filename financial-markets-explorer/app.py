@@ -46,6 +46,8 @@ def set_data_window():
         st.session_state.data_window = '2y'
     elif (st.session_state.interval == '1mo'):
         st.session_state.data_window = '10y'
+    elif (st.session_state.interval == '3mo'):
+        st.session_state.data_window = 'max'
 
 # create three tabs for parameters
 tab_data, tab_smoothing, tab_format = \
@@ -67,7 +69,7 @@ with tab_data: # first tab
             '''
         )
     # Timeframe
-    tf_options = ['1d','1wk','1mo']
+    tf_options = ['1d','1wk','1mo','3mo']
     interval = st.pills(label="Timeframe", options=tf_options, 
         default='1wk', selection_mode="single", key='interval',
         help = 'Duration of time that each data point on the chart \
