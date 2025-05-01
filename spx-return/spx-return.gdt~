@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE gretldata SYSTEM "gretldata.dtd">
+
+<gretldata version="1.5" name="spx-return" frequency="1" n="97" startobs="1928" endobs="2024" type="time-series">
+<description>Data imported from CSV file 'data.csv', 2025-05-01 13:35
+</description>
+<variables count="3">
+<variable name="decade"
+ discrete="true"
+/>
+<variable name="price_return"
+/>
+<variable name="total_return"
+/>
+</variables>
+<observations count="97" labels="false">
+<obs>1 37.88 43.61 </obs>
+<obs>1 -11.91 -8.42 </obs>
+<obs>2 -28.48 -24.9 </obs>
+<obs>2 -47.07 -43.34 </obs>
+<obs>2 -15.15 -8.19 </obs>
+<obs>2 46.59 53.99 </obs>
+<obs>2 -5.94 -1.44 </obs>
+<obs>2 41.37 47.67 </obs>
+<obs>2 27.92 33.92 </obs>
+<obs>2 -38.59 -35.03 </obs>
+<obs>2 25.21 31.12 </obs>
+<obs>2 -5.45 -0.41 </obs>
+<obs>3 -15.29 -9.78 </obs>
+<obs>3 -17.86 -11.59 </obs>
+<obs>3 12.43 20.34 </obs>
+<obs>3 19.45 25.9 </obs>
+<obs>3 13.8 19.75 </obs>
+<obs>3 30.72 36.44 </obs>
+<obs>3 -11.87 -8.07 </obs>
+<obs>3 0 5.71 </obs>
+<obs>3 -0.65 5.5 </obs>
+<obs>3 10.26 18.79 </obs>
+<obs>4 21.78 31.71 </obs>
+<obs>4 16.46 24.02 </obs>
+<obs>4 11.78 18.37 </obs>
+<obs>4 -6.62 -0.99 </obs>
+<obs>4 45.02 52.62 </obs>
+<obs>4 26.4 31.56 </obs>
+<obs>4 2.62 6.56 </obs>
+<obs>4 -14.31 -10.78 </obs>
+<obs>4 38.06 43.36 </obs>
+<obs>4 8.48 11.96 </obs>
+<obs>5 -2.97 0.47 </obs>
+<obs>5 23.13 26.89 </obs>
+<obs>5 -11.81 -8.73 </obs>
+<obs>5 18.89 22.8 </obs>
+<obs>5 12.97 16.48 </obs>
+<obs>5 9.06 12.45 </obs>
+<obs>5 -13.09 -10.06 </obs>
+<obs>5 20.09 23.98 </obs>
+<obs>5 7.66 11.06 </obs>
+<obs>5 -11.36 -8.5 </obs>
+<obs>6 0.1 4.01 </obs>
+<obs>6 10.79 14.31 </obs>
+<obs>6 15.63 18.98 </obs>
+<obs>6 -17.37 -14.66 </obs>
+<obs>6 -29.72 -26.47 </obs>
+<obs>6 31.55 37.2 </obs>
+<obs>6 19.15 23.84 </obs>
+<obs>6 -11.5 -7.18 </obs>
+<obs>6 1.06 6.56 </obs>
+<obs>6 12.31 18.44 </obs>
+<obs>7 25.77 32.42 </obs>
+<obs>7 -9.73 -4.91 </obs>
+<obs>7 14.76 21.55 </obs>
+<obs>7 17.27 22.56 </obs>
+<obs>7 1.4 6.27 </obs>
+<obs>7 26.33 31.73 </obs>
+<obs>7 14.62 18.67 </obs>
+<obs>7 2.03 5.25 </obs>
+<obs>7 12.4 16.61 </obs>
+<obs>7 27.25 31.69 </obs>
+<obs>8 -6.56 -3.1 </obs>
+<obs>8 26.31 30.47 </obs>
+<obs>8 4.46 7.62 </obs>
+<obs>8 7.06 10.08 </obs>
+<obs>8 -1.54 1.32 </obs>
+<obs>8 34.11 37.58 </obs>
+<obs>8 20.26 22.96 </obs>
+<obs>8 31.01 33.36 </obs>
+<obs>8 26.67 28.58 </obs>
+<obs>8 19.53 21.04 </obs>
+<obs>9 -10.14 -9.1 </obs>
+<obs>9 -13.04 -11.89 </obs>
+<obs>9 -23.37 -22.1 </obs>
+<obs>9 26.38 28.68 </obs>
+<obs>9 8.99 10.88 </obs>
+<obs>9 3 4.91 </obs>
+<obs>9 13.62 15.79 </obs>
+<obs>9 3.53 5.49 </obs>
+<obs>9 -38.49 -37 </obs>
+<obs>9 23.45 26.46 </obs>
+<obs>10 12.78 15.06 </obs>
+<obs>10 0 2.11 </obs>
+<obs>10 13.41 16 </obs>
+<obs>10 29.6 32.39 </obs>
+<obs>10 11.39 13.69 </obs>
+<obs>10 -0.73 1.38 </obs>
+<obs>10 9.54 11.96 </obs>
+<obs>10 19.42 21.83 </obs>
+<obs>10 -6.24 -4.38 </obs>
+<obs>10 28.88 31.49 </obs>
+<obs>11 16.26 18.4 </obs>
+<obs>11 26.89 28.71 </obs>
+<obs>11 -19.44 -18.11 </obs>
+<obs>11 24.23 26.29 </obs>
+<obs>11 23.31 25.02 </obs>
+</observations>
+<string-tables count="1">
+<valstrings owner="decade" count="11">"1920s" "1930s" "1940s" "1950s" "1960s" "1970s" "1980s" "1990s" "2000s" "2010s" "2020s" </valstrings>
+</string-tables>
+</gretldata>
