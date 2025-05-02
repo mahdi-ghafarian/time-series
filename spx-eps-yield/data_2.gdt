@@ -7,18 +7,17 @@
 <variables count="7">
 <variable name="inflation"
 />
-<variable name="inv_real_eps"
+<variable name="real_eps"
 />
-<variable name="inv_real_eps_growth"
+<variable name="real_eps_growth_rate"
 />
-<variable name="inv_nom_eps_growth"
- label="inflation + nominal EPS growth rate"
+<variable name="nom_eps_growth_rate"
 />
-<variable name="inv_dividend_yield"
+<variable name="dividend_yield"
 />
-<variable name="mkt_price_return"
+<variable name="price_return"
 />
-<variable name="mkt_total_return"
+<variable name="total_return"
  label="price return + dividend yield"
 />
 </variables>
