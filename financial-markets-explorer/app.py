@@ -386,7 +386,7 @@ df2.index = df2.index.strftime('%Y-%m-%d')
 # Rename columns
 df2 = df2.rename(columns={'avg': 'Avg (HLC3)', 'l_avg': 'Log Avg'})
 # Keep the tail
-df2 = df2.tail(10)
+# df2 = df2.tail(10)
 #Display format
 column_config={
 'Open': st.column_config.NumberColumn(format=f'%.{decimal_places}f'),
