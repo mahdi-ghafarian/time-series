@@ -1,0 +1,9 @@
+//Parameters
+period_in = 12;
+
+//Buy on new high
+Buy = High == HHV(High,  period_in); 
+
+//Sell on new low
+Sell = False; 
+
