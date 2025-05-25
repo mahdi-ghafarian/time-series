@@ -16,11 +16,11 @@
 <variable name="Avg"
  label="HLC3"
 />
-<variable name="ATR"
+<variable name="Range"
  label="High - Low"
 />
-<variable name="ATR_P"
- label="ATR / Close"
+<variable name="Range_P"
+ label="Range / Close"
 />
 <variable name="Return"
  label="100*(Close/Close(-1)-1)"
