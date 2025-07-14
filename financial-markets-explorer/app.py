@@ -86,7 +86,7 @@ with tab_data: # first tab
         dw_options = ['3mo','6mo','1y','2y','5y'
             ,'10y','ytd','max'] # '1d','5d', '1mo' are also available in YF
         data_window = st.pills(label="Data Window", options=dw_options, 
-            default='3mo', selection_mode="single", key='data_window',
+            default='6mo', selection_mode="single", key='data_window',
             label_visibility="collapsed")
     # use start date and end date
     else:
