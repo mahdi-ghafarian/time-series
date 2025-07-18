@@ -221,8 +221,8 @@ res_std = df['residual'].std()
 df['std_residual'] = (df['residual'] - res_mean)/res_std
 
 #Upper and lower bounds
-df['upper_bound'] = df['lt_lowess'] + 1 * res_std
-df['lower_bound'] = df['lt_lowess'] - 1 * res_std
+df['upper_bound'] = df['lt_lowess'] + 2 * res_std
+df['lower_bound'] = df['lt_lowess'] - 2 * res_std
 
 # ------------------------------------------------------------------------------ 
 # Create Main Figure
@@ -309,7 +309,7 @@ main_fig.add_annotation(
 # Create Top Figure
 # ------------------------------------------------------------------------------
 # colors of lines
-colors = ['#00CC96','#EF553B','#636EFA','#AB63FA','#AB63FA']
+colors = ['#00CC96','#EF553B','#636EFA','#FFD700','#FFD700']
 
 # Plot time series, short-term and long-term smoothed series
 top_fig = px.line(df, x=df.index, y=['l_avg','st_lowess','lt_lowess','upper_bound','lower_bound'], 
@@ -329,6 +329,11 @@ top_fig.for_each_trace(lambda trace: trace.update(
     replace('upper_bound', 'Upper Bound').
     replace('lower_bound', 'Lower Bound'))
 )
+
+# Set thinner lines for Upper Bound and Lower Bound
+for trace in top_fig.data:
+    if trace.name in ['Upper Bound', 'Lower Bound']:
+        trace.line.width = 1  # Set to desired thickness
 
 # ------------------------------------------------------------------------------ 
 # Create Bottom Figure
