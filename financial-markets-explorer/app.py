@@ -309,7 +309,7 @@ main_fig.add_annotation(
 # Create Top Figure
 # ------------------------------------------------------------------------------
 # colors of lines
-colors = ['#00CC96','#EF553B','#636EFA','#FFD700','#FFD700']
+colors = ['#00CC96','#EF553B','#636EFA','#78909C','#78909C']
 
 # Plot time series, short-term and long-term smoothed series
 top_fig = px.line(df, x=df.index, y=['l_avg','st_lowess','lt_lowess','upper_bound','lower_bound'], 
