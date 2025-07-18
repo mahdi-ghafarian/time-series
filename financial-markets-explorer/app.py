@@ -327,7 +327,7 @@ top_fig.for_each_trace(lambda trace: trace.update(
     replace('lt_lowess', 'Long-term Trend').
     replace('st_lowess', 'Short-term Trend').
     replace('upper_bound', 'Upper Bound').
-    replace('lower_bound', 'Lower Bound')
+    replace('lower_bound', 'Lower Bound'))
 )
 
 # ------------------------------------------------------------------------------ 
