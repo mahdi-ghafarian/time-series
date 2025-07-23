@@ -135,6 +135,10 @@ with tab_format: # third tab
     # Decimal places, override streamlit four decimals
     decimal_places = st.number_input('Decimal places',value=2, 
             min_value=0, max_value = 4, step=1)
+    
+    # Standard Deviation Multiplier
+    sd_multiplier = st.number_input('SD Multiplier',value=2.0, 
+            min_value=1.0, max_value = 6.0, step=0.5)
 
 # Back Transformation
 st.sidebar.divider()
@@ -221,8 +225,8 @@ res_std = df['residual'].std()
 df['std_residual'] = (df['residual'] - res_mean)/res_std
 
 #Upper and lower bounds
-df['upper_bound'] = df['lt_lowess'] + 2 * res_std
-df['lower_bound'] = df['lt_lowess'] - 2 * res_std
+df['upper_bound'] = df['lt_lowess'] + sd_multiplier * res_std
+df['lower_bound'] = df['lt_lowess'] - sd_multiplier * res_std
 
 # ------------------------------------------------------------------------------ 
 # Create Main Figure
