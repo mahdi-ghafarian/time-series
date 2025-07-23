@@ -423,8 +423,8 @@ with st.expander('Latest Data'):
 # Display Statistics
 with st.expander('Statistics'):
     # Residuals
-    st.write('Residuals Mean:',round(res_mean,2))
-    st.write('Residuals Standard Deviation:',round(res_std,2))
+    st.write('Residuals Mean:',round(res_mean,4))
+    st.write('Residuals Standard Deviation:',round(res_std,4))
 
 # ------------------------------------------------------------------------------
 # Debug
