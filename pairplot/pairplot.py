@@ -12,8 +12,8 @@ sns.set_palette('YlGnBu')
 # sns.set_palette(sns.cubehelix_palette(start=0.5, rot=-0.75, dark=0.3, light=0.8, reverse=False))
 
 # Variables
-x='Population'
-y='Employment'
+x='Employment'
+y='Not In Labour Force'
 
 # (1) Scatter plot with hue and regression line (uncomment both lines)
 sns.scatterplot(data=df,hue='Decade', x=x,y=y, s=100, alpha=0.75)
