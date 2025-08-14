@@ -3,8 +3,8 @@ import matplotlib.pyplot as plt
 
 
 # Parameters 
-n = 100  # Number of observations 
-phi = -0.5  # AR(1) parameter 
+n = 30  # Number of observations 
+phi = 0.5  # AR(1) parameter 
 sigma = 1  # Standard deviation of the noise 
 
 # Initialize the time series 
