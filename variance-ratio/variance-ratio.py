@@ -29,7 +29,7 @@ df = df[df.index >= start_date]
 # df = df.to_period(freq='M')
 
 #plot the time series
-#df.plot()
+# df.plot()
 
 #view the time series
 print(df)
@@ -39,11 +39,11 @@ print(df.info())
 print("\n")
 
 # additional columns
-df['log_price'] = np.log(df[price])
+# df['log_price'] = np.log(df[price])
 df['return'] = df[price].pct_change().dropna()
-df['ma_10_return'] = df['return'].rolling(window=10).mean().dropna()
 df['log_return'] = np.log(df[price] / df[price].shift(1)).dropna()
-df['ma_10_log_return'] = df['log_return'].rolling(window=10).mean().dropna()
+# df['ma_10_return'] = df['return'].rolling(window=10).mean().dropna()
+# df['ma_10_log_return'] = df['log_return'].rolling(window=10).mean().dropna()
 
 # Select the column, Variance Ratio input series should be log_return
 series = df['log_return']
@@ -52,7 +52,7 @@ series.plot()
 
 # ------------------------------------------------------------------------------------
 #Parameters
-max_lag = 30
+max_lag = 36
 
 # Function to compute variance ratio
 def variance_ratio(series, q):
