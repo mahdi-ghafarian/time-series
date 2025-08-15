@@ -4,14 +4,16 @@ import matplotlib.pyplot as plt
 # Parameters 
 n = 100  # Number of observations 
 phi = 0.5  # AR(1) parameter 
-sigma = 1  # Standard deviation of the noise
-mean = 0  # Theoretical mean
+mean = 0 # Theoretical mean of the series
+noise_sigma = 1  # Standard deviation of the noise
+noise_mean = 0  # Noise mean
+
 # Initialize the time series 
 ar1_process = np.zeros(n) 
 
 # Generate AR(1) process 
 for t in range(1, n): 
-    ar1_process[t] = phi * ar1_process[t-1] + np.random.normal(mean, sigma) 
+    ar1_process[t] =  phi * (ar1_process[t-1] - mean) + np.random.normal(noise_mean, noise_sigma) 
 
 # Calculate average run size 
 def calculate_average_run_size(series): 
@@ -35,7 +37,7 @@ actual_mean = np.mean(ar1_process)
 # Plot the AR(1) process with points and horizontal lines
 plt.figure(figsize=(10, 5)) 
 plt.plot(ar1_process, label='AR(1) Process', linestyle='-', marker='o', markersize=7) 
-plt.axhline(y=mean, color='red', linestyle='--', linewidth=2, label='Theoretical Mean (μ = 0)') 
+plt.axhline(y=mean, color='red', linestyle='--', linewidth=2, label= f'Theoretical Mean (μ = {mean})') 
 plt.axhline(y=actual_mean, color='blue', linestyle='-.', linewidth=2, label=f'Actual Mean ≈ {actual_mean:.2f}') 
 plt.xlabel('Time') 
 plt.ylabel('Value') 
