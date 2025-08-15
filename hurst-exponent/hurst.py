@@ -9,6 +9,7 @@ df = pd.read_csv("hurst-exponent\\data.csv")
 
 # Define column names in the CSV file
 # Change these as per your CSV file
+start_date = '1940-01-01'
 date = 'Date'
 price = 'SP500'
 
@@ -20,6 +21,9 @@ df[date] = pd.to_datetime(df[date], format='%Y-%m-%d', errors='coerce')
 
 #set date column as index
 df.set_index(date,inplace=True)
+
+# Filter from a starting date
+df = df[df.index >= start_date]
 
 # set frequency
 # df = df.to_period(freq='M')
@@ -42,21 +46,53 @@ df['MA_10_Return'] = df['Return'].rolling(window=10).mean()
 df=df.dropna()
 
 # ------------------------------------------------------------------------------------
+# TEST: DATA FOR RANDOM WALK AND WHITE NOISE SERIES
+
+# Parameters
+n_steps = 100       # Number of time steps
+dt = 1               # Time increment
+mu = 0               # Drift (mean change per step)
+sigma = 1            # Volatility (standard deviation of change per step)
+
+# Generate Brownian motion
+np.random.seed(42)   # For reproducibility
+white_noise = np.random.normal(loc=mu * dt, scale=sigma * np.sqrt(dt), size=n_steps)
+random_walk = np.cumsum(white_noise)
+
+# ts = random_walk
+
+# PASSED: got the expected values for H
+# H of white noise = 0.5
+# H of random walk = 1.0
+
+# ------------------------------------------------------------------------------------
 # ts is the df target column to calculate Hurst 
 ts = df['MA_10_Return']
 
 def hurst_exponent(ts):
-    """Calculate the Hurst exponent and return regression data"""
+    """Calculate the Hurst exponent using R/S analysis"""
     N = len(ts)
-    T = np.arange(1, N + 1)
-    Y = np.cumsum(ts - np.mean(ts))
-    R = np.maximum.accumulate(Y) - np.minimum.accumulate(Y)
-    S = np.std(ts)
-    RS = R / S
-    log_RS = np.log(RS[1:])
-    log_T = np.log(T[1:])
+    max_k = int(np.floor(N / 2))
+    RS = []
+    T = []
+
+    for k in range(10, max_k, 50):  # step size can be adjusted
+        chunks = [ts[i:i+k] for i in range(0, N, k) if len(ts[i:i+k]) == k]
+        RS_chunk = []
+        for chunk in chunks:
+            Z = chunk - np.mean(chunk)
+            Y = np.cumsum(Z)
+            R = np.max(Y) - np.min(Y)
+            S = np.std(chunk)
+            RS_chunk.append(R / S if S != 0 else 0)
+        RS.append(np.mean(RS_chunk))
+        T.append(k)
+
+    log_RS = np.log(RS)
+    log_T = np.log(T)
     hurst, intercept = np.polyfit(log_T, log_RS, 1)
     return hurst, intercept, log_T, log_RS
+
 
 # Calculate Hurst exponent and regression data
 H, intercept, log_T, log_RS = hurst_exponent(ts)
@@ -73,7 +109,7 @@ else:
 # Plot the time series
 plt.figure(figsize=(10, 4))
 plt.plot(ts)
-plt.title("Synthetic Random Walk Time Series")
+plt.title("Time Series")
 plt.xlabel("Time")
 plt.ylabel("Value")
 plt.grid(True)
