@@ -16,7 +16,9 @@ def generate_series(n, model='white_noise', phi=0.0):
 
 # Function to compute variance ratio
 def variance_ratio(series, q):
+    
     n = len(series)
+    
     # If you want to use log return
     # Ensure series is strictly positive to avoid log of zero or negative
     # series = series + np.abs(np.min(series)) + 1e-6
