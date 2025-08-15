@@ -95,6 +95,24 @@ for i in range(1, N):
 # FAILED: values near 1 for OU process
 
 # ------------------------------------------------------------------------------------
+#TEST: AR(1) process
+
+# Parameters 
+n = 1000  # Number of observations 
+phi = -0.5  # AR(1) parameter 
+sigma = 1  # Standard deviation of the noise
+mean = 0  # Theoretical mean
+# Initialize the time series 
+ar1_process = np.zeros(n) 
+
+# Generate AR(1) process 
+for t in range(1, n): 
+    ar1_process[t] = phi * ar1_process[t-1] + np.random.normal(mean, sigma) 
+
+ts = ar1_process
+
+# PASSED: only works for -1 < phi < 0
+# ------------------------------------------------------------------------------------
 def hurst_exponent(ts):
     """Calculate the Hurst exponent using R/S analysis"""
     N = len(ts)
