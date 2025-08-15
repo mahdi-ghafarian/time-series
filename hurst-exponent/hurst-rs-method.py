@@ -39,11 +39,14 @@ print(df.info())
 print("\n")
 
 # additional columns
-df['Log_Price'] = np.log(df[price])
-df['Return'] = df[price].pct_change()
+df['log_price'] = np.log(df[price])
+df['return'] = df[price].pct_change()
 df=df.dropna()
-df['MA_10_Return'] = df['Return'].rolling(window=10).mean()
+df['ma_10_return'] = df['return'].rolling(window=10).mean()
 df=df.dropna()
+
+# Select the column for hurst exponent calculation
+# ts = df['log_price']
 
 # ------------------------------------------------------------------------------------
 # TEST: DATA FOR RANDOM WALK AND WHITE NOISE SERIES
@@ -66,9 +69,32 @@ random_walk = np.cumsum(white_noise)
 # H of random walk = 1.0
 
 # ------------------------------------------------------------------------------------
-# ts is the df target column to calculate Hurst 
-ts = df['MA_10_Return']
 
+#TEST: DATA FOR MEAN REVERTING SERIES
+# synthetic mean-reverting time series generated using the Ornstein-Uhlenbeck process
+
+# Parameters
+theta = 0.5   # Speed of mean reversion
+mu = 0.0       # Long-term mean
+sigma = 0.3    # Volatility
+dt = 0.01      # Time step
+T = 200.0        # Total time
+N = int(T / dt)  # Number of steps
+
+# Initialize the series
+x = np.zeros(N)
+x[0] = 1.0  # Initial value
+
+# Generate the time series
+for i in range(1, N):
+    dx = theta * (mu - x[i-1]) * dt + sigma * np.sqrt(dt) * np.random.normal()
+    x[i] = x[i-1] + dx
+    
+# ts = x
+
+# FAILED: values near 1 for OU process
+
+# ------------------------------------------------------------------------------------
 def hurst_exponent(ts):
     """Calculate the Hurst exponent using R/S analysis"""
     N = len(ts)
@@ -76,7 +102,7 @@ def hurst_exponent(ts):
     RS = []
     T = []
 
-    for k in range(10, max_k, 50):  # step size can be adjusted
+    for k in range(10, max_k, 100):  # step size can be adjusted
         chunks = [ts[i:i+k] for i in range(0, N, k) if len(ts[i:i+k]) == k]
         RS_chunk = []
         for chunk in chunks:
