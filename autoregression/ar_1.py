@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 
 # Parameters 
 n = 100  # Number of observations 
-phi = 0.5  # AR(1) parameter 
+phi = 0.25  # AR(1) parameter 
 mean = 0 # Theoretical mean of the series
 noise_sigma = 1  # Standard deviation of the noise
 noise_mean = 0  # Noise mean
@@ -13,7 +13,7 @@ ar1_process = np.zeros(n)
 
 # Generate AR(1) process 
 for t in range(1, n): 
-    ar1_process[t] =  phi * (ar1_process[t-1] - mean) + np.random.normal(noise_mean, noise_sigma) 
+    ar1_process[t] = mean + phi * (ar1_process[t-1] - mean) + np.random.normal(noise_mean, noise_sigma) 
 
 # Calculate average run size 
 def calculate_average_run_size(series): 
