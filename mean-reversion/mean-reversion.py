@@ -120,8 +120,23 @@ def plot_return(signal, outcome, threshold_range, custom_grid):
     # Add annotations lines to the chart
     ax.axhline(y=0, color='black', linewidth=1.0)
     ax.axvline(x=0, color='black', linewidth=1.0)
-    ax.axhline(y=ts_outcome.mean(), color='red', linestyle='dotted', linewidth=2, 
-               label=f'Mean Future Return = {ts_outcome.mean():.2%}')
+    ax.axhline(y=outcome.mean(), color='red', linestyle='dotted', linewidth=2, 
+               label=f'Mean (FR) = {ts_outcome.mean():.2%}')
+    ax.axvline(x=signal.mean(), color='red', linestyle='dotted', linewidth=2, 
+               label=f'Mean (PR) = {ts_signal.mean():.2%}')
+    # confidence interval of ts_signal
+    ax.fill_betweenx(y=np.linspace(outcome.min(), outcome.max(), 100), 
+                     x1=signal.mean() - signal.std(), 
+                     x2=signal.mean() + signal.std(), 
+                     color='blue', alpha=0.1, label='1 std dev (PR)')
+    ax.fill_betweenx(y=np.linspace(outcome.min(), outcome.max(), 100), 
+                     x1=signal.mean() - 2 * signal.std(), 
+                     x2=signal.mean() - 1 * signal.std(),
+                     color='red', alpha=0.1, label='2 std dev (PR)')
+    ax.fill_betweenx(y=np.linspace(outcome.min(), outcome.max(), 100), 
+                     x1=signal.mean() + 1 * signal.std(), 
+                     x2=signal.mean() + 2 * signal.std(),
+                     color='red', alpha=0.1, label='')    
 
     # Add legend and layout adjustments
     plt.legend(loc='upper right')
