@@ -5,18 +5,28 @@ from matplotlib.ticker import PercentFormatter
 
 # ------------------------------------------------------------------------------------
 # Parameters
-date = 'Date'
-price = 'SP500'
-start_date = '1940-01-01'
+#-----------------------------------------------------------------------------------
+# data parameters
+file = "mean-reversion\\sp500.csv" # Path to the CSV file containing data
+date = 'Date' # Column name for date
+price = 'SP500' # Column name for price (close or average price)
+start_date = '1940-01-01' # Start date for analysis, format 'YYYY-MM-DD'
+
+# signal/outcome parameters
 backward_window = 12  # Look-back window for signal
 forward_window = 60  # Look-ahead window for outcome
+bin_size = 0.01  # Size of bins for signal values
+
+# plotting parameters
+fig_size = (10, 6) # Size of the figure
+fig_dpi = 100 # DPI for the figure
 custom_grid = False  # Set to True to use custom ticks, False for automatic
 grid_x=0.10   # Grid spacing for ticks, can be adjusted based on data range
-grid_y=0.10   # Grid spacing for ticks, can be adjusted based on data range
+grid_y=0.20   # Grid spacing for ticks, can be adjusted based on data range
 
 # ------------------------------------------------------------------------------------
 # Load CSV and prepare DataFrame
-df = pd.read_csv("mean-reversion\\data.csv")
+df = pd.read_csv(file)
 df[date] = pd.to_datetime(df[date], format='%Y-%m-%d', errors='coerce')
 df.set_index(date, inplace=True)
 df = df[df.index >= start_date]
@@ -51,7 +61,7 @@ print(f"Max: {ts_outcome.max():.2%}")
 
 # ------------------------------------------------------------------------------------
 # Threshold range for signal binning
-threshold_range = np.round(np.arange(ts_signal.min(), ts_signal.max(), 0.01), 2)
+threshold_range = np.round(np.arange(ts_signal.min(), ts_signal.max(), bin_size), 2)
 
 # ------------------------------------------------------------------------------------
 # Conditional statistics for signal → outcome
@@ -69,7 +79,7 @@ def conditional_stats_equal(signal, outcome, threshold):
 
 # ------------------------------------------------------------------------------------
 # Plotting Function with Tabular Output
-def plot_return(signal, outcome, threshold_range, custom_grid):
+def plot_return(signal, outcome, threshold_range, custom_grid,figsize=(10, 6), dpi=100):
     stats_list = [conditional_stats_equal(signal, outcome, thresh) for thresh in threshold_range]
     stats_df = pd.DataFrame(stats_list)
 
@@ -77,7 +87,7 @@ def plot_return(signal, outcome, threshold_range, custom_grid):
     stats_df.dropna(subset=['Mean Return'], inplace=True)
 
     # figure setup
-    plt.figure(figsize=(10, 6), dpi=100)
+    plt.figure(figsize=fig_size, dpi=dpi)
 
     # Scatterplot of all individual returns
     plt.scatter(signal, outcome, color='lightgray', alpha=0.6, s=100, label='')
@@ -106,8 +116,8 @@ def plot_return(signal, outcome, threshold_range, custom_grid):
     
     if custom_grid:
         # Axis limits and adaptive ticks
-        x_min, x_max = np.floor(ts_signal.min() * 100) / 100, np.ceil(ts_signal.max() * 100) / 100
-        y_min, y_max = np.floor(outcome.min() * 100) / 100, np.ceil(outcome.max() * 100) / 100
+        x_min, x_max = np.floor(ts_signal.min() * 10) / 10, np.ceil(ts_signal.max() * 10) / 10
+        y_min, y_max = np.floor(outcome.min() * 10) / 10, np.ceil(outcome.max() * 10) / 10
 
         # Set ticks and grid
         plt.xticks(np.arange(x_min, x_max , grid_x))
@@ -151,7 +161,8 @@ def plot_return(signal, outcome, threshold_range, custom_grid):
 
 # ------------------------------------------------------------------------------------
 # Run the plot
-plot_return(ts_signal, ts_outcome, threshold_range, custom_grid=custom_grid)
+plot_return(ts_signal, ts_outcome, threshold_range, custom_grid=custom_grid,
+            figsize=fig_size, dpi=fig_dpi)
 
 #-- End of script
 # ------------------------------------------------------------------------------------
