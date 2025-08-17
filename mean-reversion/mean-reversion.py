@@ -7,8 +7,8 @@ from matplotlib.ticker import PercentFormatter
 # Parameters
 date = 'Date'
 price = 'SP500'
-start_date = '1980-01-01'
-backward_window = 60  # Look-back window for signal
+start_date = '1940-01-01'
+backward_window = 12  # Look-back window for signal
 forward_window = 60  # Look-ahead window for outcome
 custom_grid = False  # Set to True to use custom ticks, False for automatic
 grid_x=0.10   # Grid spacing for ticks, can be adjusted based on data range
@@ -35,14 +35,14 @@ ts_outcome = df['outcome']
 
 # ------------------------------------------------------------------------------------
 # Summary Statistics
-print("\nSignal Return Summary:")
+print("\nPast Return Summary:")
 print(f"Count: {ts_signal.count()}")
 print(f"Mean: {ts_signal.mean():.2%}")
 print(f"Std Dev: {ts_signal.std():.2%}")
 print(f"Min: {ts_signal.min():.2%}")
 print(f"Max: {ts_signal.max():.2%}")
 
-print("\nOutcome Return Summary:")
+print("\nFuture Return Summary:")
 print(f"Count: {ts_outcome.count()}")
 print(f"Mean: {ts_outcome.mean():.2%}")
 print(f"Std Dev: {ts_outcome.std():.2%}")
