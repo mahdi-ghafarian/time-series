@@ -143,6 +143,10 @@ def plot_return(signal, outcome, bin_range, custom_grid, figsize=(10, 6), dpi=10
     
     # Scatter all points in light gray
     plt.scatter(signal, outcome, color='lightgray', alpha=0.6, s=100)
+    
+    # Overlay bin means in green and red
+    # colors = ['green' if val >= 0 else 'red' for val in stats_df['Mean Return']]
+    # plt.scatter(stats_df['Bin'], stats_df['Mean Return'], color=colors, s=100, alpha=0.6)
    
     # Overlay bin means in blue
     plt.scatter(stats_df['Bin'], stats_df['Mean Return'], color='blue', s=100, alpha=0.6)
