@@ -140,37 +140,47 @@ def plot_return(signal, outcome, bin_range, custom_grid, figsize=(10, 6), dpi=10
     stats_df = pd.DataFrame(stats_list)
     stats_df.dropna(subset=['Mean Return'], inplace=True)
 
+    # Plotting the scatter plot
     plt.figure(figsize=figsize, dpi=dpi)
     plt.scatter(signal, outcome, color='lightgray', alpha=0.6, s=100)
     plt.scatter(stats_df['Bin'], stats_df['Mean Return'], color='blue', s=100, alpha=0.6)
 
+    # Fit a linear regression line
     coeffs = np.polyfit(signal, outcome, deg=1)
     reg_x = np.linspace(signal.min(), signal.max(), 100)
     reg_y = coeffs[0] * reg_x + coeffs[1]
     plt.plot(reg_x, reg_y, color='blue', linestyle='solid', linewidth=1.5,
              label=f'y = {coeffs[0]:.2f}x + {coeffs[1]:.2f}')
 
+    # Set plot title and labels
     plt.title(f"Mean Reversion Profile ({backward_window},{forward_window})")
     plt.xlabel(f"Past Return (t-{backward_window} to t)")
     plt.ylabel(f"Future Return (t to t+{forward_window})")
     plt.grid(True)
 
+    # Get current axis for further customization
     ax = plt.gca()
+        
+    # Set custom grid if specified
     if custom_grid:
         x_min, x_max = np.floor(ts_signal.min() * 10) / 10, np.ceil(ts_signal.max() * 10) / 10
         y_min, y_max = np.floor(outcome.min() * 10) / 10, np.ceil(outcome.max() * 10) / 10
         plt.xticks(np.arange(x_min, x_max, grid_x))
         plt.yticks(np.arange(y_min, y_max, grid_y))
-
+    
+    # Set axis limits
     ax.xaxis.set_major_formatter(PercentFormatter(xmax=1, decimals=0))
     ax.yaxis.set_major_formatter(PercentFormatter(xmax=1, decimals=0))
 
+    # Add horizontal and vertical lines for mean
     ax.axhline(y=0, color='black', linewidth=1.0)
     ax.axvline(x=0, color='black', linewidth=1.0)
     ax.axhline(y=outcome.mean(), color='red', linestyle='dotted', linewidth=2,
                label=f'Mean (FR) = {ts_outcome.mean():.2%}')
     ax.axvline(x=signal.mean(), color='red', linestyle='dotted', linewidth=2,
                label=f'Mean (PR) = {ts_signal.mean():.2%}')
+    
+    # Fill between for standard deviation ranges``
     ax.fill_betweenx(np.linspace(outcome.min(), outcome.max(), 100),
                      signal.mean() - signal.std(),
                      signal.mean() + signal.std(),
@@ -178,15 +188,23 @@ def plot_return(signal, outcome, bin_range, custom_grid, figsize=(10, 6), dpi=10
     ax.fill_betweenx(np.linspace(outcome.min(), outcome.max(), 100),
                      signal.mean() - 2 * signal.std(),
                      signal.mean() - 1 * signal.std(),
-                     color='red', alpha=0.1, label='2 std dev (PR)')
+                     color='green', alpha=0.1, label='2 std dev (PR)')
     ax.fill_betweenx(np.linspace(outcome.min(), outcome.max(), 100),
                      signal.mean() + 1 * signal.std(),
                      signal.mean() + 2 * signal.std(),
+                     color='green', alpha=0.1)
+    ax.fill_betweenx(np.linspace(outcome.min(), outcome.max(), 100),
+                     signal.mean() - 3 * signal.std(),
+                     signal.mean() - 2 * signal.std(),
+                     color='red', alpha=0.1, label='3 std dev (PR)')
+    ax.fill_betweenx(np.linspace(outcome.min(), outcome.max(), 100),
+                     signal.mean() + 2 * signal.std(),
+                     signal.mean() + 3 * signal.std(),
                      color='red', alpha=0.1)
 
-    plt.legend(loc='upper right')
-    plt.tight_layout()
-
+    plt.legend(loc='upper right') # Add legend
+    plt.tight_layout() # Adjust layout to prevent overlap
+    
     # Show the plot
     plt.show()
 
