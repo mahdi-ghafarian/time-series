@@ -5,24 +5,27 @@ from matplotlib.ticker import PercentFormatter
 
 # ------------------------------------------------------------------------------------
 # Parameters
-#-----------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------------
 # data parameters
-file = "mean-reversion\\sp500-monthly.csv" # Path to the CSV file containing data
-date = 'Date' # Column name for date
-price = 'SP500' # Column name for price (close or average price)
+file = "mean-reversion\\sp500-monthly.csv" # Path to the CSV file
+date = 'Date' # Date column name
+price = 'SP500' # Price column name
 start_date = '1943-01-01' # Start date for analysis, format 'YYYY-MM-DD'
 
 # signal/outcome parameters
-backward_window = 12  # Look-back window for signal
-forward_window = 60  # Look-ahead window for outcome
-bin_size = 0.01  # Size of bins for signal values
+backward_window = 12 # backward window for signal calculation
+forward_window = 60 # forward window for outcome calculation
+bin_size = 0.01 # bin size for signal binning
 
 # plotting parameters
-fig_size = (10, 6) # Size of the figure
-fig_dpi = 100 # DPI for the figure
-custom_grid = True  # Set to True to use custom ticks, False for automatic
-grid_x=0.10   # Grid spacing for ticks, can be adjusted based on data range
-grid_y=0.20   # Grid spacing for ticks, can be adjusted based on data range
+fig_size = (10, 6)
+fig_dpi = 100
+custom_grid = False # whether to use custom grid spacing
+grid_x = 0.1 # grid spacing for x-axis
+grid_y = 0.2 # grid spacing for y-axis
+
+# std dev ranges, used for range-based statistics, add or remove as needed
+std_dev_ranges = [-3, -2, -1, 0, 1, 2, 3]
 
 # ------------------------------------------------------------------------------------
 # Load CSV and prepare DataFrame
@@ -35,12 +38,10 @@ df = df[df.index >= start_date]
 # Compute signal and outcome returns
 df['signal'] = df[price] / df[price].shift(backward_window) - 1
 df['outcome'] = df[price].shift(-forward_window) / df[price] - 1
-
-# Drop rows with NaNs in either column
 df.dropna(subset=['signal', 'outcome'], inplace=True)
-
-# Round signal for binning
-ts_signal = df['signal'].round(2)
+# Round signal to nearest bin size
+ts_signal = ((df['signal'] / bin_size).round() * bin_size).round(2)
+# Extract the outcome series
 ts_outcome = df['outcome']
 
 # ------------------------------------------------------------------------------------
@@ -66,11 +67,10 @@ print(f"Mean (Positive): {ts_outcome[ts_outcome > 0].mean():.1%}")
 print(f"Mean (Negative): {ts_outcome[ts_outcome < 0].mean():.1%}")
 
 # ------------------------------------------------------------------------------------
-# Extreme Signal Statistics
+# Detailed Stats Function
 def detailed_stats(subset, label):
     count = subset.count()
     mean = subset.mean()
-    median = subset.median()
     min_val = subset.min()
     max_val = subset.max()
     pct_positive = (subset > 0).mean()
@@ -87,24 +87,37 @@ def detailed_stats(subset, label):
     print(f"Mean (Positive): {mean_positive:.1%}")
     print(f"Mean (Negative): {mean_negative:.1%}")
 
-# Compute thresholds
+# ------------------------------------------------------------------------------------
+# Flexible Range-Based Signal Statistics
 signal_mean = ts_signal.mean()
 signal_std = ts_signal.std()
 
-# Subsets
-low_signal_mask = ts_signal < (signal_mean - 2 * signal_std)
-high_signal_mask = ts_signal > (signal_mean + 2 * signal_std)
+# Below lower bound
+lower_extreme_mask = ts_signal < signal_mean + std_dev_ranges[0] * signal_std
+lower_extreme = ts_outcome[lower_extreme_mask]
+if not lower_extreme.empty:
+    detailed_stats(lower_extreme, f"Signal < {std_dev_ranges[0]}σ")
 
-low_outcomes = ts_outcome[low_signal_mask]
-high_outcomes = ts_outcome[high_signal_mask]
+# Between lower and upper bounds
+for i in range(len(std_dev_ranges) - 1):
+    lower = signal_mean + std_dev_ranges[i] * signal_std
+    upper = signal_mean + std_dev_ranges[i + 1] * signal_std
+    mask = (ts_signal >= lower) & (ts_signal < upper)
+    label = f"Signal in [{std_dev_ranges[i]}σ, {std_dev_ranges[i+1]}σ)"
+    subset = ts_outcome[mask]
+    if not subset.empty:
+        detailed_stats(subset, label)
 
-# Print stats
-detailed_stats(low_outcomes, "Low Signal (< Mean - 2 Std Dev)")
-detailed_stats(high_outcomes, "High Signal (> Mean + 2 Std Dev)")
+# Beyond upper bound
+upper_extreme_mask = ts_signal >= signal_mean + std_dev_ranges[-1] * signal_std
+upper_extreme = ts_outcome[upper_extreme_mask]
+if not upper_extreme.empty:
+    detailed_stats(upper_extreme, f"Signal > {std_dev_ranges[-1]}σ")
+
 
 # ------------------------------------------------------------------------------------
-# Threshold range for signal binning
-threshold_range = np.round(np.arange(ts_signal.min(), ts_signal.max(), bin_size), 2)
+# Bin range for signal binning
+bin_range = np.round(np.arange(ts_signal.min(), ts_signal.max(), bin_size), 2)
 
 # ------------------------------------------------------------------------------------
 # Conditional statistics for signal → outcome
@@ -112,7 +125,7 @@ def conditional_stats_equal(signal, outcome, threshold):
     condition = signal == threshold
     next_ts = outcome[condition]
     stats = {
-        'Threshold': threshold,
+        'Bin': threshold,
         'Count': condition.sum(),
         'P(Positive)': round((next_ts > 0).mean(), 2),
         'Mean Return': round(next_ts.mean(), 2),
@@ -122,79 +135,58 @@ def conditional_stats_equal(signal, outcome, threshold):
 
 # ------------------------------------------------------------------------------------
 # Plotting Function with Tabular Output
-def plot_return(signal, outcome, threshold_range, custom_grid,figsize=(10, 6), dpi=100):
-    stats_list = [conditional_stats_equal(signal, outcome, thresh) for thresh in threshold_range]
+def plot_return(signal, outcome, bin_range, custom_grid, figsize=(10, 6), dpi=100):
+    stats_list = [conditional_stats_equal(signal, outcome, thresh) for thresh in bin_range]
     stats_df = pd.DataFrame(stats_list)
-
-    # Drop rows with NaN mean returns
     stats_df.dropna(subset=['Mean Return'], inplace=True)
 
-    # figure setup
-    plt.figure(figsize=fig_size, dpi=dpi)
+    plt.figure(figsize=figsize, dpi=dpi)
+    plt.scatter(signal, outcome, color='lightgray', alpha=0.6, s=100)
+    plt.scatter(stats_df['Bin'], stats_df['Mean Return'], color='blue', s=100, alpha=0.6)
 
-    # Scatterplot of all individual returns
-    plt.scatter(signal, outcome, color='lightgray', alpha=0.6, s=100, label='')
-
-    # Scatterplot of mean returns per threshold
-    plt.scatter(stats_df['Threshold'], stats_df['Mean Return'], color='blue', 
-                label='', s=100, alpha=0.6)
-
-    # Add regression line
     coeffs = np.polyfit(signal, outcome, deg=1)
     reg_x = np.linspace(signal.min(), signal.max(), 100)
     reg_y = coeffs[0] * reg_x + coeffs[1]
     plt.plot(reg_x, reg_y, color='blue', linestyle='solid', linewidth=1.5,
              label=f'y = {coeffs[0]:.2f}x + {coeffs[1]:.2f}')
 
-    # Add labels and title
     plt.title(f"Mean Reversion Profile ({backward_window},{forward_window})")
     plt.xlabel(f"Past Return (t-{backward_window} to t)")
     plt.ylabel(f"Future Return (t to t+{forward_window})")
     plt.grid(True)
 
     ax = plt.gca()
-    
-    # Make grid rectangular and ticks equal, uncomment if needed
-    # ax.set_aspect('equal', adjustable='box')
-    
     if custom_grid:
-        # Axis limits and adaptive ticks
         x_min, x_max = np.floor(ts_signal.min() * 10) / 10, np.ceil(ts_signal.max() * 10) / 10
         y_min, y_max = np.floor(outcome.min() * 10) / 10, np.ceil(outcome.max() * 10) / 10
-
-        # Set ticks and grid
-        plt.xticks(np.arange(x_min, x_max , grid_x))
+        plt.xticks(np.arange(x_min, x_max, grid_x))
         plt.yticks(np.arange(y_min, y_max, grid_y))
-    
-    # Format ticks as percentages
+
     ax.xaxis.set_major_formatter(PercentFormatter(xmax=1, decimals=0))
     ax.yaxis.set_major_formatter(PercentFormatter(xmax=1, decimals=0))
-    
-    # Add annotations lines to the chart
+
     ax.axhline(y=0, color='black', linewidth=1.0)
     ax.axvline(x=0, color='black', linewidth=1.0)
-    ax.axhline(y=outcome.mean(), color='red', linestyle='dotted', linewidth=2, 
+    ax.axhline(y=outcome.mean(), color='red', linestyle='dotted', linewidth=2,
                label=f'Mean (FR) = {ts_outcome.mean():.2%}')
-    ax.axvline(x=signal.mean(), color='red', linestyle='dotted', linewidth=2, 
+    ax.axvline(x=signal.mean(), color='red', linestyle='dotted', linewidth=2,
                label=f'Mean (PR) = {ts_signal.mean():.2%}')
-    # confidence interval of ts_signal
-    ax.fill_betweenx(y=np.linspace(outcome.min(), outcome.max(), 100), 
-                     x1=signal.mean() - signal.std(), 
-                     x2=signal.mean() + signal.std(), 
+    ax.fill_betweenx(np.linspace(outcome.min(), outcome.max(), 100),
+                     signal.mean() - signal.std(),
+                     signal.mean() + signal.std(),
                      color='blue', alpha=0.1, label='1 std dev (PR)')
-    ax.fill_betweenx(y=np.linspace(outcome.min(), outcome.max(), 100), 
-                     x1=signal.mean() - 2 * signal.std(), 
-                     x2=signal.mean() - 1 * signal.std(),
+    ax.fill_betweenx(np.linspace(outcome.min(), outcome.max(), 100),
+                     signal.mean() - 2 * signal.std(),
+                     signal.mean() - 1 * signal.std(),
                      color='red', alpha=0.1, label='2 std dev (PR)')
-    ax.fill_betweenx(y=np.linspace(outcome.min(), outcome.max(), 100), 
-                     x1=signal.mean() + 1 * signal.std(), 
-                     x2=signal.mean() + 2 * signal.std(),
-                     color='red', alpha=0.1, label='')    
+    ax.fill_betweenx(np.linspace(outcome.min(), outcome.max(), 100),
+                     signal.mean() + 1 * signal.std(),
+                     signal.mean() + 2 * signal.std(),
+                     color='red', alpha=0.1)
 
-    # Add legend and layout adjustments
     plt.legend(loc='upper right')
     plt.tight_layout()
-    
+
     # Show the plot
     plt.show()
 
@@ -204,7 +196,7 @@ def plot_return(signal, outcome, threshold_range, custom_grid,figsize=(10, 6), d
 
 # ------------------------------------------------------------------------------------
 # Run the plot
-plot_return(ts_signal, ts_outcome, threshold_range, custom_grid=custom_grid,
+plot_return(ts_signal, ts_outcome, bin_range, custom_grid=custom_grid,
             figsize=fig_size, dpi=fig_dpi)
 
 # ------------------------------------------------------------------------------------
