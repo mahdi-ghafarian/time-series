@@ -20,7 +20,7 @@ bin_size = 0.01  # Size of bins for signal values
 # plotting parameters
 fig_size = (10, 6) # Size of the figure
 fig_dpi = 100 # DPI for the figure
-custom_grid = False  # Set to True to use custom ticks, False for automatic
+custom_grid = True  # Set to True to use custom ticks, False for automatic
 grid_x=0.10   # Grid spacing for ticks, can be adjusted based on data range
 grid_y=0.20   # Grid spacing for ticks, can be adjusted based on data range
 
