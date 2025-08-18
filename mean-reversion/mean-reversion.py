@@ -14,8 +14,8 @@ start_date = '1943-01-01' # Start date for analysis, format 'YYYY-MM-DD'
 
 # signal/outcome parameters
 backward_window = 12 # backward window for signal calculation
-forward_window = 12 # forward window for outcome calculation
-bin_size = 0.025 # bin size for signal binning
+forward_window = 60 # forward window for outcome calculation
+bin_size = 0.01 # bin size for signal binning
 
 # plotting parameters
 fig_size = (10, 6)
@@ -88,7 +88,7 @@ def detailed_stats(subset, label):
     print(f"Mean (Negative): {mean_negative:.1%}")
 
 # ------------------------------------------------------------------------------------
-# Flexible Range-Based Signal Statistics
+# Range-Based Signal Statistics
 signal_mean = ts_signal.mean()
 signal_std = ts_signal.std()
 
@@ -113,11 +113,6 @@ upper_extreme_mask = ts_signal >= signal_mean + std_dev_ranges[-1] * signal_std
 upper_extreme = ts_outcome[upper_extreme_mask]
 if not upper_extreme.empty:
     detailed_stats(upper_extreme, f"Signal > {std_dev_ranges[-1]}σ")
-
-
-# ------------------------------------------------------------------------------------
-# Bin range for signal binning
-bin_range = np.round(np.arange(ts_signal.min(), ts_signal.max(), bin_size), 2)
 
 # ------------------------------------------------------------------------------------
 # Conditional statistics for signal → outcome
@@ -158,7 +153,7 @@ def plot_return(signal, outcome, bin_range, custom_grid, figsize=(10, 6), dpi=10
     
     # Add regression line to plot
     plt.plot(reg_x, reg_y, color='blue', linestyle='solid', linewidth=1.5,
-             label=f'y = {coeffs[0]:.2f}x + {coeffs[1]:.2f}')
+             label=f'y = {coeffs[0]:.2f}x + {coeffs[1]:.1f}')
 
     # Set plot title and labels
     plt.title(f"Mean Reversion Profile ({backward_window},{forward_window})")
@@ -187,9 +182,9 @@ def plot_return(signal, outcome, bin_range, custom_grid, figsize=(10, 6), dpi=10
     ax.axhline(y=0, color='black', linewidth=1.0)
     ax.axvline(x=0, color='black', linewidth=1.0)
     ax.axhline(y=outcome.mean(), color='red', linestyle='dotted', linewidth=2,
-               label=f'Mean (FR) = {ts_outcome.mean():.2%}')
+               label=f'Mean (FR) = {ts_outcome.mean():.1%}')
     ax.axvline(x=signal.mean(), color='red', linestyle='dotted', linewidth=2,
-               label=f'Mean (PR) = {ts_signal.mean():.2%}')
+               label=f'Mean (PR) = {ts_signal.mean():.1%}')
     
     # Fill between for standard deviation ranges``
     ax.fill_betweenx(np.linspace(outcome.min(), outcome.max(), 100),
@@ -224,6 +219,10 @@ def plot_return(signal, outcome, bin_range, custom_grid, figsize=(10, 6), dpi=10
     print(stats_df.to_string(index=False))
 
 # ------------------------------------------------------------------------------------
+
+# Bin range for signal binning
+bin_range = np.round(np.arange(ts_signal.min(), ts_signal.max(), bin_size), 2)
+
 # Run the plot
 plot_return(ts_signal, ts_outcome, bin_range, custom_grid=custom_grid,
             figsize=fig_size, dpi=fig_dpi)
