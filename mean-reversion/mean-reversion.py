@@ -14,7 +14,7 @@ start_date = '1943-01-01' # Start date for analysis, format 'YYYY-MM-DD'
 
 # signal/outcome parameters
 backward_window = 12 # backward window for signal calculation
-forward_window = 12 # forward window for outcome calculation
+forward_window = 60 # forward window for outcome calculation
 bin_size = 0.01 # bin size for signal binning
 
 # plotting parameters
