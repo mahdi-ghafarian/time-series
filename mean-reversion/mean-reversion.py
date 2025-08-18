@@ -51,6 +51,9 @@ print(f"Mean: {ts_signal.mean():.1%}")
 print(f"Std Dev: {ts_signal.std():.1%}")
 print(f"Min: {ts_signal.min():.1%}")
 print(f"Max: {ts_signal.max():.1%}")
+print(f"Percentage > 0: {(ts_signal > 0).mean():.1%}")
+print(f"Mean (Positive): {ts_signal[ts_signal > 0].mean():.1%}")
+print(f"Mean (Negative): {ts_signal[ts_signal < 0].mean():.1%}")
 
 print("\nFuture Return Summary:")
 print(f"Count: {ts_outcome.count()}")
@@ -58,6 +61,46 @@ print(f"Mean: {ts_outcome.mean():.1%}")
 print(f"Std Dev: {ts_outcome.std():.1%}")
 print(f"Min: {ts_outcome.min():.1%}")
 print(f"Max: {ts_outcome.max():.1%}")
+print(f"Percentage > 0: {(ts_outcome > 0).mean():.1%}")
+print(f"Mean (Positive): {ts_outcome[ts_outcome > 0].mean():.1%}")
+print(f"Mean (Negative): {ts_outcome[ts_outcome < 0].mean():.1%}")
+
+# ------------------------------------------------------------------------------------
+# Extreme Signal Statistics
+def detailed_stats(subset, label):
+    count = subset.count()
+    mean = subset.mean()
+    median = subset.median()
+    min_val = subset.min()
+    max_val = subset.max()
+    pct_positive = (subset > 0).mean()
+    mean_positive = subset[subset > 0].mean()
+    mean_negative = subset[subset < 0].mean()
+
+    print(f"\n{label}:")
+    print(f"Count: {count}")
+    print(f"Mean: {mean:.1%}")
+    print(f"Std Dev: {subset.std():.1%}")
+    print(f"Min: {min_val:.1%}")
+    print(f"Max: {max_val:.2%}")
+    print(f"Percentage > 0: {pct_positive:.1%}")
+    print(f"Mean (Positive): {mean_positive:.1%}")
+    print(f"Mean (Negative): {mean_negative:.1%}")
+
+# Compute thresholds
+signal_mean = ts_signal.mean()
+signal_std = ts_signal.std()
+
+# Subsets
+low_signal_mask = ts_signal < (signal_mean - 2 * signal_std)
+high_signal_mask = ts_signal > (signal_mean + 2 * signal_std)
+
+low_outcomes = ts_outcome[low_signal_mask]
+high_outcomes = ts_outcome[high_signal_mask]
+
+# Print stats
+detailed_stats(low_outcomes, "Low Signal (< Mean - 2 Std Dev)")
+detailed_stats(high_outcomes, "High Signal (> Mean + 2 Std Dev)")
 
 # ------------------------------------------------------------------------------------
 # Threshold range for signal binning
@@ -164,5 +207,6 @@ def plot_return(signal, outcome, threshold_range, custom_grid,figsize=(10, 6), d
 plot_return(ts_signal, ts_outcome, threshold_range, custom_grid=custom_grid,
             figsize=fig_size, dpi=fig_dpi)
 
+# ------------------------------------------------------------------------------------
 #-- End of script
 # ------------------------------------------------------------------------------------
