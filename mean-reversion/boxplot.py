@@ -13,9 +13,9 @@ price_col = 'SP500'
 start_date = '1943-01-01'
 
 # Signal/outcome parameters
-backward_window = 12
-forward_window = 12
-bin_size = 0.05
+backward_window = 120
+forward_window = 120
+bin_size = 0.5
 
 # Plotting parameters
 fig_size = (12, 6)
@@ -56,5 +56,8 @@ plt.xlabel(f"Past Return (t-{backward_window} to t)")
 plt.ylabel(f"Future Return (t to t+{forward_window})")
 plt.grid(True)
 plt.xticks(rotation=45)
+mean_future_return = df['future_return'].mean()
+plt.axhline(mean_future_return, color='red', linestyle='--', linewidth=2, label=f"Mean Future Return ({mean_future_return:.2%})")
+plt.legend()
 plt.tight_layout()
 plt.show()
