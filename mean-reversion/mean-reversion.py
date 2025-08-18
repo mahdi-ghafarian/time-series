@@ -10,7 +10,7 @@ from matplotlib.ticker import PercentFormatter
 file = "mean-reversion\\sp500.csv" # Path to the CSV file containing data
 date = 'Date' # Column name for date
 price = 'SP500' # Column name for price (close or average price)
-start_date = '1940-01-01' # Start date for analysis, format 'YYYY-MM-DD'
+start_date = '1943-01-01' # Start date for analysis, format 'YYYY-MM-DD'
 
 # signal/outcome parameters
 backward_window = 12  # Look-back window for signal
@@ -47,17 +47,17 @@ ts_outcome = df['outcome']
 # Summary Statistics
 print("\nPast Return Summary:")
 print(f"Count: {ts_signal.count()}")
-print(f"Mean: {ts_signal.mean():.2%}")
-print(f"Std Dev: {ts_signal.std():.2%}")
-print(f"Min: {ts_signal.min():.2%}")
-print(f"Max: {ts_signal.max():.2%}")
+print(f"Mean: {ts_signal.mean():.1%}")
+print(f"Std Dev: {ts_signal.std():.1%}")
+print(f"Min: {ts_signal.min():.1%}")
+print(f"Max: {ts_signal.max():.1%}")
 
 print("\nFuture Return Summary:")
 print(f"Count: {ts_outcome.count()}")
-print(f"Mean: {ts_outcome.mean():.2%}")
-print(f"Std Dev: {ts_outcome.std():.2%}")
-print(f"Min: {ts_outcome.min():.2%}")
-print(f"Max: {ts_outcome.max():.2%}")
+print(f"Mean: {ts_outcome.mean():.1%}")
+print(f"Std Dev: {ts_outcome.std():.1%}")
+print(f"Min: {ts_outcome.min():.1%}")
+print(f"Max: {ts_outcome.max():.1%}")
 
 # ------------------------------------------------------------------------------------
 # Threshold range for signal binning
@@ -72,8 +72,8 @@ def conditional_stats_equal(signal, outcome, threshold):
         'Threshold': threshold,
         'Count': condition.sum(),
         'P(Positive)': round((next_ts > 0).mean(), 2),
-        'Mean Return': round(next_ts.mean(), 4),
-        'Std Dev': round(next_ts.std(), 4)
+        'Mean Return': round(next_ts.mean(), 2),
+        'Std Dev': round(next_ts.std(), 2)
     }
     return stats
 
