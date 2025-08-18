@@ -14,8 +14,8 @@ start_date = '1943-01-01' # Start date for analysis, format 'YYYY-MM-DD'
 
 # signal/outcome parameters
 backward_window = 12 # backward window for signal calculation
-forward_window = 60 # forward window for outcome calculation
-bin_size = 0.01 # bin size for signal binning
+forward_window = 12 # forward window for outcome calculation
+bin_size = 0.025 # bin size for signal binning
 
 # plotting parameters
 fig_size = (10, 6)
@@ -121,11 +121,11 @@ bin_range = np.round(np.arange(ts_signal.min(), ts_signal.max(), bin_size), 2)
 
 # ------------------------------------------------------------------------------------
 # Conditional statistics for signal → outcome
-def conditional_stats_equal(signal, outcome, threshold):
-    condition = signal == threshold
+def conditional_stats_equal(signal, outcome, bin):
+    condition = signal == bin
     next_ts = outcome[condition]
     stats = {
-        'Bin': threshold,
+        'Bin': bin,
         'Count': condition.sum(),
         'P(Positive)': round((next_ts > 0).mean(), 2),
         'Mean Return': round(next_ts.mean(), 2),
@@ -136,19 +136,27 @@ def conditional_stats_equal(signal, outcome, threshold):
 # ------------------------------------------------------------------------------------
 # Plotting Function with Tabular Output
 def plot_return(signal, outcome, bin_range, custom_grid, figsize=(10, 6), dpi=100):
-    stats_list = [conditional_stats_equal(signal, outcome, thresh) for thresh in bin_range]
-    stats_df = pd.DataFrame(stats_list)
-    stats_df.dropna(subset=['Mean Return'], inplace=True)
+    
+    # Compute conditional statistics for each bin
+    stats_list = [conditional_stats_equal(signal, outcome, bin) for bin in bin_range]
+    stats_df = pd.DataFrame(stats_list) # Convert list of dicts to DataFrame
+    stats_df.dropna(subset=['Mean Return'], inplace=True) # Remove bins with no data
 
-    # Plotting the scatter plot
+    # Create the plot
     plt.figure(figsize=figsize, dpi=dpi)
+    
+    # Scatter all points in light gray
     plt.scatter(signal, outcome, color='lightgray', alpha=0.6, s=100)
+   
+    # Overlay bin means in blue
     plt.scatter(stats_df['Bin'], stats_df['Mean Return'], color='blue', s=100, alpha=0.6)
 
     # Fit a linear regression line
     coeffs = np.polyfit(signal, outcome, deg=1)
     reg_x = np.linspace(signal.min(), signal.max(), 100)
     reg_y = coeffs[0] * reg_x + coeffs[1]
+    
+    # Add regression line to plot
     plt.plot(reg_x, reg_y, color='blue', linestyle='solid', linewidth=1.5,
              label=f'y = {coeffs[0]:.2f}x + {coeffs[1]:.2f}')
 
@@ -160,6 +168,9 @@ def plot_return(signal, outcome, bin_range, custom_grid, figsize=(10, 6), dpi=10
 
     # Get current axis for further customization
     ax = plt.gca()
+    
+    # Makes the plot box square, useful for visual symmetry
+    # ax.set_box_aspect(1) # Uncomment if you want a square aspect ratio
         
     # Set custom grid if specified
     if custom_grid:
@@ -184,15 +195,15 @@ def plot_return(signal, outcome, bin_range, custom_grid, figsize=(10, 6), dpi=10
     ax.fill_betweenx(np.linspace(outcome.min(), outcome.max(), 100),
                      signal.mean() - signal.std(),
                      signal.mean() + signal.std(),
-                     color='blue', alpha=0.1, label='1 std dev (PR)')
+                     color='green', alpha=0.1, label='1 std dev (PR)')
     ax.fill_betweenx(np.linspace(outcome.min(), outcome.max(), 100),
                      signal.mean() - 2 * signal.std(),
                      signal.mean() - 1 * signal.std(),
-                     color='green', alpha=0.1, label='2 std dev (PR)')
+                     color='orange', alpha=0.1, label='2 std dev (PR)')
     ax.fill_betweenx(np.linspace(outcome.min(), outcome.max(), 100),
                      signal.mean() + 1 * signal.std(),
                      signal.mean() + 2 * signal.std(),
-                     color='green', alpha=0.1)
+                     color='orange', alpha=0.1)
     ax.fill_betweenx(np.linspace(outcome.min(), outcome.max(), 100),
                      signal.mean() - 3 * signal.std(),
                      signal.mean() - 2 * signal.std(),
