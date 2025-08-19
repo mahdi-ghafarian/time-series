@@ -2,22 +2,21 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
+import matplotlib.cm as cm
 
 # ------------------------------------------------------------------------------------
 # Parameters
 # ------------------------------------------------------------------------------------
-# Data parameters
 file = "mean-reversion\\sp500-monthly.csv"
 date_col = 'Date'
 price_col = 'SP500'
 start_date = '1943-01-01'
 
-# Signal/outcome parameters
-backward_window = 60
-forward_window = 12
+backward_window = 12
+forward_window = 60
 bin_size = 0.05
 
-# Plotting parameters
 fig_size = (12, 6)
 fig_dpi = 100
 
@@ -42,29 +41,57 @@ df.dropna(subset=['past_return', 'future_return'], inplace=True)
 x_min = np.floor(df['past_return'].min() / bin_size) * bin_size
 x_max = np.ceil(df['past_return'].max() / bin_size) * bin_size
 bins = np.arange(x_min, x_max + bin_size, bin_size)
-
 df['past_return_bin'] = pd.cut(df['past_return'], bins)
+
+# ------------------------------------------------------------------------------------
+# Compute mean future return per bin and map to colors
+# ------------------------------------------------------------------------------------
+bin_means = df.groupby('past_return_bin')['future_return'].mean()
+norm = mcolors.Normalize(vmin=bin_means.min(), vmax=bin_means.max())
+cmap = cm.get_cmap('RdYlGn')
+bin_colors = [cmap(norm(val)) for val in bin_means]
+
+# Create a palette mapping each bin to its color
+palette = dict(zip(bin_means.index, bin_colors))
 
 # ------------------------------------------------------------------------------------
 # Plot boxplot using Seaborn
 # ------------------------------------------------------------------------------------
+# plt.style.use('default')  # Resets to default style
+# sns.set_style("whitegrid")
+
+# Set up the figure
 plt.figure(figsize=fig_size, dpi=fig_dpi)
-ax = sns.boxplot(data=df, x='past_return_bin', y='future_return', palette='Blues', showfliers=True)
-plt.title(f"MRP Box Plot ({backward_window},{forward_window})")
+
+# Create boxplot with color mapping
+ax = sns.boxplot(
+    data=df, x='past_return_bin', y='future_return', palette=palette, showfliers=True, 
+    flierprops=dict(marker='o', markerfacecolor='black', markersize=10,linestyle='none', alpha=0.25)
+)
+
+
+# Set title and labels
+plt.title(f"MRP Box Plot Colored by Mean Future Return ({backward_window},{forward_window})")
 plt.xlabel(f"Past Return (t-{backward_window} to t)")
 plt.ylabel(f"Future Return (t to t+{forward_window})")
 plt.grid(True)
-plt.xticks(rotation=90)
-mean_future_return = df['future_return'].mean()
-plt.axhline(mean_future_return, color='red', linestyle='--', linewidth=2, label=f"Mean Future Return ({mean_future_return:.2%})")
-# plt.axhline(y=0, color='black', linewidth=1.0)
-# Remove fill from each box
-for patch in ax.patches:
-    patch.set_facecolor('none')  # Make box transparent
-    patch.set_edgecolor('black')  # Set outline color
-    patch.set_linewidth(1.5)      # Optional: thicker outline
 
+# Format x-axis tick labels
+# plt.xticks(rotation=90) # have (a,b] formt by itself
+xtick_labels = [f"{interval.left:.2f} to {interval.right:.2f}" for interval in df['past_return_bin'].cat.categories]
+plt.xticks(ticks=np.arange(len(xtick_labels)), labels=xtick_labels, rotation=90)
+
+# Plot mean future return line
+mean_future_return = df['future_return'].mean()
+plt.axhline(mean_future_return, color='red', linestyle='--', linewidth=2,
+            label=f"Mean Future Return ({mean_future_return:.2%})")
+
+# Add colorbar to show mapping
+sm = cm.ScalarMappable(cmap=cmap, norm=norm)
+sm.set_array([])
+plt.colorbar(sm, label='Mean Future Return')
 
 plt.legend()
 plt.tight_layout()
 plt.show()
+# ------------------------------------------------------------------------------------

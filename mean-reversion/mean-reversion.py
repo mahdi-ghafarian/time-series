@@ -15,13 +15,13 @@ start_date = '1943-01-01' # Start date for analysis, format 'YYYY-MM-DD'
 # signal/outcome parameters
 backward_window = 12 # backward window for signal calculation
 forward_window = 60 # forward window for outcome calculation
-bin_size = 0.01 # bin size for signal binning
+bin_size = 0.05 # bin size for signal binning
 
 # plotting parameters
 fig_size = (10,6) # figure width and height in inches (window size)
 fig_dpi = 100 # figure resolution in dots per inch
 aspect_ratio = 0.6 # height/width ratio for the plot
-custom_grid = False # whether to use custom grid spacing
+custom_grid = True # whether to use custom grid spacing
 grid_x = 0.1 # grid spacing for x-axis
 grid_y = 0.2 # grid spacing for y-axis
 
