@@ -14,8 +14,8 @@ price_col = 'SP500'
 start_date = '1943-01-01' # Oldest data available for SP500, 1871-01-01
 
 backward_window = 12
-forward_window = 12
-bin_size = 0.05 # 0.05 works weel up to 60 months, after that 0.1 is better
+forward_window = 60
+bin_size = 0.05 # 0.05 works weel up to 36 months (adjust based on backward_window)
 
 fig_size = (12, 6)
 fig_dpi = 100
