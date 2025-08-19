@@ -15,7 +15,7 @@ start_date = '1943-01-01' # Oldest data available for SP500, 1871-01-01
 
 backward_window = 12
 forward_window = 12
-bin_size = 0.05 # works weel up to 60 months, after that 0.1 is better
+bin_size = 0.05 # 0.05 works weel up to 60 months, after that 0.1 is better
 
 fig_size = (12, 6)
 fig_dpi = 100
@@ -102,19 +102,21 @@ if zero_bin_index is not None and zero_bin_index + 1 < len(df['past_return_bin']
     x_pos = zero_bin_index + 0.5
     plt.axvline(x=x_pos, color='black', linestyle='dotted', linewidth=2, label='')
 
-# Annotate number of observations per bin
+# count observations in each bin
 bin_counts = df['past_return_bin'].value_counts().sort_index()
+
+# y-axis tick distance for annotation
+offset = 0.05 * (ax.get_ylim()[1] - ax.get_ylim()[0])  # 5% of y-axis range
+y_position = ax.get_ylim()[0] + offset # y-position (slightly above the minimum y limit)
+
+# Annotate number of observations per bin
 for i, count in enumerate(bin_counts):
     ax.text(
         i,  # x-position (bin index)
-        ax.get_ylim()[0] + 0.05,  # y-position slightly above the plot
+        y_position, 
         f"{count}",     # text to display
         ha='center', va='top', fontsize=9, color='black'
     )
-
-# Adjust y-axis limits to make space for the text (counts)
-# ymin, ymax = ax.get_ylim()
-# ax.set_ylim(ymin - 0.1, ymax)
 
 # Add colorbar to show mapping
 sm = cm.ScalarMappable(cmap=cmap, norm=norm)
