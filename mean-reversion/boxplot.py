@@ -101,7 +101,7 @@ for i, interval in enumerate(df['past_return_bin'].cat.categories):
 if zero_bin_index is not None and zero_bin_index + 1 < len(df['past_return_bin'].cat.categories):
     # Position between the two boxes
     x_pos = zero_bin_index + 0.5
-    plt.axvline(x=x_pos, color='black', linestyle='dotted', linewidth=2, label='Zero Past Return')
+    plt.axvline(x=x_pos, color='black', linestyle='dotted', linewidth=2, label='')
 
 # Add colorbar to show mapping
 sm = cm.ScalarMappable(cmap=cmap, norm=norm)
