@@ -11,11 +11,11 @@ import matplotlib.cm as cm
 file = "mean-reversion\\sp500-monthly.csv"
 date_col = 'Date'
 price_col = 'SP500'
-start_date = '1943-01-01'
+start_date = '1943-01-01' # Oldest data available for SP500, 1871-01-01
 
-backward_window = 12
+backward_window = 60
 forward_window = 60
-bin_size = 0.05
+bin_size = 0.10
 
 fig_size = (12, 6)
 fig_dpi = 100
@@ -69,7 +69,6 @@ ax = sns.boxplot(
     flierprops=dict(marker='o', markerfacecolor='black', markersize=10,linestyle='none', alpha=0.25)
 )
 
-
 # Set title and labels
 plt.title(f"Mean Reversion Profile ({backward_window},{forward_window})")
 plt.xlabel(f"Past Return (t-{backward_window} to t)")
@@ -102,6 +101,20 @@ if zero_bin_index is not None and zero_bin_index + 1 < len(df['past_return_bin']
     # Position between the two boxes
     x_pos = zero_bin_index + 0.5
     plt.axvline(x=x_pos, color='black', linestyle='dotted', linewidth=2, label='')
+
+# Annotate number of observations per bin
+bin_counts = df['past_return_bin'].value_counts().sort_index()
+for i, count in enumerate(bin_counts):
+    ax.text(
+        i,  # x-position (bin index)
+        ax.get_ylim()[0] + 0.05,  # y-position slightly above the plot
+        f"{count}",     # text to display
+        ha='center', va='top', fontsize=9, color='black'
+    )
+
+# Adjust y-axis limits to make space for the text (counts)
+ymin, ymax = ax.get_ylim()
+ax.set_ylim(ymin - 0.1, ymax)
 
 # Add colorbar to show mapping
 sm = cm.ScalarMappable(cmap=cmap, norm=norm)
