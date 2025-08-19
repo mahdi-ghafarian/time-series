@@ -11,11 +11,12 @@ import matplotlib.cm as cm
 file = "mean-reversion\\sp500-monthly.csv"
 date_col = 'Date'
 price_col = 'SP500'
-start_date = '1943-01-01' # Oldest data available for SP500, 1871-01-01
+start_date = '1943-01-01'  # Adjusted for BTC data availability
 
 backward_window = 12
 forward_window = 12
-bin_size = 0.05 # 0.05 works weel up to 60 months, after that 0.1 is better
+bin_size = 0.05 # controls number of boxes
+# 0.05 works well up to 12 months (adjust based on backward_window)
 
 fig_size = (12, 6)
 fig_dpi = 100
@@ -46,26 +47,34 @@ df['past_return_bin'] = pd.cut(df['past_return'], bins)
 # ------------------------------------------------------------------------------------
 # Compute mean future return per bin and map to colors
 # ------------------------------------------------------------------------------------
-bin_means = df.groupby('past_return_bin')['future_return'].mean()
+bin_means = df.groupby('past_return_bin',observed=False)['future_return'].mean()
 norm = mcolors.Normalize(vmin=bin_means.min(), vmax=bin_means.max())
-cmap = cm.get_cmap('RdYlGn')
+cmap = plt.colormaps['RdYlGn']  # updated for matplotlib >= 3.7
 bin_colors = [cmap(norm(val)) for val in bin_means]
 
 # Create a palette mapping each bin to its color
-palette = dict(zip(bin_means.index, bin_colors))
+palette = dict(zip(bin_means.index.astype(str), bin_colors))
 
 # ------------------------------------------------------------------------------------
 # Plot boxplot using Seaborn
 # ------------------------------------------------------------------------------------
 # sns.set_style("whitegrid")
 
+# Convert bin labels to string and preserve order
+df['past_return_bin_str'] = df['past_return_bin'].astype(str)
+sorted_categories = df['past_return_bin'].cat.categories
+df['past_return_bin_str'] = pd.Categorical(df['past_return_bin_str'],
+                                           categories=[str(cat) for cat in sorted_categories],
+                                           ordered=True)
+
 # Set up the figure
-plt.figure(figsize=fig_size, dpi=fig_dpi)
+fig, ax = plt.subplots(figsize=fig_size, dpi=fig_dpi)
 
 # Create boxplot with color mapping
-ax = sns.boxplot(
-    data=df, x='past_return_bin', y='future_return', palette=palette, showfliers=True, 
-    flierprops=dict(marker='o', markerfacecolor='black', markersize=10,linestyle='none', alpha=0.25)
+sns.boxplot(
+    data=df, x='past_return_bin_str', y='future_return', palette=palette, ax=ax, showfliers=True,
+    hue='past_return_bin_str', legend=False,
+    flierprops=dict(marker='o', markerfacecolor='black', markersize=10, linestyle='none', alpha=0.25)
 )
 
 # Set title and labels
@@ -75,38 +84,38 @@ plt.ylabel(f"Future Return (t to t+{forward_window})")
 plt.grid(True)
 
 # Format x-axis tick labels
-# plt.xticks(rotation=90) # have (a,b] formt by itself
-xtick_labels = [f"{interval.left:.2f} to {interval.right:.2f}" for interval in df['past_return_bin'].cat.categories]
-plt.xticks(ticks=np.arange(len(xtick_labels)), labels=xtick_labels, rotation=90)
+# plt.xticks(rotation=90) # have (a,b] format by itself
+xtick_labels = [f"{interval.left:.2f} to {interval.right:.2f}" for interval in sorted_categories]
+ax.set_xticks(np.arange(len(xtick_labels)))
+ax.set_xticklabels(xtick_labels, rotation=90)
 
 # Plot mean future return line
 mean_future_return = df['future_return'].mean()
-plt.axhline(mean_future_return, color='red', linestyle='dotted', linewidth=2,
-            label=f"Mean Future Return ({mean_future_return:.2%})")
+ax.axhline(mean_future_return, color='red', linestyle='dotted', linewidth=2,
+           label=f"Mean Future Return ({mean_future_return:.2%})")
 
-# Plot horizontal line at zero pasfuture return
-plt.axhline(0, color='black', linestyle='dotted', linewidth=2,
-            label="")
+# Plot horizontal line at zero future return
+ax.axhline(0, color='black', linestyle='dotted', linewidth=2, label="")
 
 # Find the bin index where zero falls
 zero_bin_index = None
-for i, interval in enumerate(df['past_return_bin'].cat.categories):
+for i, interval in enumerate(sorted_categories):
     if interval.left < 0 and interval.right > 0:
         zero_bin_index = i
         break
 
 # Draw vertical line between boxes around zero
-if zero_bin_index is not None and zero_bin_index + 1 < len(df['past_return_bin'].cat.categories):
+if zero_bin_index is not None and zero_bin_index + 1 < len(sorted_categories):
     # Position between the two boxes
     x_pos = zero_bin_index + 0.5
-    plt.axvline(x=x_pos, color='black', linestyle='dotted', linewidth=2, label='')
+    ax.axvline(x=x_pos, color='black', linestyle='dotted', linewidth=2, label='')
 
-# count observations in each bin
-bin_counts = df['past_return_bin'].value_counts().sort_index()
+# Count observations in each bin
+bin_counts = df['past_return_bin_str'].value_counts().sort_index()
 
 # y-axis tick distance for annotation
 offset = 0.05 * (ax.get_ylim()[1] - ax.get_ylim()[0])  # 5% of y-axis range
-y_position = ax.get_ylim()[0] + offset # y-position (slightly above the minimum y limit)
+y_position = ax.get_ylim()[0] + offset  # y-position (slightly above the minimum y limit)
 
 # Annotate number of observations per bin
 for i, count in enumerate(bin_counts):
@@ -120,7 +129,7 @@ for i, count in enumerate(bin_counts):
 # Add colorbar to show mapping
 sm = cm.ScalarMappable(cmap=cmap, norm=norm)
 sm.set_array([])
-plt.colorbar(sm, label='Mean Future Return')
+fig.colorbar(sm, ax=ax, label='Mean Future Return')
 
 plt.legend()
 plt.tight_layout()
