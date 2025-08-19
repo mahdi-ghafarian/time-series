@@ -83,8 +83,25 @@ plt.xticks(ticks=np.arange(len(xtick_labels)), labels=xtick_labels, rotation=90)
 
 # Plot mean future return line
 mean_future_return = df['future_return'].mean()
-plt.axhline(mean_future_return, color='red', linestyle='--', linewidth=2,
+plt.axhline(mean_future_return, color='red', linestyle='dotted', linewidth=2,
             label=f"Mean Future Return ({mean_future_return:.2%})")
+
+# Plot horizontal line at zero pasfuture return
+plt.axhline(0, color='black', linestyle='dotted', linewidth=2,
+            label="")
+
+# Find the bin index where zero falls
+zero_bin_index = None
+for i, interval in enumerate(df['past_return_bin'].cat.categories):
+    if interval.left < 0 and interval.right > 0:
+        zero_bin_index = i
+        break
+
+# Draw vertical line between boxes around zero
+if zero_bin_index is not None and zero_bin_index + 1 < len(df['past_return_bin'].cat.categories):
+    # Position between the two boxes
+    x_pos = zero_bin_index + 0.5
+    plt.axvline(x=x_pos, color='black', linestyle='dotted', linewidth=2, label='Zero Past Return')
 
 # Add colorbar to show mapping
 sm = cm.ScalarMappable(cmap=cmap, norm=norm)
