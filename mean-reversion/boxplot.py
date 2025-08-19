@@ -8,15 +8,25 @@ import matplotlib.cm as cm
 # ------------------------------------------------------------------------------------
 # Parameters
 # ------------------------------------------------------------------------------------
+# File path and column names
+# Adjust the file path and column names according to your dataset.
+# The date column should be in a format that can be parsed by pandas.
+# The price column should contain the time series data for the SP500 index.
 file = "mean-reversion\\sp500-monthly.csv"
 date_col = 'Date'
 price_col = 'SP500'
-start_date = '1943-01-01'  # Adjusted for BTC data availability
+start_date = '1943-01-01' # Adjust this date to your dataset's start date
 
-backward_window = 12
-forward_window = 12
-bin_size = 0.05 # 0.05 works weel up to 60 months, after that 0.1 is better
+# Parameters for mean reversion analysis
+# These parameters control the backward and forward windows for calculating returns
+# and the bin size for categorizing past returns.
+backward_window = 60
+forward_window = 60
+bin_size = 0.2 # controls number of boxes, adjust on BACKWARD_WINDOW, 0.05 works well up to 36 months 
 
+# Figure settings
+# These settings control the size and resolution of the output figure.
+# Adjust these values to fit your display or publication requirements.
 fig_size = (12, 6)
 fig_dpi = 100
 
