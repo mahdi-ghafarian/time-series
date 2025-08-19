@@ -57,7 +57,6 @@ palette = dict(zip(bin_means.index, bin_colors))
 # ------------------------------------------------------------------------------------
 # Plot boxplot using Seaborn
 # ------------------------------------------------------------------------------------
-# plt.style.use('default')  # Resets to default style
 # sns.set_style("whitegrid")
 
 # Set up the figure
