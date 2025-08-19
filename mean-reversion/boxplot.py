@@ -13,9 +13,9 @@ date_col = 'Date'
 price_col = 'SP500'
 start_date = '1943-01-01' # Oldest data available for SP500, 1871-01-01
 
-backward_window = 60
-forward_window = 60
-bin_size = 0.10
+backward_window = 12
+forward_window = 12
+bin_size = 0.05 # works weel up to 60 months, after that 0.1 is better
 
 fig_size = (12, 6)
 fig_dpi = 100
@@ -113,8 +113,8 @@ for i, count in enumerate(bin_counts):
     )
 
 # Adjust y-axis limits to make space for the text (counts)
-ymin, ymax = ax.get_ylim()
-ax.set_ylim(ymin - 0.1, ymax)
+# ymin, ymax = ax.get_ylim()
+# ax.set_ylim(ymin - 0.1, ymax)
 
 # Add colorbar to show mapping
 sm = cm.ScalarMappable(cmap=cmap, norm=norm)
