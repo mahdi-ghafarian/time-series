@@ -14,9 +14,9 @@ price_col = 'SP500'
 start_date = '1943-01-01'  # Adjusted for BTC data availability
 
 backward_window = 12
-forward_window = 12
-bin_size = 0.05 # controls number of boxes
-# 0.05 works well up to 12 months (adjust based on backward_window)
+forward_window = 60
+bin_size = 0.05 # controls number of boxes, adjust on BACKWARD_WINDOW, 0.05 works well up to 36 months 
+
 
 fig_size = (12, 6)
 fig_dpi = 100
@@ -73,12 +73,12 @@ fig, ax = plt.subplots(figsize=fig_size, dpi=fig_dpi)
 # Create boxplot with color mapping
 sns.boxplot(
     data=df, x='past_return_bin_str', y='future_return', palette=palette, ax=ax, showfliers=True,
-    hue='past_return_bin_str', legend=False,
+    # hue='past_return_bin_str', legend=False, # future warning
     flierprops=dict(marker='o', markerfacecolor='black', markersize=10, linestyle='none', alpha=0.25)
 )
 
 # Set title and labels
-plt.title(f"Mean Reversion Profile ({backward_window},{forward_window})")
+plt.title(f"Mean Reversion Profile ({backward_window},{forward_window},{bin_size})")
 plt.xlabel(f"Past Return (t-{backward_window} to t)")
 plt.ylabel(f"Future Return (t to t+{forward_window})")
 plt.grid(True)
@@ -92,7 +92,7 @@ ax.set_xticklabels(xtick_labels, rotation=90)
 # Plot mean future return line
 mean_future_return = df['future_return'].mean()
 ax.axhline(mean_future_return, color='red', linestyle='dotted', linewidth=2,
-           label=f"Mean Future Return ({mean_future_return:.2%})")
+           label=f"Mean Future Return ({mean_future_return:.0%})")
 
 # Plot horizontal line at zero future return
 ax.axhline(0, color='black', linestyle='dotted', linewidth=2, label="")
