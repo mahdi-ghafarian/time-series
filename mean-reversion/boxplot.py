@@ -71,7 +71,7 @@ ax = sns.boxplot(
 
 
 # Set title and labels
-plt.title(f"MRP Box Plot Colored by Mean Future Return ({backward_window},{forward_window})")
+plt.title(f"Mean Reversion Profile ({backward_window},{forward_window})")
 plt.xlabel(f"Past Return (t-{backward_window} to t)")
 plt.ylabel(f"Future Return (t to t+{forward_window})")
 plt.grid(True)
