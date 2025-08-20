@@ -4,6 +4,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 import matplotlib.cm as cm
+from matplotlib.ticker import PercentFormatter
 
 # ------------------------------------------------------------------------------------
 # Parameters
@@ -20,13 +21,15 @@ start_date = '1943-01-01' # Adjust this date to your dataset's start date
 # Parameters for mean reversion analysis
 # These parameters control the backward and forward windows for calculating returns
 # and the bin size for categorizing past returns.
-backward_window = 60
+backward_window = 12
 forward_window = 60
-bin_size = 0.2 # controls number of boxes, adjust on BACKWARD_WINDOW, 0.05 works well up to 36 months 
+bin_size = 0.05 # controls number of boxes, adjust on BACKWARD_WINDOW, 0.05 works well up to 36 months 
 
 # Figure settings
 # These settings control the size and resolution of the output figure.
 # Adjust these values to fit your display or publication requirements.
+fig_title_ticker = "S&P 500"
+fig_title_freq = "Monthly"
 fig_size = (12, 6)
 fig_dpi = 100
 
@@ -78,6 +81,8 @@ df['past_return_bin_str'] = pd.Categorical(df['past_return_bin_str'],
 
 # Set up the figure
 fig, ax = plt.subplots(figsize=fig_size, dpi=fig_dpi)
+ax.yaxis.set_major_formatter(PercentFormatter(xmax=1.0))
+
 
 # Create boxplot with color mapping
 sns.boxplot(
@@ -87,14 +92,20 @@ sns.boxplot(
 )
 
 # Set title and labels
-plt.title(f"Mean Reversion Profile ({backward_window},{forward_window},{bin_size})")
+plt.title(f"Mean Reversion Profile ({backward_window},{forward_window},{bin_size}) — {fig_title_ticker} {fig_title_freq}")
 plt.xlabel(f"Past Return (t-{backward_window} to t)")
 plt.ylabel(f"Future Return (t to t+{forward_window})")
 plt.grid(True)
 
+#  --------------------------------------------------------------------------------------
+# plot customizations
+#  --------------------------------------------------------------------------------------
+# Set x-axis limits
+ax.set_xlim(-0.5, len(sorted_categories) - 0.5)
+
 # Format x-axis tick labels
 # plt.xticks(rotation=90) # have (a,b] format by itself
-xtick_labels = [f"{interval.left:.2f} to {interval.right:.2f}" for interval in sorted_categories]
+xtick_labels = [f"{interval.left:.0%} to {interval.right:.0%}" for interval in sorted_categories]
 ax.set_xticks(np.arange(len(xtick_labels)))
 ax.set_xticklabels(xtick_labels, rotation=90)
 
@@ -116,8 +127,8 @@ for i, interval in enumerate(sorted_categories):
 # Draw vertical line between boxes around zero
 if zero_bin_index is not None and zero_bin_index + 1 < len(sorted_categories):
     # Position between the two boxes
-    x_pos = zero_bin_index + 0.5
-    ax.axvline(x=x_pos, color='black', linestyle='dotted', linewidth=2, label='')
+    x_pos = zero_bin_index - 0.5
+    ax.axvline(x=x_pos, color='black', linestyle='dotted', linewidth=2, label='Zero Return')
 
 # Count observations in each bin
 bin_counts = df['past_return_bin_str'].value_counts().sort_index()
@@ -138,9 +149,15 @@ for i, count in enumerate(bin_counts):
 # Add colorbar to show mapping
 sm = cm.ScalarMappable(cmap=cmap, norm=norm)
 sm.set_array([])
-fig.colorbar(sm, ax=ax, label='Mean Future Return')
+cbar = fig.colorbar(sm, ax=ax, label='Mean Future Return')
+cbar.ax.yaxis.set_major_formatter(PercentFormatter(xmax=1.0))
 
+# Add legend 
 plt.legend()
+
+# Adjust layout to prevent overlap
 plt.tight_layout()
+
+# show the plot
 plt.show()
 # ------------------------------------------------------------------------------------
