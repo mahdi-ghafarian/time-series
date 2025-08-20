@@ -42,7 +42,7 @@ df.set_index(date_col, inplace=True)
 df = df[df.index >= start_date]
 
 # ------------------------------------------------------------------------------------
-# Compute signal and outcome
+# Compute past return and future return
 # ------------------------------------------------------------------------------------
 df['past_return'] = df[price_col] / df[price_col].shift(backward_window) - 1
 df['future_return'] = df[price_col].shift(-forward_window) / df[price_col] - 1
@@ -57,15 +57,15 @@ bins = np.arange(x_min, x_max + bin_size, bin_size)
 df['past_return_bin'] = pd.cut(df['past_return'], bins)
 
 # ------------------------------------------------------------------------------------
-# Compute mean future return per bin and map to colors
+# Compute mean future return per bin and map to colors of boxees
 # ------------------------------------------------------------------------------------
-bin_means = df.groupby('past_return_bin',observed=False)['future_return'].mean()
-norm = mcolors.Normalize(vmin=bin_means.min(), vmax=bin_means.max())
+bin_mean = df.groupby('past_return_bin',observed=False)['future_return'].median()
+norm = mcolors.Normalize(vmin=bin_mean.min(), vmax=bin_mean.max())
 cmap = plt.colormaps['RdYlGn']  # updated for matplotlib >= 3.7
-bin_colors = [cmap(norm(val)) for val in bin_means]
+bin_colors = [cmap(norm(val)) for val in bin_mean]
 
 # Create a palette mapping each bin to its color
-palette = dict(zip(bin_means.index.astype(str), bin_colors))
+palette = dict(zip(bin_mean.index.astype(str), bin_colors))
 
 # ------------------------------------------------------------------------------------
 # Plot boxplot using Seaborn
@@ -81,8 +81,9 @@ df['past_return_bin_str'] = pd.Categorical(df['past_return_bin_str'],
 
 # Set up the figure
 fig, ax = plt.subplots(figsize=fig_size, dpi=fig_dpi)
-ax.yaxis.set_major_formatter(PercentFormatter(xmax=1.0))
 
+# format y-axis as percentage, rounded to zero decimal places
+ax.yaxis.set_major_formatter(PercentFormatter(xmax=1.0, decimals=0))
 
 # Create boxplot with color mapping
 sns.boxplot(
@@ -109,10 +110,10 @@ xtick_labels = [f"{interval.left:.0%} to {interval.right:.0%}" for interval in s
 ax.set_xticks(np.arange(len(xtick_labels)))
 ax.set_xticklabels(xtick_labels, rotation=90)
 
-# Plot mean future return line
+# Plot mean future return line (red horizontal line)
 mean_future_return = df['future_return'].mean()
 ax.axhline(mean_future_return, color='red', linestyle='dotted', linewidth=2,
-           label=f"Mean Future Return ({mean_future_return:.0%})")
+           label=f"Mean Future Return ({mean_future_return:.1%})")
 
 # Plot horizontal line at zero future return
 ax.axhline(0, color='black', linestyle='dotted', linewidth=2, label="")
