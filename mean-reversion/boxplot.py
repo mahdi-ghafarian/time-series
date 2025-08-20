@@ -121,7 +121,6 @@ ax.axhline(0, color='black', linestyle='dotted', linewidth=2, label="")
 zero_bin_index = None
 epsilon = 1e-6  # small value to handle floating point precision issues
 for i, interval in enumerate(sorted_categories):
-    print(f"Checking interval {i}: {interval}")
     if interval.left < 0 and interval.right > -1 * epsilon:  # Check if the bin contains zero
         zero_bin_index = i
         break
