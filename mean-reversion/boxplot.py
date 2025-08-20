@@ -119,15 +119,17 @@ ax.axhline(0, color='black', linestyle='dotted', linewidth=2, label="")
 
 # Find the bin index where zero falls
 zero_bin_index = None
+epsilon = 1e-6  # small value to handle floating point precision issues
 for i, interval in enumerate(sorted_categories):
-    if interval.left < 0 and interval.right > 0:
+    print(f"Checking interval {i}: {interval}")
+    if interval.left < 0 and interval.right > -1 * epsilon:  # Check if the bin contains zero
         zero_bin_index = i
         break
 
 # Draw vertical line between boxes around zero
 if zero_bin_index is not None and zero_bin_index + 1 < len(sorted_categories):
     # Position between the two boxes
-    x_pos = zero_bin_index - 0.5
+    x_pos = zero_bin_index + 0.5
     ax.axvline(x=x_pos, color='black', linestyle='dotted', linewidth=2, label='Zero Return')
 
 # Count observations in each bin
@@ -150,7 +152,7 @@ for i, count in enumerate(bin_counts):
 sm = cm.ScalarMappable(cmap=cmap, norm=norm)
 sm.set_array([])
 cbar = fig.colorbar(sm, ax=ax, label='Mean Future Return')
-cbar.ax.yaxis.set_major_formatter(PercentFormatter(xmax=1.0))
+cbar.ax.yaxis.set_major_formatter(PercentFormatter(xmax=1.0,decimals=0))  # Format colorbar ticks as percentages
 
 # Add legend 
 plt.legend()
