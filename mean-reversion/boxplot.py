@@ -13,9 +13,9 @@ date_col = 'Date'
 price_col = 'SP500'
 start_date = '1943-01-01'  # Adjusted for BTC data availability
 
-backward_window = 12
+backward_window = 60
 forward_window = 60
-bin_size = 0.05 # controls number of boxes, adjust on BACKWARD_WINDOW, 0.05 works well up to 36 months 
+bin_size = 0.1 # controls number of boxes, adjust on BACKWARD_WINDOW, 0.05 works well up to 36 months 
 
 
 fig_size = (12, 6)
