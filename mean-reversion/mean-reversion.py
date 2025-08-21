@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 from matplotlib.ticker import PercentFormatter
+from scipy.stats import linregress
 
 # ------------------------------------------------------------------------------------
 # Parameters
@@ -13,16 +14,16 @@ price = 'SP500' # Price column name
 start_date = '1943-01-01' # Start date for analysis, format 'YYYY-MM-DD'
 
 # signal/outcome parameters
-backward_window = 12 # backward window for signal calculation
+backward_window = 60 # backward window for signal calculation
 forward_window = 60 # forward window for outcome calculation
-bin_size = 0.05 # bin size for signal binning
+bin_size = 0.01 # bin size for signal binning
 
 # plotting parameters
 fig_size = (10,6) # figure width and height in inches (window size)
 fig_dpi = 100 # figure resolution in dots per inch
 aspect_ratio = 0.6 # height/width ratio for the plot
 custom_grid = True # whether to use custom grid spacing
-grid_x = 0.1 # grid spacing for x-axis
+grid_x = 0.2 # grid spacing for x-axis
 grid_y = 0.2 # grid spacing for y-axis
 
 # std dev ranges, used for range-based statistics, add or remove as needed
@@ -151,14 +152,14 @@ def plot_return(signal, outcome, bin_range, custom_grid, figsize=(10, 6), dpi=10
     # Overlay bin means in blue
     plt.scatter(stats_df['Bin'], stats_df['Mean Return'], color='blue', s=100, alpha=0.6)
 
-    # Fit a linear regression line
-    coeffs = np.polyfit(signal, outcome, deg=1)
+    # Perform linear regression using scipy
+    slope, intercept, r_value, p_value, std_err = linregress(signal, outcome)
     reg_x = np.linspace(signal.min(), signal.max(), 100)
-    reg_y = coeffs[0] * reg_x + coeffs[1]
-    
-    # Add regression line to plot
+    reg_y = slope * reg_x + intercept
+
+    # Add regression line with stats to plot
     plt.plot(reg_x, reg_y, color='blue', linestyle='solid', linewidth=1.5,
-             label=f'y = {coeffs[0]:.2f}x + {coeffs[1]:.1f}')
+            label=f'y = {slope:.2f}x + {intercept:.3f}\nR = {r_value:.2f}, p = {p_value:.4f}')
 
     # Set plot title and labels
     plt.title(f"Mean Reversion Profile ({backward_window},{forward_window})")
