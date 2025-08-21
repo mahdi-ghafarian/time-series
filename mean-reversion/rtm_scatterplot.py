@@ -16,7 +16,7 @@ start_date = '1943-01-01' # Start date for analysis, format 'YYYY-MM-DD'
 # signal/outcome parameters
 backward_window = 60 # backward window for signal calculation
 forward_window = 60 # forward window for outcome calculation
-bin_size = 0.01 # bin size for signal binning (blue dots on plot)
+bin_size = 0.1 # bin size for signal binning (blue dots on plot)
 
 # plotting parameters
 fig_size = (10,6) # figure width and height in inches (window size)
