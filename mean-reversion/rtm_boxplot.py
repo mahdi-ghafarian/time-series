@@ -13,17 +13,17 @@ from matplotlib.ticker import PercentFormatter
 # Adjust the file path and column names according to your dataset.
 # The date column should be in a format that can be parsed by pandas.
 # The price column should contain the time series data for the SP500 index.
-file = "mean-reversion\\btc-monthly.csv"
+file = "mean-reversion\\sp500-monthly.csv"
 date_col = 'Date'
-price_col = 'Avg (HLC3)'
-start_date = '2014-09-01' # Adjust this date to your dataset's start date
+price_col = 'SP500'
+start_date = '1943-01-01' # Adjust this date to your dataset's start date
 
 # Parameters for mean reversion analysis
 # These parameters control the backward and forward windows for calculating returns
 # and the bin size for categorizing past returns.
-backward_window = 3
-forward_window = 3
-bin_size = 0.25 # controls number of boxes, adjust on BACKWARD_WINDOW, 0.05 works well up to 36 months 
+backward_window = 60
+forward_window = 60
+bin_size = 0.1 # controls number of boxes, adjust on BACKWARD_WINDOW, 0.05 works well up to 36 months 
 
 # Figure settings
 # These settings control the size and resolution of the output figure.
