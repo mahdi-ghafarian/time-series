@@ -162,7 +162,7 @@ def plot_return(signal, outcome, bin_range, custom_grid, figsize=(10, 6), dpi=10
             label=f'y = {slope:.2f}x + {intercept:.3f}\nR = {r_value:.2f}, p = {p_value:.4f}')
 
     # Set plot title and labels
-    plt.title(f"Mean Reversion Profile ({backward_window},{forward_window})")
+    plt.title(f"Mean Reversion Profile ({backward_window},{forward_window},{bin_size})")
     plt.xlabel(f"Past Return (t-{backward_window} to t)")
     plt.ylabel(f"Future Return (t to t+{forward_window})")
     plt.grid(True)
