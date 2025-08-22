@@ -71,7 +71,7 @@ with tab_data: # first tab
     # Timeframe
     tf_options = ['1d','1wk','1mo','3mo']
     interval = st.pills(label="Timeframe", options=tf_options, 
-        default='1d', selection_mode="single", key='interval',
+        default='1mo', selection_mode="single", key='interval',
         help = 'Duration of time that each data point on the chart \
             represents.', on_change = set_data_window)
     
