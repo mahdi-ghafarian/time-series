@@ -21,8 +21,8 @@ start_date = '1943-01-01' # Adjust this date to your dataset's start date
 # Parameters for mean reversion analysis
 # These parameters control the backward and forward windows for calculating returns
 # and the bin size for categorizing past returns.
-backward_window = 60
-forward_window = 60
+backward_window = 120
+forward_window = 120
 auto_bin = True  # if True, bin_size is set automatically based on backward_window
 number_of_bins = 20 # used only if auto_bin is True
 bin_size = 0.1 # adjust based on BACKWARD_WINDOW, 0.05 works well up to 36 months 

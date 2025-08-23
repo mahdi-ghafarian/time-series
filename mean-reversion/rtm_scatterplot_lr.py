@@ -13,11 +13,13 @@ price = 'SP500' # Price column name
 start_date = '1943-01-01' # Start date for analysis, format 'YYYY-MM-DD'
 
 # signal/outcome parameters
-backward_window = 60 # backward window for signal calculation
+backward_window = 12 # backward window for signal calculation
 forward_window = 60 # forward window for outcome calculation
 bin_size = 0.01 # bin size for signal binning (blue dots on plot)
 
 # plotting parameters
+fig_title_ticker = "S&P 500"
+fig_title_freq = "Monthly"
 fig_size = (10,6) # figure width and height in inches (window size)
 fig_dpi = 100 # figure resolution in dots per inch
 aspect_ratio = 0.6 # height/width ratio for the plot
@@ -166,9 +168,9 @@ def plot_return(signal, outcome, bin_range, custom_grid, figsize=(10, 6), dpi=10
             label=f'y = {slope:.2f}x + {intercept:.3f}\nR = {r_value:.2f}, p = {p_value:.4f}')
 
     # Set plot title and labels
-    plt.title(f"Mean Reversion Profile ({backward_window},{forward_window},{bin_size})")
-    plt.xlabel(f"Past Return (t-{backward_window} to t)")
-    plt.ylabel(f"Future Return (t to t+{forward_window})")
+    plt.title(f"Mean Reversion Profile ({backward_window},{forward_window},{bin_size}) — {fig_title_ticker} {fig_title_freq} (Log Return)")
+    plt.xlabel(f"Past Log Return (t-{backward_window} to t)")
+    plt.ylabel(f"Future Log Return (t to t+{forward_window})")
     plt.grid(True)
 
     # Get current axis for further customization
