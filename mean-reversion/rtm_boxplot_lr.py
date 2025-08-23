@@ -110,8 +110,8 @@ sns.boxplot(
 
 # Set title and labels
 plt.title(f"Mean Reversion Profile ({backward_window},{forward_window},{bin_size}) — {fig_title_ticker} {fig_title_freq} (Log Return)")
-plt.xlabel(f"Past Return (t-{backward_window} to t)")
-plt.ylabel(f"Future Return (t to t+{forward_window})")
+plt.xlabel(f"Past Log Return (t-{backward_window} to t)")
+plt.ylabel(f"Future Log Return (t to t+{forward_window})")
 plt.grid(True)
 
 #  --------------------------------------------------------------------------------------
@@ -170,7 +170,7 @@ for i, count in enumerate(bin_counts):
 # Add colorbar to show mapping
 sm = cm.ScalarMappable(cmap=cmap, norm=norm)
 sm.set_array([])
-cbar = fig.colorbar(sm, ax=ax, label='Mean Future Return')
+cbar = fig.colorbar(sm, ax=ax, label='Mean Future Log Return')
 # two decimal places for colorbar ticks
 
 # Add legend 

@@ -21,8 +21,8 @@ start_date = '1943-01-01' # Adjust this date to your dataset's start date
 # Parameters for mean reversion analysis
 # These parameters control the backward and forward windows for calculating returns
 # and the bin size for categorizing past returns.
-backward_window = 120
-forward_window = 120
+backward_window = 60
+forward_window = 60
 auto_bin = True  # if True, bin_size is set automatically based on backward_window
 number_of_bins = 20 # used only if auto_bin is True
 bin_size = 0.1 # controls number of boxes, adjust on BACKWARD_WINDOW, 0.05 works well up to 36 months 
@@ -106,7 +106,7 @@ sns.boxplot(
 )
 
 # Set title and labels
-plt.title(f"Mean Reversion Profile ({backward_window},{forward_window},{bin_size}) — {fig_title_ticker} {fig_title_freq}")
+plt.title(f"Mean Reversion Profile ({backward_window},{forward_window},{bin_size}) — {fig_title_ticker} {fig_title_freq} (% Return)")
 plt.xlabel(f"Past Return (t-{backward_window} to t)")
 plt.ylabel(f"Future Return (t to t+{forward_window})")
 plt.grid(True)
