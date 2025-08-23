@@ -21,8 +21,10 @@ start_date = '1943-01-01' # Adjust this date to your dataset's start date
 # Parameters for mean reversion analysis
 # These parameters control the backward and forward windows for calculating returns
 # and the bin size for categorizing past returns.
-backward_window = 60
-forward_window = 60
+backward_window = 120
+forward_window = 120
+auto_bin = True  # if True, bin_size is set automatically based on backward_window
+number_of_bins = 20 # used only if auto_bin is True
 bin_size = 0.1 # controls number of boxes, adjust on BACKWARD_WINDOW, 0.05 works well up to 36 months 
 
 # Figure settings
@@ -47,6 +49,17 @@ df = df[df.index >= start_date]
 df['past_return'] = df[price_col] / df[price_col].shift(backward_window) - 1
 df['future_return'] = df[price_col].shift(-forward_window) / df[price_col] - 1
 df.dropna(subset=['past_return', 'future_return'], inplace=True)
+
+# ------------------------------------------------------------------------------------
+# Calculate bin size automatically if auto_bin is True
+# ------------------------------------------------------------------------------------
+if auto_bin:
+    past_return_min = df['past_return'].min()
+    past_return_max = df['past_return'].max()
+    bin_size = (past_return_max - past_return_min) / number_of_bins
+    # Round bin_size to nearest 0.01 for better readability
+    bin_size = round(bin_size, 2)
+    # print(f"Auto-calculated bin_size: {bin_size}")
 
 # ------------------------------------------------------------------------------------
 # Bin past returns
