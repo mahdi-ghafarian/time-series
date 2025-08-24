@@ -13,7 +13,7 @@ from matplotlib.ticker import FuncFormatter # for custom tick formatting
 # Adjust the file path and column names according to your dataset.
 # The date column should be in a format that can be parsed by pandas.
 # The price column should contain the time series data for the SP500 index.
-file = "mean-reversion\\btc-weekly.csv"
+file = "mean-reversion\\btc-monthly.csv"
 date_col = 'Date'
 price_col = 'Close'
 start_date = '2015-01-01' # Adjust this date to your dataset's start date
@@ -21,8 +21,8 @@ start_date = '2015-01-01' # Adjust this date to your dataset's start date
 # Parameters for mean reversion analysis
 # These parameters control the backward and forward windows for calculating returns
 # and the bin size for categorizing past returns.
-backward_window = 1
-forward_window = 1
+backward_window = 36
+forward_window = 12
 auto_bin = True  # if True, bin_size is set automatically based on backward_window
 number_of_bins = 10 # used only if auto_bin is True
 bin_size = 0.1 # adjust based on BACKWARD_WINDOW, 0.05 works well up to 36 months 
