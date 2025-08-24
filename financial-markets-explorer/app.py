@@ -55,7 +55,7 @@ st.sidebar.tabs(["Data", "Smoothing", "Format"])
 
 with tab_data: # first tab
     # ticker symbol: find from Yahoo Finance
-    ticker_symbol = st.text_input(label='Ticker',value='SPY',
+    ticker_symbol = st.text_input(label='Ticker',value='BTC-USD',
         key='ticker_symbol',
         help = '''
             Use [Yahoo Finance](https://finance.yahoo.com) to find the ticker.

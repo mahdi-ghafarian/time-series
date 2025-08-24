@@ -14,7 +14,7 @@ from matplotlib.ticker import FuncFormatter # for custom tick formatting
 # These parameters control the data fetching from Yahoo Finance.
 # You can specify either a data window (e.g., last 1 year) or a specific date range.
 # If use_data_window is True, data_window is used; otherwise, start_date and end_date are used.
-ticker_symbol = 'LULU'  # e.g., 'AAPL', 'MSFT', 'GOOGL'
+ticker_symbol = 'COST'  # e.g., 'AAPL', 'MSFT', 'GOOGL'
 use_data_window = True # if True, use data_window; if False, use start_date and end_date
 interval = '1mo' # '1d','1wk','1mo','3mo'
 data_window = 'max' # ['3mo','6mo','1y','2y','5y','10y','ytd','max']
