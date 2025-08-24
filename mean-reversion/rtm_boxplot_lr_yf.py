@@ -14,8 +14,8 @@ from matplotlib.ticker import FuncFormatter # for custom tick formatting
 # These parameters control the data fetching from Yahoo Finance.
 # You can specify either a data window (e.g., last 1 year) or a specific date range.
 # If use_data_window is True, data_window is used; otherwise, start_date and end_date are used.
-ticker_symbol = 'MSFT'
-use_data_window = False
+ticker_symbol = 'LULU'  # e.g., 'AAPL', 'MSFT', 'GOOGL'
+use_data_window = True # if True, use data_window; if False, use start_date and end_date
 interval = '1mo' # '1d','1wk','1mo','3mo'
 data_window = 'max' # ['3mo','6mo','1y','2y','5y','10y','ytd','max']
 start_date = '2000-01-01' # 'YYYY-MM-DD'
@@ -25,7 +25,7 @@ end_date = '2025-01-01'  # 'YYYY-MM-DD'
 # These parameters control the backward and forward windows for calculating returns
 # and the bin size for categorizing past returns.
 backward_window = 12
-forward_window = 60
+forward_window = 12
 auto_bin = True  # if True, bin_size is set automatically based on backward_window
 number_of_bins = 20 # used only if auto_bin is True
 bin_size = 0.1 # adjust based on BACKWARD_WINDOW, 0.05 works well up to 36 months 
@@ -49,7 +49,7 @@ else:
     data = ticker.history(start=start_date, end=end_date,interval=interval)
 
 # Convert data to DataFrame
-df = pd.DataFrame(data)
+df = pd.DataFrame(data) # Date column set as index automatically
 
 # handle empty dataframe
 if df.empty:
@@ -57,6 +57,15 @@ if df.empty:
 else:
     print(f"Fetched {len(df)} rows of data for {ticker_symbol} from Yahoo Finance.")
     print(df)
+
+# ------------------------------------------------------------------------------------
+# Plot line chart of log average price
+# ------------------------------------------------------------------------------------
+df['AVG'] = (df['High'] + df['Low'] + df['Close']) / 3
+df['LOG AVG'] = np.log(df['AVG'])  # log price
+df['LOG AVG'].plot(title=f"{ticker_symbol} {interval}", grid=True)
+plt.ylabel("Log Avg Price (HLC3)")
+plt.xlabel("Date")
 
 # ------------------------------------------------------------------------------------
 # Compute past return and future return
