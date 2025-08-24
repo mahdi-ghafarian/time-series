@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import seaborn as sns
+import yfinance as yf
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors # for color normalization
 import matplotlib.cm as cm # for color maps
@@ -9,39 +10,53 @@ from matplotlib.ticker import FuncFormatter # for custom tick formatting
 # ------------------------------------------------------------------------------------
 # Parameters
 # ------------------------------------------------------------------------------------
-# File path and column names
-# Adjust the file path and column names according to your dataset.
-# The date column should be in a format that can be parsed by pandas.
-# The price column should contain the time series data for the SP500 index.
-file = "mean-reversion\\btc-weekly.csv"
-date_col = 'Date'
-price_col = 'Close'
-start_date = '2015-01-01' # Adjust this date to your dataset's start date
+# Data parameters
+# These parameters control the data fetching from Yahoo Finance.
+# You can specify either a data window (e.g., last 1 year) or a specific date range.
+# If use_data_window is True, data_window is used; otherwise, start_date and end_date are used.
+ticker_symbol = 'MSFT'
+use_data_window = False
+interval = '1mo' # '1d','1wk','1mo','3mo'
+data_window = 'max' # ['3mo','6mo','1y','2y','5y','10y','ytd','max']
+start_date = '2000-01-01' # 'YYYY-MM-DD'
+end_date = '2025-01-01'  # 'YYYY-MM-DD'
 
 # Parameters for mean reversion analysis
 # These parameters control the backward and forward windows for calculating returns
 # and the bin size for categorizing past returns.
-backward_window = 1
-forward_window = 1
+backward_window = 12
+forward_window = 60
 auto_bin = True  # if True, bin_size is set automatically based on backward_window
-number_of_bins = 10 # used only if auto_bin is True
+number_of_bins = 20 # used only if auto_bin is True
 bin_size = 0.1 # adjust based on BACKWARD_WINDOW, 0.05 works well up to 36 months 
 
 # Figure settings
 # These settings control the size and resolution of the output figure.
 # Adjust these values to fit your display or publication requirements.
-fig_title_ticker = "S&P 500"
-fig_title_freq = "Monthly"
 fig_size = (12, 6)
 fig_dpi = 100
 
 # ------------------------------------------------------------------------------------
 # Load and prepare data
 # ------------------------------------------------------------------------------------
-df = pd.read_csv(file)
-df[date_col] = pd.to_datetime(df[date_col], format='%Y-%m-%d', errors='coerce')
-df.set_index(date_col, inplace=True)
-df = df[df.index >= start_date]
+# Create a ticker object
+ticker = yf.Ticker(ticker_symbol)
+
+# Fetch historical data
+if (use_data_window==True): 
+    data = ticker.history(period=data_window,interval=interval)
+else:
+    data = ticker.history(start=start_date, end=end_date,interval=interval)
+
+# Convert data to DataFrame
+df = pd.DataFrame(data)
+
+# handle empty dataframe
+if df.empty:
+    raise ValueError("No data fetched. Please check the ticker symbol and date range.")
+else:
+    print(f"Fetched {len(df)} rows of data for {ticker_symbol} from Yahoo Finance.")
+    print(df)
 
 # ------------------------------------------------------------------------------------
 # Compute past return and future return
@@ -49,8 +64,8 @@ df = df[df.index >= start_date]
 # log return = ln(price_2 / price_1)
 # Example: price_1 = 100, price_2 = 120, log return = ln(120/100) = 0.1823
 # e^0.1823 = 120/100 = 1.2, which is a 20% return
-df['past_return'] = np.log(df[price_col] / df[price_col].shift(backward_window))
-df['future_return'] = np.log(df[price_col].shift(-forward_window) / df[price_col])
+df['past_return'] = np.log(df['Close'] / df['Close'].shift(backward_window))
+df['future_return'] = np.log(df['Close'].shift(-forward_window) / df['Close'])
 df.dropna(subset=['past_return', 'future_return'], inplace=True)
 
 # ------------------------------------------------------------------------------------
@@ -109,7 +124,7 @@ sns.boxplot(
 )
 
 # Set title and labels
-plt.title(f"Mean Reversion Profile ({backward_window},{forward_window},{bin_size}) — {fig_title_ticker} {fig_title_freq} (Log Return)")
+plt.title(f"Mean Reversion Profile ({backward_window},{forward_window},{bin_size}) — {ticker_symbol} {interval} (Log Return)")
 plt.xlabel(f"Past Log Return (t-{backward_window} to t)")
 plt.ylabel(f"Future Log Return (t to t+{forward_window})")
 plt.grid(True)
