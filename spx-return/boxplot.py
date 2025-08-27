@@ -4,6 +4,8 @@ import pandas as pd
 
 # Historical S&P 500 annual returns from 1928 to 2024
 returns_data = {
+    
+    1926: 11.62, 1927: 37.49,
     1928: 43.81, 1929: -8.42, 1930: -24.90, 1931: -43.34, 1932: -8.19, 1933: 53.99, 1934: -1.44, 1935: 47.67, 1936: 33.92, 1937: -35.03,
     1938: 31.12, 1939: -0.41, 1940: -9.78, 1941: -11.59, 1942: 20.34, 1943: 25.90, 1944: 19.75, 1945: 36.44, 1946: -8.07, 1947: 5.71,
     1948: 5.50, 1949: 18.79, 1950: 31.71, 1951: 24.02, 1952: 18.37, 1953: -0.99, 1954: 52.62, 1955: 31.56, 1956: 6.56, 1957: -10.78,
@@ -48,7 +50,7 @@ ax.axhline(y=0, color='gray', linestyle=':', label='')
 # Set x-axis labels
 ax.set_xticklabels([f"{int(decade)}s" for decade in grouped.index])
 ax.set_ylabel('Annual Return (%)')
-ax.set_title('S&P 500 Annual Returns by Decade (1928–2024)')
+ax.set_title('S&P 500 Annual Returns by Decade (1926–2024)')
 ax.legend()
 
 plt.tight_layout()
