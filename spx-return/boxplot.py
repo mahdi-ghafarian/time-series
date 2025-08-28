@@ -54,7 +54,7 @@ ax.set_title('S&P 500 Annual Returns by Decade (1926–2024)')
 ax.legend()
 
 plt.tight_layout()
-# plt.savefig("./spx-return/sp500_returns_by_decade.png")
+plt.savefig("./spx-return/sp500_returns_by_decade.png")
 print("Boxplot saved as 'sp500_returns_by_decade.png'.")
 plt.legend()
 plt.show()
