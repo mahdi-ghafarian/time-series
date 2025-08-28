@@ -223,43 +223,87 @@ with open('./swing-study/swing-stats.txt', 'w') as f:
 # ------------------------------------------------------------------------------------
 # Box plots for swing metrics
 # ------------------------------------------------------------------------------------
-# Size Ratio
+# Swing Size Ratio
+
+# Determine common y-axis limits
+# y_min = swing_df['Swing_Size_Ratio'].min()
+y_min = 0  # set minimum to 0 for better visualization
+y_max = swing_df['Swing_Size_Ratio'].max()
+
+y_ticks = np.arange(int(np.floor(y_min)), int(np.ceil(y_max)) + 1, 1)
+
+
 plt.figure(figsize=(12, 6))
+
+# First subplot
 plt.subplot(1, 3, 1)
 sns.boxplot(data=swing_df, y='Swing_Size_Ratio')
 plt.title('Swing Size Ratio')
-plt.ylabel('ATR%')  
+plt.ylabel('ATR%')
+plt.ylim(y_min, y_max)
+plt.yticks(y_ticks)
 plt.grid(True, which="both", ls="--", linewidth=0.5)
+
+# Second subplot
 plt.subplot(1, 3, 2)
 sns.boxplot(data=up_swing_df, y='Swing_Size_Ratio')
-plt.title('Up Swing Size Ratio')   
+plt.title('Up Swing Size Ratio')
 plt.ylabel('ATR%')
+plt.ylim(y_min, y_max)
+plt.yticks(y_ticks)
 plt.grid(True, which="both", ls="--", linewidth=0.5)
+
+# Third subplot
 plt.subplot(1, 3, 3)
 sns.boxplot(data=down_swing_df, y='Swing_Size_Ratio')
 plt.title('Down Swing Size Ratio')
 plt.ylabel('ATR%')
+plt.ylim(y_min, y_max)
+plt.yticks(y_ticks)
 plt.grid(True, which="both", ls="--", linewidth=0.5)
+
 plt.tight_layout()
 plt.savefig('./swing-study/swing-size-ratio-boxplot.png')
 # plt.show()
 
+# ------------------------------------------------------------------------------------
 # Duration
+
+# Determine common y-axis limits
+# y_min = swing_df['Swing_Duration'].min()
+y_min = 0
+y_max = swing_df['Swing_Duration'].max()
+
+y_ticks = np.arange(int(np.floor(y_min)), int(np.ceil(y_max)) + 1, 1)
+
+
 plt.figure(figsize=(12, 6))
+
+# First subplot
 plt.subplot(1, 3, 1)
 sns.boxplot(data=swing_df, y='Swing_Duration')
 plt.title('Swing Duration')
-plt.ylabel('Bars')
+plt.ylabel('Periods')
+plt.ylim(y_min, y_max)
+plt.yticks(y_ticks)
 plt.grid(True, which="both", ls="--", linewidth=0.5)
+
+# Second subplot
 plt.subplot(1, 3, 2)
 sns.boxplot(data=up_swing_df, y='Swing_Duration')
 plt.title('Up Swing Duration')
-plt.ylabel('Bars')
+plt.ylabel('Periods')
+plt.ylim(y_min, y_max)
+plt.yticks(y_ticks)
 plt.grid(True, which="both", ls="--", linewidth=0.5)
+
+# Third subplot
 plt.subplot(1, 3, 3)
 sns.boxplot(data=down_swing_df, y='Swing_Duration')
 plt.title('Down Swing Duration')
-plt.ylabel('Bars')
+plt.ylabel('Periods')
+plt.ylim(y_min, y_max)
+plt.yticks(y_ticks)
 plt.grid(True, which="both", ls="--", linewidth=0.5)
 plt.tight_layout()
 plt.savefig('./swing-study/swing-duration-boxplot.png')
