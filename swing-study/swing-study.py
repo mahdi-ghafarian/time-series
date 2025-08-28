@@ -209,9 +209,15 @@ with open('./swing-study/swing-stats.txt', 'w') as f:
     print_descriptive_stats(up_swing_df, 'Swing_Size_Ratio')
     print_descriptive_stats(down_swing_df, 'Swing_Size_Ratio')
     
+    print_descriptive_stats(swing_df, 'Swing_Size%')
+    print_descriptive_stats(up_swing_df, 'Swing_Size%')
+    print_descriptive_stats(down_swing_df, 'Swing_Size%')
+    
     print_descriptive_stats(swing_df, 'Swing_Duration')
     print_descriptive_stats(up_swing_df, 'Swing_Duration')
     print_descriptive_stats(down_swing_df, 'Swing_Duration')
+    
+    
 
     # Reset stdout to default
     sys.stdout = sys.__stdout__
@@ -229,7 +235,7 @@ with open('./swing-study/swing-stats.txt', 'w') as f:
 y_min = 0  # set minimum to 0 for better visualization
 y_max = swing_df['Swing_Size_Ratio'].max()
 
-y_ticks = np.arange(int(np.floor(y_min)), int(np.ceil(y_max)) + 1, 1)
+y_ticks = np.arange(int(np.floor(y_min)), int(np.ceil(y_max)) + 0.5, 0.5)
 
 
 plt.figure(figsize=(12, 6))
@@ -264,6 +270,41 @@ plt.grid(True, which="both", ls="--", linewidth=0.5)
 plt.tight_layout()
 plt.savefig('./swing-study/swing-size-ratio-boxplot.png')
 # plt.show()
+
+# ------------------------------------------------------------------------------------
+# Swing Size %
+# Determine common y-axis limits
+# y_min = swing_df['Swing_Size%'].min()
+y_min = 0
+y_max = swing_df['Swing_Size%'].max()
+# y_ticks = np.arange(int(np.floor(y_min)), int(np.ceil(y_max)) + 1, 1)
+plt.figure(figsize=(12, 6))
+# First subplot
+plt.subplot(1, 3, 1)
+sns.boxplot(data=swing_df, y='Swing_Size%')
+plt.title('Swing Size %')
+plt.ylabel('Percentage %')
+plt.ylim(y_min, y_max)
+# plt.yticks(y_ticks)
+plt.grid(True, which="both", ls="--", linewidth=0.5)
+# Second subplot
+plt.subplot(1, 3, 2)
+sns.boxplot(data=up_swing_df, y='Swing_Size%')
+plt.title('Up Swing Size %')
+plt.ylabel('Percentage %')
+plt.ylim(y_min, y_max)
+# plt.yticks(y_ticks)
+plt.grid(True, which="both", ls="--", linewidth=0.5)
+# Third subplot
+plt.subplot(1, 3, 3)
+sns.boxplot(data=down_swing_df, y='Swing_Size%')
+plt.title('Down Swing Size %')
+plt.ylabel('Percentage %')
+plt.ylim(y_min, y_max)
+# plt.yticks(y_ticks)
+plt.grid(True, which="both", ls="--", linewidth=0.5)
+plt.tight_layout()
+plt.savefig('./swing-study/swing-size-percentage-boxplot.png')
 
 # ------------------------------------------------------------------------------------
 # Duration
