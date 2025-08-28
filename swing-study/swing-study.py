@@ -206,12 +206,11 @@ with open('./swing-study/swing-stats.txt', 'w') as f:
     print_descriptive_stats(df, 'ATR%')
 
     print_descriptive_stats(swing_df, 'Swing_Size_Ratio')
-    print_descriptive_stats(swing_df, 'Swing_Duration')
-
     print_descriptive_stats(up_swing_df, 'Swing_Size_Ratio')
-    print_descriptive_stats(up_swing_df, 'Swing_Duration')
-
     print_descriptive_stats(down_swing_df, 'Swing_Size_Ratio')
+    
+    print_descriptive_stats(swing_df, 'Swing_Duration')
+    print_descriptive_stats(up_swing_df, 'Swing_Duration')
     print_descriptive_stats(down_swing_df, 'Swing_Duration')
 
     # Reset stdout to default
