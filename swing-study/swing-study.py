@@ -217,8 +217,6 @@ with open('./swing-study/swing-stats.txt', 'w') as f:
     print_descriptive_stats(up_swing_df, 'Swing_Duration')
     print_descriptive_stats(down_swing_df, 'Swing_Duration')
     
-    
-
     # Reset stdout to default
     sys.stdout = sys.__stdout__
 
