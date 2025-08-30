@@ -145,7 +145,7 @@ st.sidebar.divider()
 st.sidebar.header('Back Transformation',help='Convert the figures from the chart back \
     to their original prices.')
 # get input from user
-log_price = st.sidebar.number_input('Log Price', value=1.0, step=1)
+log_price = st.sidebar.number_input('Log Price', value=1, step=1)
 # write the back transformation
 if (log_price):
     st.sidebar.write(f'Price: `{np.exp(log_price):.4f}`')
