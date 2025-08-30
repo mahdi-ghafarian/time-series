@@ -33,10 +33,10 @@ end_date = '2025-01-01'  # 'YYYY-MM-DD'
 # Parameters for mean reversion analysis
 # These parameters control the backward and forward windows for calculating returns
 # and the bin size for categorizing past returns.
-backward_window = 12
-forward_window = 60
+backward_window = 60
+forward_window = 12
 auto_bin = True  # if True, bin_size is set automatically based on backward_window
-number_of_bins = 20 # used only if auto_bin is True
+number_of_bins = 5 # used only if auto_bin is True
 bin_size = 0.1 # adjust based on BACKWARD_WINDOW, 0.05 works well up to 36 months 
 
 # Figure settings
@@ -155,7 +155,7 @@ ax.set_xlim(-0.5, len(sorted_categories) - 0.5)
 
 # Format x-axis tick labels
 # plt.xticks(rotation=90) # have (a,b] format by itself
-xtick_labels = [f"{interval.left:.2f} to {interval.right:.2f}" for interval in sorted_categories]
+xtick_labels = [f"{bin_interval.left:.2f} to {bin_interval.right:.2f}" for bin_interval in sorted_categories]
 ax.set_xticks(np.arange(len(xtick_labels)))
 ax.set_xticklabels(xtick_labels, rotation=90)
 
@@ -173,8 +173,8 @@ ax.axhline(0, color='black', linestyle='dotted', linewidth=2, label="")
 # Find the bin index where zero falls
 zero_bin_index = None
 epsilon = 1e-6  # small value to handle floating point precision issues
-for i, interval in enumerate(sorted_categories):
-    if interval.left < 0 and interval.right > -1 * epsilon:  # Check if the bin contains zero
+for i, bin_interval in enumerate(sorted_categories):
+    if bin_interval.left < 0 and bin_interval.right > -1 * epsilon:  # Check if the bin contains zero
         zero_bin_index = i
         break
 
@@ -210,6 +210,9 @@ plt.legend()
 
 # Adjust layout to prevent overlap
 plt.tight_layout()
+
+# Save the plot as a PNG file
+fig.savefig(f"./mean-reversion/plot/mrp_boxplot_{ticker_symbol.upper()}_{interval}_{backward_window}_{forward_window}_{bin_size}.png")
 
 # show the plot
 plt.show()
