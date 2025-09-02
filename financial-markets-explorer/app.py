@@ -142,11 +142,9 @@ with tab_format: # third tab
 
 # Back Transformation
 st.sidebar.divider()
-st.sidebar.header('Back Transformation',help='Convert the figures from the chart back \
-    to their original prices.')
+st.sidebar.header('Back Transformation',help='Enter a log price to convert it back to price.')
 # get input from user
-log_price = st.sidebar.number_input('Log Price', value=1.00,step=0.10,format='%.2f',
-    help='Enter a log price to convert it back to price.')
+log_price = st.sidebar.number_input('Log Price', value=1.00,step=0.10,format='%.2f')
 
 # write the back transformation
 if (log_price):
