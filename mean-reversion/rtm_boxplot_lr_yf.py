@@ -33,8 +33,8 @@ end_date = '2025-01-01'  # 'YYYY-MM-DD'
 # Parameters for mean reversion analysis
 # These parameters control the backward and forward windows for calculating returns
 # and the bin size for categorizing past returns.
-backward_window = 60
-forward_window = 12
+backward_window = 1
+forward_window = 1
 auto_bin = True  # if True, bin_size is set automatically based on backward_window
 number_of_bins = 5 # used only if auto_bin is True
 bin_size = 0.1 # adjust based on BACKWARD_WINDOW, 0.05 works well up to 36 months 
