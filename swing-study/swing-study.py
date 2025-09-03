@@ -167,8 +167,9 @@ def print_descriptive_stats(df,column_name):
     #count of non-null values
     count = df[column_name].count()
     mean = df[column_name].mean()
-    #standard deviation
     std = df[column_name].std()
+    skewness = df[column_name].skew()
+    kurtosis = df[column_name].kurtosis()
     min_val = df[column_name].min()
     percentile_1 = df[column_name].quantile(0.01)
     percentile_5 = df[column_name].quantile(0.05)
@@ -181,6 +182,8 @@ def print_descriptive_stats(df,column_name):
     print(f"Count: {count}")
     print(f"Mean: {mean:.4f}")
     print(f"Standard Deviation: {std:.4f}")
+    print(f"Skewness: {skewness:.4f}")
+    print(f"Kurtosis: {kurtosis:.4f}")
     print(f"Min: {min_val:.4f}")
     print(f"1st Percentile: {percentile_1:.4f}")
     print(f"5th Percentile: {percentile_5:.4f}")    
