@@ -102,7 +102,7 @@ Standard Deviation: 9.9514
 Skewness: 1.6840
 Kurtosis: 2.8200
 Min: 0.0746
-1st Percentile: 0.3351
+1st Percentile: 0.3350
 5th Percentile: 1.2225
 25th Percentile (Q1): 4.2921
 50th Percentile (Q2): 7.8984
@@ -117,11 +117,11 @@ Mean: 5.3125
 Standard Deviation: 6.4768
 Skewness: 2.8242
 Kurtosis: 11.3066
-Min: 0.2245
+Min: 0.2246
 1st Percentile: 0.2613
 5th Percentile: 0.4788
 25th Percentile (Q1): 1.3064
-50th Percentile (Q2): 2.8436
+50th Percentile (Q2): 2.8435
 75th Percentile (Q3): 7.6041
 95th Percentile: 16.1781
 99th Percentile: 27.7154
