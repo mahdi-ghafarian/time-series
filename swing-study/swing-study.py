@@ -169,7 +169,7 @@ def print_descriptive_stats(df,column_name):
     mean = df[column_name].mean()
     std = df[column_name].std()
     skewness = df[column_name].skew()
-    kurtosis = df[column_name].kurtosis()
+    kurtosis = df[column_name].kurtosis() # excess kurtosis (normal distribution = 0)
     min_val = df[column_name].min()
     percentile_1 = df[column_name].quantile(0.01)
     percentile_5 = df[column_name].quantile(0.05)
