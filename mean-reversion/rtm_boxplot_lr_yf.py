@@ -23,9 +23,9 @@ warnings.filterwarnings('ignore')
 # These parameters control the data fetching from Yahoo Finance.
 # You can specify either a data window (e.g., last 1 year) or a specific date range.
 # If use_data_window is True, data_window is used; otherwise, start_date and end_date are used.
-ticker_symbol = 'spy'  # e.g., 'AAPL', 'MSFT', 'GOOGL'
+ticker_symbol = '^GSPC'  # e.g., 'AAPL', 'MSFT', 'GOOGL'
 use_data_window = True # if True, use data_window; if False, use start_date and end_date
-interval = '1mo' # '1d','1wk','1mo','3mo'
+interval = '1d' # '1d','1wk','1mo','3mo'
 data_window = 'max' # ['3mo','6mo','1y','2y','5y','10y','ytd','max']
 start_date = '2000-01-01' # 'YYYY-MM-DD'
 end_date = '2025-01-01'  # 'YYYY-MM-DD'
@@ -33,8 +33,8 @@ end_date = '2025-01-01'  # 'YYYY-MM-DD'
 # Parameters for mean reversion analysis
 # These parameters control the backward and forward windows for calculating returns
 # and the bin size for categorizing past returns.
-backward_window = 1
-forward_window = 1
+backward_window = 100
+forward_window = 30
 auto_bin = True  # if True, bin_size is set automatically based on backward_window
 number_of_bins = 5 # used only if auto_bin is True
 bin_size = 0.1 # adjust based on BACKWARD_WINDOW, 0.05 works well up to 36 months 
