@@ -1,0 +1,176 @@
+
+Descriptive statistics for df[TR%]:
+Count: 384
+Mean: 16.3594
+Standard Deviation: 10.1619
+Skewness: 2.4861
+Kurtosis: 11.8612
+Min: 3.0248
+1st Percentile: 4.7606
+5th Percentile: 5.7783
+25th Percentile (Q1): 9.6315
+50th Percentile (Q2): 14.0517
+75th Percentile (Q3): 20.4583
+95th Percentile: 33.9156
+99th Percentile: 51.3853
+Max: 96.7949
+
+Descriptive statistics for df[ATR%]:
+Count: 355
+Mean: 16.3680
+Standard Deviation: 6.1438
+Skewness: 0.5599
+Kurtosis: -0.9324
+Min: 8.3451
+1st Percentile: 8.4733
+5th Percentile: 8.7136
+25th Percentile (Q1): 11.4493
+50th Percentile (Q2): 14.3765
+75th Percentile (Q3): 22.1371
+95th Percentile: 27.2708
+99th Percentile: 29.5454
+Max: 30.1200
+
+Descriptive statistics for swing_df[Swing_Size_Ratio]:
+Count: 143
+Mean: 1.0676
+Standard Deviation: 1.2657
+Skewness: 2.7813
+Kurtosis: 10.3090
+Min: 0.0002
+1st Percentile: 0.0106
+5th Percentile: 0.0354
+25th Percentile (Q1): 0.2822
+50th Percentile (Q2): 0.5968
+75th Percentile (Q3): 1.4346
+95th Percentile: 3.4524
+99th Percentile: 6.6611
+Max: 7.9062
+
+Descriptive statistics for up_swing_df[Swing_Size_Ratio]:
+Count: 71
+Mean: 1.3659
+Standard Deviation: 1.5595
+Skewness: 2.3959
+Kurtosis: 6.6684
+Min: 0.0207
+1st Percentile: 0.0281
+5th Percentile: 0.1330
+25th Percentile (Q1): 0.3552
+50th Percentile (Q2): 0.8433
+75th Percentile (Q3): 1.6106
+95th Percentile: 4.0645
+99th Percentile: 7.5682
+Max: 7.9062
+
+Descriptive statistics for down_swing_df[Swing_Size_Ratio]:
+Count: 72
+Mean: 0.7734
+Standard Deviation: 0.7934
+Skewness: 1.6958
+Kurtosis: 3.1782
+Min: 0.0002
+1st Percentile: 0.0034
+5th Percentile: 0.0264
+25th Percentile (Q1): 0.2165
+50th Percentile (Q2): 0.4895
+75th Percentile (Q3): 1.1222
+95th Percentile: 2.1788
+99th Percentile: 3.4578
+Max: 3.8615
+
+Descriptive statistics for swing_df[Swing_Size%]:
+Count: 143
+Mean: 16.8329
+Standard Deviation: 20.6706
+Skewness: 2.8208
+Kurtosis: 10.2126
+Min: 0.0030
+1st Percentile: 0.1632
+5th Percentile: 0.5284
+25th Percentile (Q1): 4.2240
+50th Percentile (Q2): 9.3484
+75th Percentile (Q3): 20.5784
+95th Percentile: 47.6633
+99th Percentile: 104.0918
+Max: 130.4951
+
+Descriptive statistics for up_swing_df[Swing_Size%]:
+Count: 71
+Mean: 21.2557
+Standard Deviation: 25.5697
+Skewness: 2.4956
+Kurtosis: 6.6663
+Min: 0.2837
+1st Percentile: 0.2950
+5th Percentile: 1.8796
+25th Percentile (Q1): 6.3535
+50th Percentile (Q2): 13.6502
+75th Percentile (Q3): 21.8641
+95th Percentile: 81.7567
+99th Percentile: 116.4244
+Max: 130.4951
+
+Descriptive statistics for down_swing_df[Swing_Size%]:
+Count: 72
+Mean: 12.4716
+Standard Deviation: 13.0804
+Skewness: 1.3049
+Kurtosis: 0.6985
+Min: 0.0030
+1st Percentile: 0.0593
+5th Percentile: 0.3948
+25th Percentile (Q1): 2.6795
+50th Percentile (Q2): 6.8192
+75th Percentile (Q3): 16.2160
+95th Percentile: 40.0839
+99th Percentile: 47.8410
+Max: 48.1032
+
+Descriptive statistics for swing_df[Swing_Duration]:
+Count: 143
+Mean: 2.4112
+Standard Deviation: 2.0782
+Skewness: 3.0558
+Kurtosis: 13.3738
+Min: 0.9032
+1st Percentile: 0.9032
+5th Percentile: 0.9387
+25th Percentile (Q1): 1.0000
+50th Percentile (Q2): 1.9677
+75th Percentile (Q3): 2.9355
+95th Percentile: 5.8935
+99th Percentile: 9.8439
+Max: 15.6452
+
+Descriptive statistics for up_swing_df[Swing_Duration]:
+Count: 71
+Mean: 2.8278
+Standard Deviation: 2.6700
+Skewness: 2.4994
+Kurtosis: 7.7531
+Min: 0.9032
+1st Percentile: 0.9032
+5th Percentile: 0.9355
+25th Percentile (Q1): 1.0000
+50th Percentile (Q2): 1.9677
+75th Percentile (Q3): 2.9677
+95th Percentile: 8.8226
+99th Percentile: 11.6032
+Max: 15.6452
+
+Descriptive statistics for down_swing_df[Swing_Duration]:
+Count: 72
+Mean: 2.0004
+Standard Deviation: 1.1246
+Skewness: 0.9259
+Kurtosis: 0.0971
+Min: 0.9032
+1st Percentile: 0.9261
+5th Percentile: 0.9677
+25th Percentile (Q1): 1.0000
+50th Percentile (Q2): 1.9516
+75th Percentile (Q3): 2.9032
+95th Percentile: 3.9500
+99th Percentile: 4.9355
+Max: 4.9355

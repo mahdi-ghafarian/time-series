@@ -24,7 +24,7 @@ warnings.filterwarnings('ignore')
 # Parameters
 # ------------------------------------------------------------------------------------
 # Data parameters
-ticker_symbol = 'SPY'  # e.g., 'AAPL', 'MSFT', 'GOOGL'
+ticker_symbol = 'BTC-USD'  # e.g., 'AAPL', 'MSFT', 'GOOGL'
 use_data_window = True # if True, use data_window; if False, use start_date and end_date
 interval = '1mo' # '1d','1wk','1mo','3mo'
 data_window = 'max' # ['3mo','6mo','1y','2y','5y','10y','ytd','max']
@@ -199,7 +199,7 @@ def print_descriptive_stats(df,column_name):
 # Print descriptive statistics for swing metrics
 # -------------------------------------------------------------------------------------
 # Create a text file to write the output
-with open('./swing-study/swing-stats.txt', 'w') as f:
+with open(f'./swing-study/output/{ticker_symbol.upper()}_{interval}_swing-stats.txt', 'w') as f:
     # Redirect stdout to a StringIO buffer
     buffer = io.StringIO()
     sys.stdout = buffer
@@ -269,7 +269,7 @@ plt.yticks(y_ticks)
 plt.grid(True, which="both", ls="--", linewidth=0.5)
 
 plt.tight_layout()
-plt.savefig('./swing-study/swing-size-ratio-boxplot.png')
+plt.savefig(f'./swing-study/output/{ticker_symbol.upper()}_{interval}_swing-size-ratio-boxplot.png')
 # plt.show()
 
 # ------------------------------------------------------------------------------------
@@ -305,7 +305,7 @@ plt.ylim(y_min, y_max)
 # plt.yticks(y_ticks)
 plt.grid(True, which="both", ls="--", linewidth=0.5)
 plt.tight_layout()
-plt.savefig('./swing-study/swing-size-percentage-boxplot.png')
+plt.savefig(f'./swing-study/output/{ticker_symbol.upper()}_{interval}_swing-size-percentage-boxplot.png')
 
 # ------------------------------------------------------------------------------------
 # Duration
@@ -347,7 +347,7 @@ plt.ylim(y_min, y_max)
 plt.yticks(y_ticks)
 plt.grid(True, which="both", ls="--", linewidth=0.5)
 plt.tight_layout()
-plt.savefig('./swing-study/swing-duration-boxplot.png')
+plt.savefig(f'./swing-study/output/{ticker_symbol.upper()}_{interval}_swing-duration-boxplot.png')
 plt.show()
 # ------------------------------------------------------------------------------------
 # End of code

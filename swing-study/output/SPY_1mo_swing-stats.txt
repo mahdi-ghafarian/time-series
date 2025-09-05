@@ -1,12 +1,12 @@
 
 Descriptive statistics for df[TR%]:
 Count: 393
-Mean: 7.0166
-Standard Deviation: 4.3423
-Skewness: 2.7023
-Kurtosis: 11.6383
+Mean: 7.0181
+Standard Deviation: 4.3405
+Skewness: 2.7061
+Kurtosis: 11.6568
 Min: 0.4979
-1st Percentile: 2.3435
+1st Percentile: 2.3518
 5th Percentile: 2.9443
 25th Percentile (Q1): 4.3816
 50th Percentile (Q2): 5.9342
@@ -19,8 +19,8 @@ Descriptive statistics for df[ATR%]:
 Count: 364
 Mean: 7.1814
 Standard Deviation: 2.0029
-Skewness: 0.2214
-Kurtosis: -1.0664
+Skewness: 0.2213
+Kurtosis: -1.0663
 Min: 4.1554
 1st Percentile: 4.2108
 5th Percentile: 4.3492
@@ -33,10 +33,10 @@ Max: 11.2216
 
 Descriptive statistics for swing_df[Swing_Size_Ratio]:
 Count: 132
-Mean: 1.1682
-Standard Deviation: 1.2362
-Skewness: 1.9189
-Kurtosis: 4.4866
+Mean: 1.1695
+Standard Deviation: 1.2383
+Skewness: 1.9143
+Kurtosis: 4.4460
 Min: 0.0156
 1st Percentile: 0.0281
 5th Percentile: 0.0816
@@ -49,17 +49,17 @@ Max: 6.7360
 
 Descriptive statistics for up_swing_df[Swing_Size_Ratio]:
 Count: 66
-Mean: 1.5532
-Standard Deviation: 1.3172
-Skewness: 1.2508
-Kurtosis: 1.3995
+Mean: 1.5557
+Standard Deviation: 1.3203
+Skewness: 1.2447
+Kurtosis: 1.3613
 Min: 0.0156
 1st Percentile: 0.0417
 5th Percentile: 0.1664
 25th Percentile (Q1): 0.5810
 50th Percentile (Q2): 1.1433
-75th Percentile (Q3): 2.1870
-95th Percentile: 4.0016
+75th Percentile (Q3): 2.1869
+95th Percentile: 4.0017
 99th Percentile: 5.3094
 Max: 6.1890
 
@@ -68,10 +68,10 @@ Count: 66
 Mean: 0.7832
 Standard Deviation: 1.0218
 Skewness: 3.5052
-Kurtosis: 17.2869
+Kurtosis: 17.2868
 Min: 0.0254
 1st Percentile: 0.0310
-5th Percentile: 0.0771
+5th Percentile: 0.0770
 25th Percentile (Q1): 0.2126
 50th Percentile (Q2): 0.3823
 75th Percentile (Q3): 0.9745
@@ -81,33 +81,33 @@ Max: 6.7360
 
 Descriptive statistics for swing_df[Swing_Size%]:
 Count: 132
-Mean: 8.1046
-Standard Deviation: 8.8208
-Skewness: 2.0786
-Kurtosis: 4.9005
-Min: 0.0746
-1st Percentile: 0.2421
+Mean: 8.1129
+Standard Deviation: 8.8324
+Skewness: 2.0731
+Kurtosis: 4.8613
+Min: 0.0745
+1st Percentile: 0.2420
 5th Percentile: 0.6541
 25th Percentile (Q1): 2.0079
-50th Percentile (Q2): 5.3816
-75th Percentile (Q3): 10.5252
+50th Percentile (Q2): 5.3815
+75th Percentile (Q3): 10.5251
 95th Percentile: 24.8252
 99th Percentile: 39.1617
 Max: 47.6092
 
 Descriptive statistics for up_swing_df[Swing_Size%]:
 Count: 66
-Mean: 10.8967
-Standard Deviation: 9.9514
-Skewness: 1.6840
-Kurtosis: 2.8200
-Min: 0.0746
+Mean: 10.9133
+Standard Deviation: 9.9674
+Skewness: 1.6755
+Kurtosis: 2.7763
+Min: 0.0745
 1st Percentile: 0.3350
 5th Percentile: 1.2225
-25th Percentile (Q1): 4.2921
+25th Percentile (Q1): 4.2922
 50th Percentile (Q2): 7.8984
 75th Percentile (Q3): 13.4235
-95th Percentile: 33.2656
+95th Percentile: 33.2655
 99th Percentile: 41.6915
 Max: 47.6092
 
@@ -116,10 +116,10 @@ Count: 66
 Mean: 5.3125
 Standard Deviation: 6.4768
 Skewness: 2.8242
-Kurtosis: 11.3066
+Kurtosis: 11.3065
 Min: 0.2245
 1st Percentile: 0.2613
-5th Percentile: 0.4788
+5th Percentile: 0.4787
 25th Percentile (Q1): 1.3064
 50th Percentile (Q2): 2.8436
 75th Percentile (Q3): 7.6041
