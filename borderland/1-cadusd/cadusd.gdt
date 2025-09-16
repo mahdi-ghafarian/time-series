@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE gretldata SYSTEM "gretldata.dtd">
+
+<gretldata version="1.5" name="cadusd" frequency="12" n="60" startobs="2020:09" endobs="2025:08" type="time-series">
+<description>Data imported from CSV file 'cadusd.csv', 2025-09-16 10:13
+</description>
+<variables count="1">
+<variable name="CADUSD"
+/>
+</variables>
+<observations count="60" labels="false">
+<obs>0.73676 </obs>
+<obs>0.73356 </obs>
+<obs>0.73964 </obs>
+<obs>0.7429 </obs>
+<obs>0.7372 </obs>
+<obs>0.73713 </obs>
+<obs>0.73254 </obs>
+<obs>0.72095 </obs>
+<obs>0.7288 </obs>
+<obs>0.72622 </obs>
+<obs>0.72308 </obs>
+<obs>0.72897 </obs>
+<obs>0.73711 </obs>
+<obs>0.73946 </obs>
+<obs>0.74362 </obs>
+<obs>0.74054 </obs>
+<obs>0.74766 </obs>
+<obs>0.7427 </obs>
+<obs>0.73872 </obs>
+<obs>0.69694 </obs>
+<obs>0.70642 </obs>
+<obs>0.69952 </obs>
+<obs>0.69911 </obs>
+<obs>0.71286 </obs>
+<obs>0.70999 </obs>
+<obs>0.70979 </obs>
+<obs>0.71806 </obs>
+<obs>0.74229 </obs>
+<obs>0.75472 </obs>
+<obs>0.74562 </obs>
+<obs>0.73974 </obs>
+<obs>0.74243 </obs>
+<obs>0.72829 </obs>
+<obs>0.73612 </obs>
+<obs>0.72749 </obs>
+<obs>0.73718 </obs>
+<obs>0.74044 </obs>
+<obs>0.75653 </obs>
+<obs>0.76183 </obs>
+<obs>0.75521 </obs>
+<obs>0.75897 </obs>
+<obs>0.75165 </obs>
+<obs>0.75007 </obs>
+<obs>0.74021 </obs>
+<obs>0.73315 </obs>
+<obs>0.73186 </obs>
+<obs>0.74236 </obs>
+<obs>0.75391 </obs>
+<obs>0.75142 </obs>
+<obs>0.75366 </obs>
+<obs>0.76749 </obs>
+<obs>0.76256 </obs>
+<obs>0.7611 </obs>
+<obs>0.75847 </obs>
+<obs>0.75235 </obs>
+<obs>0.74707 </obs>
+<obs>0.73933 </obs>
+<obs>0.74616 </obs>
+<obs>0.74554 </obs>
+<obs>0.75477 </obs>
+</observations>
+</gretldata>
