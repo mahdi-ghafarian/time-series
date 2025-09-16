@@ -24,7 +24,7 @@ warnings.filterwarnings('ignore')
 # Parameters
 # ------------------------------------------------------------------------------------
 # Data parameters
-ticker_symbol = 'BTC-USD'  # e.g., 'AAPL', 'MSFT', 'GOOGL'
+ticker_symbol = 'LULU'  # e.g., 'AAPL', 'MSFT', 'GOOGL'
 use_data_window = True # if True, use data_window; if False, use start_date and end_date
 interval = '1mo' # '1d','1wk','1mo','3mo'
 data_window = 'max' # ['3mo','6mo','1y','2y','5y','10y','ytd','max']
