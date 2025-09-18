@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE gretldata SYSTEM "gretldata.dtd">
 
-<gretldata version="1.5" name="cadusd" frequency="12" n="309" startobs="2000:01" endobs="2025:09" type="time-series">
+<gretldata version="1.5" name="cadusd" frequency="12" n="321" startobs="2000:01" endobs="2026:09" type="time-series">
 <description>Data imported from CSV file 'cadusd.csv', 2025-09-17 19:58
 </description>
 <variables count="10">
@@ -35,7 +35,7 @@
  label="100*((DX/DX(-1))^12-1)"
 />
 </variables>
-<observations count="309" labels="false">
+<observations count="321" labels="false">
 <obs>1 1 2000 0.6915 1.4461315979754157 26.7 102.73 NA NA NA </obs>
 <obs>2 2 2000 0.6896 1.4501160092807426 29.07 104.98 -0.2747650036153293 8.8764044943820295 29.691455362398745 </obs>
 <obs>3 3 2000 0.6874 1.4547570555717195 29.45 105.53 -0.31902552204176038 1.3071895424836555 6.4712705106532376 </obs>
@@ -345,6 +345,18 @@
 <obs>307 7 2025 0.729 1.3717421124828533 67.35 98.01 -0.34176349965824304 1.4001806684733387 1.4809976903028099 </obs>
 <obs>308 8 2025 0.7241 1.3810247203424941 66.22 98.75 -0.67215363511660131 -1.6778025241276806 9.446173259390477 </obs>
 <obs>309 9 2025 0.7257 1.3779798814937301 63.82 97.21 0.22096395525481594 -3.6242826940501294 -17.189374321427987 </obs>
+<obs>310 NA NA NA NA NA NA NA NA NA </obs>
+<obs>311 NA NA NA NA NA NA NA NA NA </obs>
+<obs>312 NA NA NA NA NA NA NA NA NA </obs>
+<obs>313 NA NA NA NA NA NA NA NA NA </obs>
+<obs>314 NA NA NA NA NA NA NA NA NA </obs>
+<obs>315 NA NA NA NA NA NA NA NA NA </obs>
+<obs>316 NA NA NA NA NA NA NA NA NA </obs>
+<obs>317 NA NA NA NA NA NA NA NA NA </obs>
+<obs>318 NA NA NA NA NA NA NA NA NA </obs>
+<obs>319 NA NA NA NA NA NA NA NA NA </obs>
+<obs>320 NA NA NA NA NA NA NA NA NA </obs>
+<obs>321 NA NA NA NA NA NA NA NA NA </obs>
 </observations>
 <string-tables count="1">
 <valstrings owner="Month" count="12">"Jan" "Feb" "Mar" "Apr" "May" "Jun" "Jul" "Aug" "Sep" "Oct" "Nov" "Dec" </valstrings>
