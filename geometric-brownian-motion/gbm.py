@@ -1,3 +1,9 @@
+#-----------------------------------------------------------
+# This script simulates a price path using Geometric Brownian Motion (GBM). 
+# GBM is commonly used in financial mathematics to model stock prices.
+# It assumes that the logarithm of the price follows a Brownian motion with drift.
+#-----------------------------------------------------------
+
 import numpy as np
 import matplotlib.pyplot as plt
 
