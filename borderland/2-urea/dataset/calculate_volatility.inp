@@ -1,0 +1,37 @@
+# Calculates historical volatility
+
+# Step 1: Create log returns 
+# Change the target series name (e.g. NG)
+series LR = ln(UR_AB_CAD) - ln(UR_AB_CAD(-1))
+
+# Modify n to last index of data
+scalar n = 306 
+
+# Period to calculate volatility
+# Example: 12 for monthly data
+scalar period = 12 
+
+# Step 2: Initialize rolling volatility series
+series VOLATILITY_1 = NA
+
+# Step 3: Loop to calculate rolling standard deviation
+loop i = period .. n
+    # Create a temporary series with the last 12 values
+    series TEMP = NA
+    loop j = 0 .. period -1 
+        TEMP[j+1] = LR[i - (period -1) + j]
+    endloop
+
+    # Compute standard deviation of the temporary series
+    scalar s = sd(TEMP)
+
+    # Assign to the volatility series
+    VOLATILITY_1[i] = s
+endloop
+
+delete TEMP
+
+# Step 3: Calculate volatility for 12 periods ahead
+series VOLATILITY_12 = sqrt(VOLATILITY_1)
+
+
