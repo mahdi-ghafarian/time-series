@@ -1,0 +1,81 @@
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 Edg/140.0.0.0" version="28.2.5">
+  <diagram name="Page-1" id="igFBwFJwEkW_7Ug0fn3M">
+    <mxGraphModel dx="1034" dy="618" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="TzQ23WjIHbdyS36FuE1q-1" value="Interest Rate" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fontFamily=Lucida Console;" vertex="1" parent="1">
+          <mxGeometry x="80" y="160" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="TzQ23WjIHbdyS36FuE1q-7" value="+" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.25;entryDx=0;entryDy=0;flowAnimation=0;anchorPointDirection=1;sourcePerimeterSpacing=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;labelPosition=center;verticalLabelPosition=top;align=center;verticalAlign=bottom;fontSize=14;fontFamily=Lucida Console;" edge="1" parent="1" source="TzQ23WjIHbdyS36FuE1q-2" target="TzQ23WjIHbdyS36FuE1q-5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="TzQ23WjIHbdyS36FuE1q-2" value="GDP Growth Rate" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fontFamily=Lucida Console;" vertex="1" parent="1">
+          <mxGeometry x="80" y="240" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="TzQ23WjIHbdyS36FuE1q-8" value="-" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.75;entryDx=0;entryDy=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;flowAnimation=0;anchorPointDirection=1;sourcePerimeterSpacing=0;labelPosition=center;verticalLabelPosition=top;align=center;verticalAlign=bottom;fontSize=14;fontFamily=Lucida Console;" edge="1" parent="1" source="TzQ23WjIHbdyS36FuE1q-3" target="TzQ23WjIHbdyS36FuE1q-5">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="360" y="280" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="TzQ23WjIHbdyS36FuE1q-3" value="Inflation Rate" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fontFamily=Lucida Console;" vertex="1" parent="1">
+          <mxGeometry x="80" y="320" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="TzQ23WjIHbdyS36FuE1q-9" value="-" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=1;entryDx=0;entryDy=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;flowAnimation=0;anchorPointDirection=1;sourcePerimeterSpacing=0;labelPosition=center;verticalLabelPosition=top;align=center;verticalAlign=bottom;fontSize=14;fontFamily=Lucida Console;" edge="1" parent="1" source="TzQ23WjIHbdyS36FuE1q-4" target="TzQ23WjIHbdyS36FuE1q-5">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="360" y="280" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="TzQ23WjIHbdyS36FuE1q-4" value="Unemployment Rate" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fontFamily=Lucida Console;" vertex="1" parent="1">
+          <mxGeometry x="80" y="400" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="TzQ23WjIHbdyS36FuE1q-32" value="+" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.25;entryDx=0;entryDy=0;labelPosition=center;verticalLabelPosition=top;align=center;verticalAlign=bottom;fontSize=14;textShadow=0;fontFamily=Lucida Console;" edge="1" parent="1" source="TzQ23WjIHbdyS36FuE1q-5" target="TzQ23WjIHbdyS36FuE1q-31">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="TzQ23WjIHbdyS36FuE1q-5" value="CAD" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fontFamily=Lucida Console;" vertex="1" parent="1">
+          <mxGeometry x="330" y="280" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="TzQ23WjIHbdyS36FuE1q-16" value="+" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0;entryDx=0;entryDy=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;labelPosition=center;verticalLabelPosition=top;align=center;verticalAlign=bottom;fontSize=14;fontFamily=Lucida Console;" edge="1" parent="1" source="TzQ23WjIHbdyS36FuE1q-1" target="TzQ23WjIHbdyS36FuE1q-5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="TzQ23WjIHbdyS36FuE1q-22" value="Interest Rate" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fontFamily=Lucida Console;" vertex="1" parent="1">
+          <mxGeometry x="80" y="480" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="TzQ23WjIHbdyS36FuE1q-23" value="+" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.25;entryDx=0;entryDy=0;flowAnimation=0;anchorPointDirection=1;sourcePerimeterSpacing=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;labelPosition=center;verticalLabelPosition=top;align=center;verticalAlign=bottom;fontSize=14;fontFamily=Lucida Console;" edge="1" parent="1" source="TzQ23WjIHbdyS36FuE1q-24" target="TzQ23WjIHbdyS36FuE1q-29">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="TzQ23WjIHbdyS36FuE1q-24" value="GDP Growth Rate" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fontFamily=Lucida Console;" vertex="1" parent="1">
+          <mxGeometry x="80" y="560" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="TzQ23WjIHbdyS36FuE1q-25" value="-" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.75;entryDx=0;entryDy=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;flowAnimation=0;anchorPointDirection=1;sourcePerimeterSpacing=0;labelPosition=center;verticalLabelPosition=top;align=center;verticalAlign=bottom;fontSize=14;fontFamily=Lucida Console;" edge="1" parent="1" source="TzQ23WjIHbdyS36FuE1q-26" target="TzQ23WjIHbdyS36FuE1q-29">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="360" y="600" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="TzQ23WjIHbdyS36FuE1q-26" value="Inflation Rate" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fontFamily=Lucida Console;" vertex="1" parent="1">
+          <mxGeometry x="80" y="640" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="TzQ23WjIHbdyS36FuE1q-27" value="-" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=1;entryDx=0;entryDy=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;flowAnimation=0;anchorPointDirection=1;sourcePerimeterSpacing=0;labelPosition=center;verticalLabelPosition=top;align=center;verticalAlign=bottom;fontSize=14;fontFamily=Lucida Console;" edge="1" parent="1" source="TzQ23WjIHbdyS36FuE1q-28" target="TzQ23WjIHbdyS36FuE1q-29">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="360" y="600" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="TzQ23WjIHbdyS36FuE1q-28" value="Unemployment Rate" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fontFamily=Lucida Console;" vertex="1" parent="1">
+          <mxGeometry x="80" y="720" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="TzQ23WjIHbdyS36FuE1q-33" value="-" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.75;entryDx=0;entryDy=0;labelPosition=center;verticalLabelPosition=top;align=center;verticalAlign=bottom;fontSize=14;textShadow=0;fontFamily=Lucida Console;" edge="1" parent="1" source="TzQ23WjIHbdyS36FuE1q-29" target="TzQ23WjIHbdyS36FuE1q-31">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="TzQ23WjIHbdyS36FuE1q-29" value="USD" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fontFamily=Lucida Console;" vertex="1" parent="1">
+          <mxGeometry x="330" y="600" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="TzQ23WjIHbdyS36FuE1q-30" value="+" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0;entryDx=0;entryDy=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;labelPosition=center;verticalLabelPosition=top;align=center;verticalAlign=bottom;fontSize=14;textShadow=0;convertToSvg=0;fontFamily=Lucida Console;" edge="1" parent="1" source="TzQ23WjIHbdyS36FuE1q-22" target="TzQ23WjIHbdyS36FuE1q-29">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="TzQ23WjIHbdyS36FuE1q-31" value="CAD/USD" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fontFamily=Lucida Console;" vertex="1" parent="1">
+          <mxGeometry x="560" y="450" width="120" height="60" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
