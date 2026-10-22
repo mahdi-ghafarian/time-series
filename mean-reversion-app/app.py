@@ -241,9 +241,45 @@ price_figure = go.Figure(
         mode="lines",
     )
 )
+log_tick_min = float(np.floor(price_history["LOG AVG"].min()))
+log_tick_max = float(np.ceil(price_history["LOG AVG"].max()))
+if log_tick_max <= log_tick_min:
+    log_tick_max = log_tick_min + 1
+log_price_ticks = np.arange(log_tick_min, log_tick_max + 1, 1)
+natural_price_ticks = np.exp(log_price_ticks)
+log_price_range = [log_tick_min, log_tick_max]
+price_figure.add_trace(
+    go.Scatter(
+        x=price_history.index,
+        y=price_history["LOG AVG"],
+        mode="lines",
+        yaxis="y2",
+        line={"width": 0},
+        hoverinfo="skip",
+        showlegend=False,
+    )
+)
 price_figure.update_layout(
     xaxis_title="Date",
-    yaxis_title="Log average price (HLC3)",
+    showlegend=False,
+    yaxis={
+        "title": "Log average price (HLC3)",
+        "range": log_price_range,
+        "tickmode": "array",
+        "tickvals": log_price_ticks,
+        "ticktext": [f"{value:.0f}" for value in log_price_ticks],
+        "showgrid": True,
+    },
+    yaxis2={
+        "overlaying": "y",
+        "side": "right",
+        "title": "Average price (HLC3)",
+        "range": log_price_range,
+        "tickmode": "array",
+        "tickvals": log_price_ticks,
+        "ticktext": [f"{price:,.0f}" for price in natural_price_ticks],
+        "showgrid": False,
+    },
 )
 st.plotly_chart(price_figure, width="stretch", config={"scrollZoom": False})
 

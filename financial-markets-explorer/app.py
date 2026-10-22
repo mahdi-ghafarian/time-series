@@ -1,4 +1,5 @@
 import plotly.express as px
+import plotly.graph_objects as go
 import plotly.io as pio
 from plotly.subplots import make_subplots
 import pandas as pd 
@@ -127,11 +128,6 @@ with tab_format: # third tab
     # Chart height
     height = st.number_input('Plot heigth',value=700, min_value=0, step=25)
     
-    # y-axis ticks distance for top plot
-    # 0: program selects the y_grid
-    y_grid = st.number_input('Y-axis grid',value=0.0,
-        min_value=0.0, step=0.1, help = 'Enter `0` for automatic selection') 
-    
     # Decimal places, override streamlit four decimals
     decimal_places = st.number_input('Decimal places',value=2, 
             min_value=0, max_value = 4, step=1)
@@ -234,9 +230,10 @@ df['lower_bound'] = df['lt_lowess'] - sd_multiplier * res_std
 # Set the default template
 pio.templates.default = "seaborn"
 
-# Create a figure with 2 rows and 1 column, sharing the x-axis
+# Create a figure with a secondary price axis on the top subplot
 main_fig = make_subplots(rows=2, cols=1, shared_xaxes=True, 
-                    row_heights=[0.75, 0.25], vertical_spacing=0.01)
+                    row_heights=[0.75, 0.25], vertical_spacing=0.01,
+                    specs=[[{"secondary_y": True}], [{}]])
 
 # Create chart title
 if(use_period == True):
@@ -269,15 +266,36 @@ for year in range(df.index.year.min()+1, df.index.year.max() + 1):
         line=dict(color='gray', width=0.5, dash='solid')
     )
 
-# Update the y-axis tick distance for top figure
-main_fig.update_yaxes(dtick=y_grid)
-
 # Update y-axis tick distance for bottom figure
 main_fig.update_yaxes(dtick=1, row=2, col=1)
 
 # Update y-axis label
 main_fig.update_yaxes(title_text='Log Price', row=1, col=1)
+main_fig.update_yaxes(title_text='Price', row=1, col=1, secondary_y=True)
 main_fig.update_yaxes(title_text='Std. Residual', row=2, col=1)
+
+log_columns = ['l_avg', 'st_lowess', 'lt_lowess', 'upper_bound', 'lower_bound']
+log_tick_min = float(np.floor(df[log_columns].min().min()))
+log_tick_max = float(np.ceil(df[log_columns].max().max()))
+if log_tick_max <= log_tick_min:
+    log_tick_max = log_tick_min + 1
+log_price_ticks = np.arange(log_tick_min, log_tick_max + 1, 1)
+natural_price_ticks = np.exp(log_price_ticks)
+for secondary_y in (False, True):
+    main_fig.update_yaxes(
+        range=[log_tick_min, log_tick_max],
+        tickmode='array',
+        tickvals=log_price_ticks,
+        ticktext=(
+            [f'{value:.0f}' for value in log_price_ticks]
+            if not secondary_y
+            else [f'{price:,.0f}' for price in natural_price_ticks]
+        ),
+        showgrid=not secondary_y,
+        row=1,
+        col=1,
+        secondary_y=secondary_y,
+    )
 
 # last close and its log
 last_close = df.iloc[-1]['Close']
@@ -370,6 +388,20 @@ st.subheader('Explorer')
 # Add the trace from the top_fig the subplot (main_fig)
 for trace in top_fig.data:
     main_fig.add_trace(trace, row=1, col=1)
+
+main_fig.add_trace(
+    go.Scatter(
+        x=df.index,
+        y=df['l_avg'],
+        mode='lines',
+        line={'width': 0},
+        hoverinfo='skip',
+        showlegend=False,
+    ),
+    row=1,
+    col=1,
+    secondary_y=True,
+)
 # Add the trace from the bot_fig to the subplot (main_fig)
 for trace in bot_fig.data:
     main_fig.add_trace(trace, row=2, col=1)

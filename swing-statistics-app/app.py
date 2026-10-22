@@ -267,22 +267,48 @@ st.subheader(f"{ticker_symbol} log average price ({interval})")
 price_figure = go.Figure(
     go.Scatter(x=prices.index, y=prices["LOG AVG"], mode="lines")
 )
-natural_price_ticks = np.linspace(prices["AVG"].min(), prices["AVG"].max(), 6)
-price_figure.update_yaxes(showgrid=False)
+log_tick_min = float(np.floor(prices["LOG AVG"].min()))
+log_tick_max = float(np.ceil(prices["LOG AVG"].max()))
+if log_tick_max <= log_tick_min:
+    log_tick_max = log_tick_min + 1
+log_price_ticks = np.arange(log_tick_min, log_tick_max + 1, 1)
+natural_price_ticks = np.exp(log_price_ticks)
+log_price_range = [log_tick_min, log_tick_max]
+price_figure.add_trace(
+    go.Scatter(
+        x=prices.index,
+        y=prices["LOG AVG"],
+        yaxis="y2",
+        mode="lines",
+        line={"width": 0},
+        hoverinfo="skip",
+        showlegend=False,
+    )
+)
 price_figure.update_layout(
     xaxis_title="Date",
-    yaxis_title="Log average price (HLC3)",
+    showlegend=False,
+    yaxis={
+        "title": "Log average price (HLC3)",
+        "range": log_price_range,
+        "tickmode": "array",
+        "tickvals": log_price_ticks,
+        "ticktext": [f"{value:.0f}" for value in log_price_ticks],
+        "showgrid": True,
+    },
     yaxis2={
         "overlaying": "y",
         "side": "right",
         "title": "Average price (HLC3)",
+        "showticklabels": True,
+        "range": log_price_range,
         "tickmode": "array",
-        "tickvals": np.log(natural_price_ticks),
+        "tickvals": log_price_ticks,
         "ticktext": [
-            f"{price:,.4f}".rstrip("0").rstrip(".")
+            f"{price:,.0f}"
             for price in natural_price_ticks
         ],
-        "showgrid": True,
+        "showgrid": False,
     },
 )
 st.plotly_chart(price_figure, width="stretch", config={"scrollZoom": False})
