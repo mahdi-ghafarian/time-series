@@ -24,6 +24,14 @@ app_prefixes = {
     "Mean Reversion Profile": "mean_reversion_",
     "Swing Statistics": "swing_",
 }
+app_search_keys = {
+    app: f"{prefix}search_ticker"
+    for app, prefix in app_prefixes.items()
+}
+app_search_label_keys = {
+    app: f"{prefix}search_ticker_label"
+    for app, prefix in app_prefixes.items()
+}
 
 
 def save_current_app_preferences() -> None:
@@ -32,6 +40,21 @@ def save_current_app_preferences() -> None:
         return
 
     prefix = app_prefixes[previous_app]
+    search_key = app_search_keys[previous_app]
+    search_label_key = app_search_label_keys[previous_app]
+    if search_key in st.session_state:
+        search_value = st.session_state[search_key]
+        selected_label = st.session_state.get(search_label_key, "")
+        if selected_label and search_value == selected_label:
+            search_value = ""
+            st.session_state[search_key] = search_value
+            st.session_state[search_label_key] = ""
+        st.session_state["_suite_ticker_search"] = search_value
+    if search_label_key in st.session_state:
+        st.session_state["_suite_ticker_search_label"] = st.session_state[
+            search_label_key
+        ]
+
     preferences = dict(
         st.session_state.get("_suite_saved_preferences", {})
     )
@@ -55,6 +78,14 @@ selected_prefix = app_prefixes[selected_app]
 for key, value in preferences.items():
     if key.startswith(selected_prefix):
         st.session_state[key] = value
+search_key = app_search_keys[selected_app]
+search_label_key = app_search_label_keys[selected_app]
+if "_suite_ticker_search" in st.session_state:
+    st.session_state[search_key] = st.session_state["_suite_ticker_search"]
+if "_suite_ticker_search_label" in st.session_state:
+    st.session_state[search_label_key] = st.session_state[
+        "_suite_ticker_search_label"
+    ]
 
 st.session_state["_suite_current_app"] = selected_app
 st.session_state.setdefault("_suite_shared_ticker", "BTC-USD")

@@ -29,6 +29,20 @@ def persist_suite_preferences() -> None:
         shared_ticker = st.session_state[ticker_key].strip().upper()
         st.session_state[ticker_key] = shared_ticker
         st.session_state["_suite_shared_ticker"] = shared_ticker
+    search_key = "swing_search_ticker"
+    search_label_key = "swing_search_ticker_label"
+    if search_key in st.session_state:
+        search_value = st.session_state[search_key]
+        selected_label = st.session_state.get(search_label_key, "")
+        if selected_label and search_value == selected_label:
+            search_value = ""
+            st.session_state[search_key] = search_value
+            st.session_state[search_label_key] = ""
+        st.session_state["_suite_ticker_search"] = search_value
+    if search_label_key in st.session_state:
+        st.session_state["_suite_ticker_search_label"] = st.session_state[
+            search_label_key
+        ]
     for key in st.session_state:
         if key.startswith("swing_"):
             preferences[key] = st.session_state[key]
@@ -63,10 +77,12 @@ def search_tickers(query: str) -> list[dict[str, str]]:
     return matches
 
 
-def select_swing_ticker(symbol: str, label: str) -> None:
+def select_swing_ticker(symbol: str) -> None:
     st.session_state["swing_ticker"] = symbol.upper()
-    st.session_state["swing_search_ticker"] = label
-    st.session_state["swing_search_ticker_label"] = label
+    st.session_state["swing_search_ticker"] = ""
+    st.session_state["swing_search_ticker_label"] = ""
+    st.session_state["_suite_ticker_search"] = ""
+    st.session_state["_suite_ticker_search_label"] = ""
     persist_suite_preferences()
 
 
@@ -278,7 +294,7 @@ with st.sidebar:
                     label,
                     key=f"_swing_ticker_result_{symbol}",
                     on_click=select_swing_ticker,
-                    args=(symbol, label),
+                    args=(symbol,),
                     width="stretch",
                 )
         elif not search_failed:
