@@ -267,9 +267,23 @@ st.subheader(f"{ticker_symbol} log average price ({interval})")
 price_figure = go.Figure(
     go.Scatter(x=prices.index, y=prices["LOG AVG"], mode="lines")
 )
+natural_price_ticks = np.linspace(prices["AVG"].min(), prices["AVG"].max(), 6)
+price_figure.update_yaxes(showgrid=False)
 price_figure.update_layout(
     xaxis_title="Date",
     yaxis_title="Log average price (HLC3)",
+    yaxis2={
+        "overlaying": "y",
+        "side": "right",
+        "title": "Average price (HLC3)",
+        "tickmode": "array",
+        "tickvals": np.log(natural_price_ticks),
+        "ticktext": [
+            f"{price:,.4f}".rstrip("0").rstrip(".")
+            for price in natural_price_ticks
+        ],
+        "showgrid": True,
+    },
 )
 st.plotly_chart(price_figure, width="stretch", config={"scrollZoom": False})
 
