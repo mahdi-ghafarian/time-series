@@ -470,32 +470,6 @@ if return_min == return_max:
     return_min -= 0.0001
     return_max += 0.0001
 range_key = "mean_reversion_past_log_return_range"
-if range_key in st.session_state:
-    saved_range = tuple(st.session_state[range_key])
-    clamped_range = (
-        min(max(float(saved_range[0]), return_min), return_max),
-        min(max(float(saved_range[1]), return_min), return_max),
-    )
-    if saved_range != clamped_range:
-        st.session_state[range_key] = clamped_range
-selected_return_range = st.slider(
-    f"Highlight points with past {int(backward_window)}-period log returns "
-    "in this range",
-    min_value=return_min,
-    max_value=return_max,
-    value=(return_min, return_max),
-    step=10 ** -int(slider_decimal_places),
-    format=f"%.{int(slider_decimal_places)}f",
-    key=range_key,
-)
-selected_dates = chart_past_returns.index[
-    chart_past_returns.between(*selected_return_range)
-]
-selected_prices = price_history.reindex(selected_dates)["LOG AVG"]
-st.caption(
-    f"Highlighted points: {len(selected_dates):,} of "
-    f"{len(chart_past_returns):,}."
-)
 
 price_figure = go.Figure(
     go.Scatter(
@@ -532,25 +506,6 @@ price_figure.add_trace(
         showlegend=False,
     )
 )
-if not selected_dates.empty:
-    price_figure.add_trace(
-        go.Scatter(
-            x=selected_dates,
-            y=selected_prices,
-            mode="markers",
-            name="Matching past returns",
-            marker={
-                "color": "#e63946",
-                "size": 8,
-                "line": {"color": "white", "width": 1},
-            },
-            customdata=chart_past_returns.reindex(selected_dates),
-            hovertemplate=(
-                "Date: %{x}<br>Past log return: %{customdata:.2f}"
-                "<extra></extra>"
-            ),
-        )
-    )
 price_figure.update_layout(
     xaxis_title="Date",
     showlegend=False,
@@ -714,12 +669,12 @@ bin_statistics = summary.rename(
         "outliers": "Outliers",
     }
 )
-st.dataframe(
+table_state = st.dataframe(
     bin_statistics,
     hide_index=True,
     width="stretch",
     key="_mean_reversion_bin_table",
-    on_select=select_past_return_bin,
+    on_select="rerun",
     selection_mode="single-row",
     column_config={
         "Mean": st.column_config.NumberColumn(format="%.4f"),
@@ -732,6 +687,61 @@ st.dataframe(
         "Upper whisker": st.column_config.NumberColumn(format="%.4f"),
     },
 )
+
+bin_selection = table_state.selection.rows
+previous_bin_selection = st.session_state.get(
+    "_mean_reversion_last_bin_selection", []
+)
+if bin_selection != previous_bin_selection:
+    st.session_state["_mean_reversion_last_bin_selection"] = bin_selection
+    if bin_selection and bin_selection[0] < len(bin_ranges):
+        st.session_state[range_key] = bin_ranges[bin_selection[0]]
+
+if range_key in st.session_state:
+    saved_range = tuple(st.session_state[range_key])
+    clamped_range = (
+        min(max(float(saved_range[0]), return_min), return_max),
+        min(max(float(saved_range[1]), return_min), return_max),
+    )
+    if saved_range != clamped_range:
+        st.session_state[range_key] = clamped_range
+selected_return_range = st.slider(
+    f"Highlight points with past {int(backward_window)}-period log returns "
+    "in this range",
+    min_value=return_min,
+    max_value=return_max,
+    value=(return_min, return_max),
+    step=10 ** -int(slider_decimal_places),
+    format=f"%.{int(slider_decimal_places)}f",
+    key=range_key,
+)
+selected_dates = chart_past_returns.index[
+    chart_past_returns.between(*selected_return_range)
+]
+selected_prices = price_history.reindex(selected_dates)["LOG AVG"]
+st.caption(
+    f"Highlighted points: {len(selected_dates):,} of "
+    f"{len(chart_past_returns):,}."
+)
+if not selected_dates.empty:
+    price_figure.add_trace(
+        go.Scatter(
+            x=selected_dates,
+            y=selected_prices,
+            mode="markers",
+            name="Matching past returns",
+            marker={
+                "color": "#e63946",
+                "size": 8,
+                "line": {"color": "white", "width": 1},
+            },
+            customdata=chart_past_returns.reindex(selected_dates),
+            hovertemplate=(
+                "Date: %{x}<br>Past log return: %{customdata:.2f}"
+                "<extra></extra>"
+            ),
+        )
+    )
 
 st.subheader(f"{ticker_symbol} log average price ({interval})")
 st.plotly_chart(price_figure, width="stretch", config={"scrollZoom": False})
