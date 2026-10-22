@@ -509,7 +509,7 @@ price_figure.update_layout(
 )
 st.plotly_chart(price_figure, width="stretch", config={"scrollZoom": False})
 
-st.subheader("Future returns by past-return bin")
+st.subheader("How Past Returns Relate to Future Returns")
 st.caption(
     f"Past window: {int(backward_window)} observations · "
     f"Future window: {int(forward_window)} observations · "
