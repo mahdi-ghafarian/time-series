@@ -311,7 +311,7 @@ for metric_family in metric_families.drop_duplicates():
     st.subheader(metric_family)
     metric_rows = statistics.loc[metric_families == metric_family]
     st.dataframe(
-        metric_rows,
+        metric_rows.drop(columns=["Metric"]),
         hide_index=True,
         width="stretch",
         height="content",
