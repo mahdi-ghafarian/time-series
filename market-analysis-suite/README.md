@@ -1,9 +1,9 @@
 # Market Analysis Suite
 
 This Streamlit app brings the Swing Statistics, Mean Reversion Profile, and
-Financial Markets Explorer apps together under Streamlit's built-in
-multi-page navigation. It reuses their existing app files, so their analyses
-and controls remain consistent with the standalone apps.
+Financial Markets Explorer apps together behind a sidebar selector. It reuses
+their existing app files, so their analyses and controls remain consistent
+with the standalone apps.
 
 From the repository root, run:
 

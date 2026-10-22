@@ -17,9 +17,10 @@ from datetime import datetime, timedelta
 # Set page layout to wide
 # Set title which is used as tab title and also as app name in 
 # community cloud
-st.set_page_config(layout="wide", # centered
-                   page_title="Explorer",
-                    initial_sidebar_state="expanded")
+if not st.session_state.get("_market_analysis_suite"):
+    st.set_page_config(layout="wide", # centered
+                       page_title="Explorer",
+                        initial_sidebar_state="expanded")
 
 # ------------------------------------------------------------------------------
 # Create sidebar to get parameters

@@ -11,11 +11,12 @@ import yfinance as yf
 from matplotlib.ticker import FuncFormatter
 
 
-st.set_page_config(
-    page_title="Mean Reversion Profile",
-    page_icon="📈",
-    layout="wide",
-)
+if not st.session_state.get("_market_analysis_suite"):
+    st.set_page_config(
+        page_title="Mean Reversion Profile",
+        page_icon="📈",
+        layout="wide",
+    )
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
