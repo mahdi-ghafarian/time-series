@@ -444,7 +444,7 @@ except ValueError as exc:
 mean_future_return = float(prices["future_return"].mean())
 metric_columns = st.columns(3)
 metric_columns[0].metric("Valid observations", f"{len(prices):,}")
-metric_columns[1].metric("Mean future log return", f"{mean_future_return:.2%}")
+metric_columns[1].metric("Mean future log return", f"{mean_future_return:.4f}")
 metric_columns[2].metric("Past-return bin size", f"{bin_size:.3f}")
 
 # Calculate chart highlights independently from the future-return pairs used
@@ -453,13 +453,12 @@ chart_close = history["Close"].reindex(price_history.index)
 chart_past_returns = np.log(
     chart_close / chart_close.shift(int(backward_window))
 ).replace([np.inf, -np.inf], np.nan).dropna()
-chart_past_returns_percent = chart_past_returns * 100
-return_min = float(chart_past_returns_percent.min())
-return_max = float(chart_past_returns_percent.max())
+return_min = float(chart_past_returns.min())
+return_max = float(chart_past_returns.max())
 if return_min == return_max:
-    return_min -= 0.1
-    return_max += 0.1
-range_key = "mean_reversion_past_return_range_pct"
+    return_min -= 0.0001
+    return_max += 0.0001
+range_key = "mean_reversion_past_log_return_range"
 if range_key in st.session_state:
     saved_range = tuple(st.session_state[range_key])
     clamped_range = (
@@ -470,21 +469,21 @@ if range_key in st.session_state:
         st.session_state[range_key] = clamped_range
 selected_return_range = st.slider(
     f"Highlight points with past {int(backward_window)}-period log returns "
-    "in this range (%)",
+    "in this range",
     min_value=return_min,
     max_value=return_max,
     value=(return_min, return_max),
-    step=0.1,
-    format="%.1f%%",
+    step=0.0001,
+    format="%.4f",
     key=range_key,
 )
-selected_dates = chart_past_returns_percent.index[
-    chart_past_returns_percent.between(*selected_return_range)
+selected_dates = chart_past_returns.index[
+    chart_past_returns.between(*selected_return_range)
 ]
 selected_prices = price_history.reindex(selected_dates)["LOG AVG"]
 st.caption(
     f"Highlighted points: {len(selected_dates):,} of "
-    f"{len(chart_past_returns_percent):,}. This selection only affects the price "
+    f"{len(chart_past_returns):,}. This selection only affects the price "
     "chart; the box plot and bin statistics use all observations."
 )
 
@@ -536,9 +535,9 @@ if not selected_dates.empty:
                 "size": 8,
                 "line": {"color": "white", "width": 1},
             },
-            customdata=chart_past_returns_percent.reindex(selected_dates),
+            customdata=chart_past_returns.reindex(selected_dates),
             hovertemplate=(
-                "Date: %{x}<br>Past log return: %{customdata:.1f}%"
+                "Date: %{x}<br>Past log return: %{customdata:.4f}"
                 "<extra></extra>"
             ),
         )

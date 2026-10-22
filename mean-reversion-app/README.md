@@ -17,7 +17,7 @@ ticker field with its symbol; the search field clears after selection. You can
 also edit the ticker directly. Unselected search text is retained when
 switching between apps in the Market Analysis Suite. Set the interval, history
 range, return windows, and bin settings in the sidebar.
-The price chart includes a past-return range control that highlights matching
+The price chart includes a raw log-return range control that highlights matching
 dates without changing the future-return boxplot or bin statistics. The app
 also displays those statistics, including quartiles, whiskers, and outlier
 counts, and provides a CSV download of the calculated observations.
