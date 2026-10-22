@@ -39,6 +39,45 @@ def persist_suite_preferences() -> None:
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
+def search_tickers(query: str) -> list[dict[str, str]]:
+    quotes = yf.Search(
+        query,
+        max_results=8,
+        news_count=0,
+        lists_count=0,
+        include_cb=False,
+    ).quotes
+    matches = []
+    for quote in quotes:
+        symbol = quote.get("symbol")
+        if not symbol:
+            continue
+        matches.append(
+            {
+                "symbol": str(symbol),
+                "name": str(
+                    quote.get("longname") or quote.get("shortname") or symbol
+                ),
+                "exchange": str(
+                    quote.get("exchDisp") or quote.get("exchange") or ""
+                ),
+            }
+        )
+    return matches
+
+
+def select_ticker_match() -> None:
+    selected_symbol = st.session_state.get("mean_reversion_ticker_match")
+    if not selected_symbol:
+        return
+
+    st.session_state["mean_reversion_ticker"] = selected_symbol.upper()
+    st.session_state["mean_reversion_ticker_search"] = ""
+    st.session_state["mean_reversion_ticker_match"] = None
+    persist_suite_preferences()
+
+
+@st.cache_data(ttl=3600, show_spinner=False)
 def fetch_history(
     ticker_symbol: str,
     interval: str,
@@ -202,6 +241,52 @@ with st.sidebar:
         key="mean_reversion_ticker",
         on_change=persist_suite_preferences,
     ).strip().upper()
+    ticker_query = st.text_input(
+        "Search Yahoo Finance",
+        placeholder="Type a ticker or company name",
+        key="mean_reversion_ticker_search",
+        live="debounce",
+    )
+    normalized_query = ticker_query.strip()
+    if len(normalized_query) >= 2:
+        try:
+            with st.spinner("Searching Yahoo Finance..."):
+                ticker_matches = search_tickers(normalized_query)
+        except Exception as exc:
+            st.warning(
+                f"Yahoo Finance ticker search failed: {exc} "
+                "You can still enter a ticker manually."
+            )
+        else:
+            if ticker_matches:
+                match_labels = {
+                    match["symbol"]: (
+                        f'{match["name"]} — {match["symbol"]}'
+                        + (
+                            f' ({match["exchange"]})'
+                            if match["exchange"]
+                            else ""
+                        )
+                    )
+                    for match in ticker_matches
+                }
+                st.selectbox(
+                    "Matching tickers",
+                    options=list(match_labels),
+                    index=None,
+                    format_func=lambda symbol: match_labels[symbol],
+                    key="mean_reversion_ticker_match",
+                    on_change=select_ticker_match,
+                    help="Choose a result to fill the ticker field.",
+                )
+            else:
+                st.caption(
+                    "No Yahoo Finance matches. You can still enter a ticker "
+                    "manually."
+                )
+    elif normalized_query:
+        st.caption("Enter at least two characters to search.")
+
     interval = st.selectbox(
         "Interval",
         ["1d", "1wk", "1mo", "3mo"],
