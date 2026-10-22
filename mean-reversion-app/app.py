@@ -512,33 +512,30 @@ st.pyplot(figure, width="stretch")
 plt.close(figure)
 
 st.subheader("Bin statistics")
+st.caption("FLR = future log return.")
 st.dataframe(
     summary.rename(
         columns={
             "bin": "Past log-return bin",
             "observations": "Observations",
-            "mean": "Mean future log return",
-            "lower_whisker": "Lower whisker future log return",
-            "q1": "Q1 future log return",
-            "median": "Median future log return",
-            "q3": "Q3 future log return",
-            "upper_whisker": "Upper whisker future log return",
+            "mean": "Mean FLR",
+            "lower_whisker": "Lower whisker FLR",
+            "q1": "Q1 FLR",
+            "median": "Median FLR",
+            "q3": "Q3 FLR",
+            "upper_whisker": "Upper whisker FLR",
             "outliers": "Outliers",
         }
     ),
     hide_index=True,
     width="stretch",
     column_config={
-        "Mean future log return": st.column_config.NumberColumn(format="%.4f"),
-        "Lower whisker future log return": st.column_config.NumberColumn(
-            format="%.4f"
-        ),
-        "Q1 future log return": st.column_config.NumberColumn(format="%.4f"),
-        "Median future log return": st.column_config.NumberColumn(format="%.4f"),
-        "Q3 future log return": st.column_config.NumberColumn(format="%.4f"),
-        "Upper whisker future log return": st.column_config.NumberColumn(
-            format="%.4f"
-        ),
+        "Mean FLR": st.column_config.NumberColumn(format="%.4f"),
+        "Lower whisker FLR": st.column_config.NumberColumn(format="%.4f"),
+        "Q1 FLR": st.column_config.NumberColumn(format="%.4f"),
+        "Median FLR": st.column_config.NumberColumn(format="%.4f"),
+        "Q3 FLR": st.column_config.NumberColumn(format="%.4f"),
+        "Upper whisker FLR": st.column_config.NumberColumn(format="%.4f"),
     },
 )
 
