@@ -161,6 +161,10 @@ def analyze_returns(
             }
         )
     summary = summary.join(pd.DataFrame(boxplot_summaries, index=categories))
+    summary["iqr"] = summary["q3"] - summary["q1"]
+    summary["whisker_range"] = (
+        summary["upper_whisker"] - summary["lower_whisker"]
+    )
     summary = summary[
         [
             "bin",
@@ -170,6 +174,8 @@ def analyze_returns(
             "q1",
             "median",
             "q3",
+            "iqr",
+            "whisker_range",
             "upper_whisker",
             "outliers",
         ]
@@ -523,6 +529,8 @@ st.dataframe(
             "q1": "Q1 FLR",
             "median": "Median FLR",
             "q3": "Q3 FLR",
+            "iqr": "IQR FLR",
+            "whisker_range": "Whisker range FLR",
             "upper_whisker": "Upper whisker FLR",
             "outliers": "Outliers",
         }
@@ -535,6 +543,8 @@ st.dataframe(
         "Q1 FLR": st.column_config.NumberColumn(format="%.4f"),
         "Median FLR": st.column_config.NumberColumn(format="%.4f"),
         "Q3 FLR": st.column_config.NumberColumn(format="%.4f"),
+        "IQR FLR": st.column_config.NumberColumn(format="%.4f"),
+        "Whisker range FLR": st.column_config.NumberColumn(format="%.4f"),
         "Upper whisker FLR": st.column_config.NumberColumn(format="%.4f"),
     },
 )
