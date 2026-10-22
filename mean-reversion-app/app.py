@@ -67,13 +67,23 @@ def search_tickers(query: str) -> list[dict[str, str]]:
 
 
 def select_ticker_result() -> None:
-    selected_value = st.session_state.get("_mean_reversion_ticker_result")
+    selected_value = st.session_state.get(
+        "_mean_reversion_ticker_search_picker"
+    )
     if not selected_value:
         return
 
-    st.session_state["mean_reversion_ticker"] = str(selected_value).upper()
-    st.session_state["_mean_reversion_ticker_result"] = None
-    persist_suite_preferences()
+    selected_text = str(selected_value).strip()
+    matches = st.session_state.get(
+        "_mean_reversion_ticker_search_matches", {}
+    )
+    if selected_text in matches:
+        st.session_state["mean_reversion_ticker"] = selected_text.upper()
+        st.session_state["_mean_reversion_ticker_search_query"] = ""
+        st.session_state["_mean_reversion_ticker_search_picker"] = None
+        persist_suite_preferences()
+    else:
+        st.session_state["_mean_reversion_ticker_search_query"] = selected_text
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
@@ -233,45 +243,56 @@ st.write(
 
 with st.sidebar:
     st.header("Parameters")
-    ticker_query = st.text_input(
-        "Search Yahoo Finance",
-        placeholder="Type a ticker or company name",
-        key="_mean_reversion_ticker_search",
-        live="500ms",
+    ticker_query = st.session_state.get(
+        "_mean_reversion_ticker_search_query", ""
     ).strip()
+    ticker_matches = []
+    search_failed = False
     if len(ticker_query) >= 2:
         try:
             with st.spinner("Searching Yahoo Finance..."):
                 ticker_matches = search_tickers(ticker_query)
         except Exception as exc:
+            search_failed = True
             st.warning(
                 f"Yahoo Finance ticker search failed: {exc} "
                 "You can still enter a ticker manually."
             )
-        else:
-            if ticker_matches:
-                match_labels = {
-                    match["symbol"]: (
-                        f'{match["name"]} — {match["symbol"]}'
-                        + (
-                            f' ({match["exchange"]})'
-                            if match["exchange"]
-                            else ""
-                        )
-                    )
-                    for match in ticker_matches
-                }
-                st.selectbox(
-                    "Search results",
-                    options=list(match_labels),
-                    index=None,
-                    format_func=lambda symbol: match_labels[symbol],
-                    key="_mean_reversion_ticker_result",
-                    on_change=select_ticker_result,
-                    help="Select a result to copy its ticker into the field below.",
-                )
-            else:
-                st.caption("No Yahoo Finance matches found.")
+    if ticker_matches:
+        match_labels = {
+            match["symbol"]: (
+                f'{match["symbol"]} | {match["name"]} | '
+                f'{match["exchange"] or "Unknown exchange"}'
+            )
+            for match in ticker_matches
+        }
+        st.session_state["_mean_reversion_ticker_search_matches"] = match_labels
+    else:
+        st.session_state["_mean_reversion_ticker_search_matches"] = {}
+        if ticker_query and len(ticker_query) >= 2 and not search_failed:
+            st.caption("No Yahoo Finance matches found.")
+        elif ticker_query:
+            st.caption("Enter at least two characters to search.")
+
+    st.selectbox(
+        "Search Yahoo Finance",
+        options=list(
+            st.session_state["_mean_reversion_ticker_search_matches"]
+        ),
+        index=None,
+        placeholder="Type a ticker or company name, then press Enter",
+        format_func=lambda symbol: st.session_state[
+            "_mean_reversion_ticker_search_matches"
+        ].get(symbol, str(symbol)),
+        key="_mean_reversion_ticker_search_picker",
+        on_change=select_ticker_result,
+        accept_new_options=True,
+        filter_mode="contains",
+        help=(
+            "Enter a company name or ticker and press Enter to search. "
+            "Choose a company from the results to fill the ticker field."
+        ),
+    )
 
     ticker_symbol = st.text_input(
         "Ticker",
