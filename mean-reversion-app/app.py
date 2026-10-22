@@ -184,6 +184,14 @@ with st.sidebar:
             step=0.01,
             format="%.3f",
         )
+    log_grid_interval = st.number_input(
+        "Log-axis grid interval",
+        min_value=0.1,
+        value=1.0,
+        step=0.1,
+        format="%.1f",
+        help="Spacing between log-price grid lines.",
+    )
 
 st.sidebar.caption("Past and future windows are measured in data observations.")
 
@@ -241,11 +249,21 @@ price_figure = go.Figure(
         mode="lines",
     )
 )
-log_tick_min = float(np.floor(price_history["LOG AVG"].min()))
-log_tick_max = float(np.ceil(price_history["LOG AVG"].max()))
+log_tick_min = float(
+    np.floor(price_history["LOG AVG"].min() / log_grid_interval)
+    * log_grid_interval
+)
+log_tick_max = float(
+    np.ceil(price_history["LOG AVG"].max() / log_grid_interval)
+    * log_grid_interval
+)
 if log_tick_max <= log_tick_min:
-    log_tick_max = log_tick_min + 1
-log_price_ticks = np.arange(log_tick_min, log_tick_max + 1, 1)
+    log_tick_max = log_tick_min + log_grid_interval
+tick_count = int(round((log_tick_max - log_tick_min) / log_grid_interval))
+log_price_ticks = (
+    log_tick_min + np.arange(tick_count + 1) * log_grid_interval
+)
+log_tick_decimals = max(0, int(np.ceil(-np.log10(log_grid_interval))))
 natural_price_ticks = np.exp(log_price_ticks)
 log_price_range = [log_tick_min, log_tick_max]
 price_figure.add_trace(
@@ -267,7 +285,9 @@ price_figure.update_layout(
         "range": log_price_range,
         "tickmode": "array",
         "tickvals": log_price_ticks,
-        "ticktext": [f"{value:.0f}" for value in log_price_ticks],
+        "ticktext": [
+            f"{value:.{log_tick_decimals}f}" for value in log_price_ticks
+        ],
         "showgrid": True,
     },
     yaxis2={
