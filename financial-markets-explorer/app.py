@@ -449,7 +449,7 @@ bot_fig.for_each_trace(lambda trace: trace.update(
 
 # Display section header
 # st.subheader('Long-Term Trend')
-st.subheader('Explorer')
+st.title('Explorer')
 
 # Add the trace from the top_fig the subplot (main_fig)
 for trace in top_fig.data:
