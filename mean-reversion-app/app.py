@@ -66,9 +66,10 @@ def search_tickers(query: str) -> list[dict[str, str]]:
     return matches
 
 
-def select_ticker_result(symbol: str) -> None:
+def select_ticker_result(symbol: str, label: str) -> None:
     st.session_state["mean_reversion_ticker"] = symbol.upper()
-    st.session_state["_mean_reversion_ticker_search"] = ""
+    st.session_state["_mean_reversion_ticker_search"] = label
+    st.session_state["_mean_reversion_ticker_selected_label"] = label
     persist_suite_preferences()
 
 
@@ -237,7 +238,10 @@ with st.sidebar:
     ).strip()
     ticker_matches = []
     search_failed = False
-    if len(ticker_query) >= 2:
+    selected_label = st.session_state.get(
+        "_mean_reversion_ticker_selected_label", ""
+    )
+    if ticker_query != selected_label and len(ticker_query) >= 2:
         try:
             with st.spinner("Searching Yahoo Finance..."):
                 ticker_matches = search_tickers(ticker_query)
@@ -258,13 +262,18 @@ with st.sidebar:
                 label,
                 key=f"_mean_reversion_ticker_result_{symbol}",
                 on_click=select_ticker_result,
-                args=(symbol,),
+                args=(symbol, label),
                 width="stretch",
             )
     else:
-        if ticker_query and len(ticker_query) >= 2 and not search_failed:
+        if (
+            ticker_query != selected_label
+            and ticker_query
+            and len(ticker_query) >= 2
+            and not search_failed
+        ):
             st.caption("No Yahoo Finance matches found.")
-        elif ticker_query:
+        elif ticker_query != selected_label and ticker_query:
             st.caption("Enter at least two characters to search.")
 
     ticker_symbol = st.text_input(
