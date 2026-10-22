@@ -401,8 +401,8 @@ with st.sidebar:
         on_change=persist_suite_preferences,
     )
     slider_decimal_places = st.number_input(
-        "Range slider decimal places",
-        min_value=0,
+        "Slider precision",
+        min_value=1,
         max_value=6,
         value=1,
         step=1,
