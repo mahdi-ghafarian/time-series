@@ -19,6 +19,19 @@ if not st.session_state.get("_market_analysis_suite"):
     )
 
 
+def persist_suite_preferences() -> None:
+    if not st.session_state.get("_market_analysis_suite"):
+        return
+
+    preferences = dict(
+        st.session_state.get("_suite_saved_preferences", {})
+    )
+    for key in st.session_state:
+        if key.startswith("mean_reversion_"):
+            preferences[key] = st.session_state[key]
+    st.session_state["_suite_saved_preferences"] = preferences
+
+
 @st.cache_data(ttl=3600, show_spinner=False)
 def fetch_history(
     ticker_symbol: str,
@@ -139,41 +152,85 @@ with st.sidebar:
     st.header("Parameters")
     ticker_symbol = st.text_input(
         "Ticker",
-        value="LULU",
+        value="BTC-USD",
         help="Examples: AAPL, MSFT, SPY, BTC-USD, or ^GSPC.",
+        key="mean_reversion_ticker",
+        on_change=persist_suite_preferences,
     ).strip().upper()
-    interval = st.selectbox("Interval", ["1d", "1wk", "1mo", "3mo"], index=2)
-    use_data_window = st.checkbox("Use data window", value=True)
+    interval = st.selectbox(
+        "Interval",
+        ["1d", "1wk", "1mo", "3mo"],
+        index=2,
+        key="mean_reversion_interval",
+        on_change=persist_suite_preferences,
+    )
+    use_data_window = st.checkbox(
+        "Use data window",
+        value=True,
+        key="mean_reversion_use_data_window",
+        on_change=persist_suite_preferences,
+    )
     if use_data_window:
         data_window = st.selectbox(
             "Data window",
             ["3mo", "6mo", "1y", "2y", "5y", "10y", "ytd", "max"],
             index=7,
+            key="mean_reversion_data_window",
+            on_change=persist_suite_preferences,
         )
         start_date = date.today() - timedelta(days=365 * 10)
         end_date = date.today()
     else:
         data_window = "max"
         start_date = st.date_input(
-            "Start date", value=date.today() - timedelta(days=365 * 10)
+            "Start date",
+            value=date.today() - timedelta(days=365 * 10),
+            key="mean_reversion_start_date",
+            on_change=persist_suite_preferences,
         )
-        end_date = st.date_input("End date", value=date.today())
+        end_date = st.date_input(
+            "End date",
+            value=date.today(),
+            key="mean_reversion_end_date",
+            on_change=persist_suite_preferences,
+        )
 
     st.divider()
     st.subheader("Return windows")
     backward_window = st.number_input(
-        "Backward window (observations)", min_value=1, value=12, step=1
+        "Backward window (observations)",
+        min_value=1,
+        value=12,
+        step=1,
+        key="mean_reversion_backward_window",
+        on_change=persist_suite_preferences,
     )
     forward_window = st.number_input(
-        "Forward window (observations)", min_value=1, value=12, step=1
+        "Forward window (observations)",
+        min_value=1,
+        value=12,
+        step=1,
+        key="mean_reversion_forward_window",
+        on_change=persist_suite_preferences,
     )
 
     st.divider()
     st.subheader("Past-return bins")
-    auto_bin = st.checkbox("Calculate bin size automatically", value=True)
+    auto_bin = st.checkbox(
+        "Calculate bin size automatically",
+        value=True,
+        key="mean_reversion_auto_bin",
+        on_change=persist_suite_preferences,
+    )
     if auto_bin:
         number_of_bins = st.number_input(
-            "Target number of bins", min_value=2, max_value=30, value=5, step=1
+            "Target number of bins",
+            min_value=2,
+            max_value=30,
+            value=5,
+            step=1,
+            key="mean_reversion_number_of_bins",
+            on_change=persist_suite_preferences,
         )
         requested_bin_size = 0.1
     else:
@@ -184,6 +241,8 @@ with st.sidebar:
             value=0.1,
             step=0.01,
             format="%.3f",
+            key="mean_reversion_requested_bin_size",
+            on_change=persist_suite_preferences,
         )
     log_grid_interval = st.number_input(
         "Log-axis grid interval",
@@ -192,6 +251,8 @@ with st.sidebar:
         step=0.1,
         format="%.1f",
         help="Spacing between log-price grid lines.",
+        key="mean_reversion_log_grid_interval",
+        on_change=persist_suite_preferences,
     )
 
 st.sidebar.caption("Past and future windows are measured in data observations.")

@@ -41,15 +41,29 @@ st.sidebar.header('Parameters')
 
 # Set the default data_window based on interval value
 # by using session state, this is a callback function
+def persist_suite_preferences():
+    if not st.session_state.get("_market_analysis_suite"):
+        return
+
+    preferences = dict(
+        st.session_state.get("_suite_saved_preferences", {})
+    )
+    for key in st.session_state:
+        if key.startswith("explorer_"):
+            preferences[key] = st.session_state[key]
+    st.session_state["_suite_saved_preferences"] = preferences
+
+
 def set_data_window():
-    if(st.session_state.interval == '1d'):
-        st.session_state.data_window = '3mo'
-    elif (st.session_state.interval == '1wk'):
-        st.session_state.data_window = '2y'
-    elif (st.session_state.interval == '1mo'):
-        st.session_state.data_window = '10y'
-    elif (st.session_state.interval == '3mo'):
-        st.session_state.data_window = 'max'
+    if(st.session_state.explorer_interval == '1d'):
+        st.session_state.explorer_data_window = '3mo'
+    elif (st.session_state.explorer_interval == '1wk'):
+        st.session_state.explorer_data_window = '2y'
+    elif (st.session_state.explorer_interval == '1mo'):
+        st.session_state.explorer_data_window = '10y'
+    elif (st.session_state.explorer_interval == '3mo'):
+        st.session_state.explorer_data_window = 'max'
+    persist_suite_preferences()
 
 # create three tabs for parameters
 tab_data, tab_smoothing, tab_format = \
@@ -58,7 +72,8 @@ st.sidebar.tabs(["Data", "Smoothing", "Format"])
 with tab_data: # first tab
     # ticker symbol: find from Yahoo Finance
     ticker_symbol = st.text_input(label='Ticker',value='BTC-USD',
-        key='ticker_symbol',
+        key='explorer_ticker',
+        on_change=persist_suite_preferences,
         help = '''
             Use [Yahoo Finance](https://finance.yahoo.com) to find the ticker.
             Examples include:
@@ -73,7 +88,7 @@ with tab_data: # first tab
     # Timeframe
     tf_options = ['1d','1wk','1mo','3mo']
     interval = st.pills(label="Timeframe", options=tf_options, 
-        default='1wk', selection_mode="single", key='interval',
+        default='1mo', selection_mode="single", key='explorer_interval',
         help = 'Duration of time that each data point on the chart \
             represents.', on_change = set_data_window)
     
@@ -81,6 +96,8 @@ with tab_data: # first tab
     # if from date is empty, first data point is used
     # if end date is empty, last data point is used
     use_data_window = st.checkbox(label='Use data window',value=True,
+        key='explorer_use_data_window',
+        on_change=persist_suite_preferences,
         help='Select data range method: data window or dates')
     
     # use a data window
@@ -88,7 +105,8 @@ with tab_data: # first tab
         dw_options = ['3mo','6mo','1y','2y','5y'
             ,'10y','ytd','max'] # '1d','5d', '1mo' are also available in YF
         data_window = st.pills(label="Data Window", options=dw_options, 
-            default='2y', selection_mode="single", key='data_window',
+            default='10y', selection_mode="single", key='explorer_data_window',
+            on_change=persist_suite_preferences,
             label_visibility="collapsed")
     # use start date and end date
     else:
@@ -98,36 +116,52 @@ with tab_data: # first tab
         two_years_ago = today - timedelta(days=2*365)
         # set start date and end date
         start_date = st.date_input("Start date",format='YYYY-MM-DD',
-            value = two_years_ago)
+            value = two_years_ago,
+            key='explorer_start_date',
+            on_change=persist_suite_preferences)
         end_date = st.date_input("End date",format='YYYY-MM-DD',
-            value = today)
+            value = today,
+            key='explorer_end_date',
+            on_change=persist_suite_preferences)
 
 with tab_smoothing: # second tab
     # LOWESS parameters
     # no of reweightings (default=3)
-    it = st.number_input('Number of reweightings',value=3) 
+    it = st.number_input('Number of reweightings',value=3,
+        key='explorer_reweightings', on_change=persist_suite_preferences)
     # amount of data used for smoothing 
     use_period = st.checkbox(label='Use smoothing period',value=True,
+        key='explorer_use_period',
+        on_change=persist_suite_preferences,
         help='Select smoothing window method: period or bandwidth')
     if use_period:
         # monthly: 12, weekly: 52 
         lt_period = st.number_input('Long-term period',value=50,
-            min_value=1)
+            min_value=1,
+            key='explorer_lt_period',
+            on_change=persist_suite_preferences)
         # monthly: 1, weekly: 4
         st_period = st.number_input('Short-term period',value=10,
-            min_value=1)
+            min_value=1,
+            key='explorer_st_period',
+            on_change=persist_suite_preferences)
     else:
         # adjust, common values: 0.25, 0.5
         lt_bw = st.number_input('Long-term bandwidth',value=0.5,
-            min_value=0.01, max_value=1.0)
+            min_value=0.01, max_value=1.0,
+            key='explorer_lt_bw',
+            on_change=persist_suite_preferences)
         # 0.1 x lt_bw
         st_bw = st.number_input('Long-term bandwidth',value=0.05,
-            min_value=0.01, max_value=1.0)
+            min_value=0.01, max_value=1.0,
+            key='explorer_st_bw',
+            on_change=persist_suite_preferences)
 
 with tab_format: # third tab
     # Format parameters
     # Chart height
-    height = st.number_input('Plot heigth',value=700, min_value=0, step=25)
+    height = st.number_input('Plot heigth',value=700, min_value=0, step=25,
+        key='explorer_height', on_change=persist_suite_preferences)
 
     log_grid_interval = st.number_input(
         'Log-axis grid interval',
@@ -136,21 +170,28 @@ with tab_format: # third tab
         step=0.1,
         format='%.1f',
         help='Spacing between log-price grid lines.',
+        key='explorer_log_grid_interval',
+        on_change=persist_suite_preferences,
     )
     
     # Decimal places, override streamlit four decimals
     decimal_places = st.number_input('Decimal places',value=2, 
-            min_value=0, max_value = 4, step=1)
+            min_value=0, max_value = 4, step=1,
+            key='explorer_decimal_places',
+            on_change=persist_suite_preferences)
     
     # Standard Deviation Multiplier
     sd_multiplier = st.number_input('SD Multiplier',value=2.0, 
-            min_value=1.0, max_value = 6.0, step=0.5)
+            min_value=1.0, max_value = 6.0, step=0.5,
+            key='explorer_sd_multiplier',
+            on_change=persist_suite_preferences)
 
 # Back Transformation
 st.sidebar.divider()
 st.sidebar.header('Back Transformation',help='Enter a log price to convert it back to price.')
 # get input from user
-log_price = st.sidebar.number_input('Log Price', value=1.00,step=0.10,format='%.2f')
+log_price = st.sidebar.number_input('Log Price', value=1.00,step=0.10,format='%.2f',
+    key='explorer_log_price', on_change=persist_suite_preferences)
 
 # write the back transformation
 if (log_price):
