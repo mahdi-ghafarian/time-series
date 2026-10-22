@@ -453,36 +453,38 @@ chart_close = history["Close"].reindex(price_history.index)
 chart_past_returns = np.log(
     chart_close / chart_close.shift(int(backward_window))
 ).replace([np.inf, -np.inf], np.nan).dropna()
-chart_past_returns_pct = chart_past_returns * 100
-return_min = float(chart_past_returns_pct.min())
-return_max = float(chart_past_returns_pct.max())
+chart_past_returns_percent = chart_past_returns * 100
+return_min = float(chart_past_returns_percent.min())
+return_max = float(chart_past_returns_percent.max())
 if return_min == return_max:
-    return_min -= 0.01
-    return_max += 0.01
+    return_min -= 0.1
+    return_max += 0.1
 range_key = "mean_reversion_past_return_range_pct"
 if range_key in st.session_state:
-    saved_range = st.session_state[range_key]
-    st.session_state[range_key] = (
+    saved_range = tuple(st.session_state[range_key])
+    clamped_range = (
         min(max(float(saved_range[0]), return_min), return_max),
         min(max(float(saved_range[1]), return_min), return_max),
     )
-range_step = max((return_max - return_min) / 200, 0.0001)
+    if saved_range != clamped_range:
+        st.session_state[range_key] = clamped_range
 selected_return_range = st.slider(
-    "Highlight points with past returns in this range (%)",
+    f"Highlight points with past {int(backward_window)}-period log returns "
+    "in this range (%)",
     min_value=return_min,
     max_value=return_max,
     value=(return_min, return_max),
-    step=range_step,
-    format="%.3f%%",
+    step=0.1,
+    format="%.1f%%",
     key=range_key,
 )
-selected_dates = chart_past_returns_pct.index[
-    chart_past_returns_pct.between(*selected_return_range)
+selected_dates = chart_past_returns_percent.index[
+    chart_past_returns_percent.between(*selected_return_range)
 ]
 selected_prices = price_history.reindex(selected_dates)["LOG AVG"]
 st.caption(
     f"Highlighted points: {len(selected_dates):,} of "
-    f"{len(chart_past_returns_pct):,}. This selection only affects the price "
+    f"{len(chart_past_returns_percent):,}. This selection only affects the price "
     "chart; the box plot and bin statistics use all observations."
 )
 
@@ -534,9 +536,9 @@ if not selected_dates.empty:
                 "size": 8,
                 "line": {"color": "white", "width": 1},
             },
-            customdata=chart_past_returns_pct.reindex(selected_dates),
+            customdata=chart_past_returns_percent.reindex(selected_dates),
             hovertemplate=(
-                "Date: %{x}<br>Past return: %{customdata:.3f}%"
+                "Date: %{x}<br>Past log return: %{customdata:.1f}%"
                 "<extra></extra>"
             ),
         )
