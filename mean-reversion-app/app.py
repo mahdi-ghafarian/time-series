@@ -1,6 +1,7 @@
 from datetime import date, timedelta
 
 import matplotlib.colors as mcolors
+from matplotlib.cbook import boxplot_stats
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -144,6 +145,35 @@ def analyze_returns(
     )
     summary.insert(0, "bin", labels)
     summary["observations"] = summary["observations"].fillna(0).astype(int)
+    boxplot_summaries = []
+    for category in categories:
+        values = returns.loc[
+            returns["past_return_bin"] == category, "future_return"
+        ].to_numpy()
+        stats = boxplot_stats(values, whis=1.5)[0] if len(values) else {}
+        boxplot_summaries.append(
+            {
+                "lower_whisker": stats.get("whislo", np.nan),
+                "q1": stats.get("q1", np.nan),
+                "q3": stats.get("q3", np.nan),
+                "upper_whisker": stats.get("whishi", np.nan),
+                "outliers": len(stats.get("fliers", [])),
+            }
+        )
+    summary = summary.join(pd.DataFrame(boxplot_summaries, index=categories))
+    summary = summary[
+        [
+            "bin",
+            "observations",
+            "mean",
+            "lower_whisker",
+            "q1",
+            "median",
+            "q3",
+            "upper_whisker",
+            "outliers",
+        ]
+    ]
     return price_history, returns, bin_size, summary
 
 
@@ -412,6 +442,7 @@ sns.boxplot(
     dodge=False,
     legend=False,
     ax=axis,
+    whis=1.5,
     showfliers=True,
     flierprops={
         "marker": "o",
@@ -487,14 +518,27 @@ st.dataframe(
             "bin": "Past log-return bin",
             "observations": "Observations",
             "mean": "Mean future log return",
+            "lower_whisker": "Lower whisker future log return",
+            "q1": "Q1 future log return",
             "median": "Median future log return",
+            "q3": "Q3 future log return",
+            "upper_whisker": "Upper whisker future log return",
+            "outliers": "Outliers",
         }
     ),
     hide_index=True,
     width="stretch",
     column_config={
         "Mean future log return": st.column_config.NumberColumn(format="%.4f"),
+        "Lower whisker future log return": st.column_config.NumberColumn(
+            format="%.4f"
+        ),
+        "Q1 future log return": st.column_config.NumberColumn(format="%.4f"),
         "Median future log return": st.column_config.NumberColumn(format="%.4f"),
+        "Q3 future log return": st.column_config.NumberColumn(format="%.4f"),
+        "Upper whisker future log return": st.column_config.NumberColumn(
+            format="%.4f"
+        ),
     },
 )
 

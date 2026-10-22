@@ -13,4 +13,5 @@ streamlit run app.py
 
 Choose a ticker, interval, history range, return windows, and bin settings in
 the sidebar. The app displays a log average-price chart, future-return boxplot,
-bin statistics, and a CSV download of the calculated observations.
+bin statistics including quartiles, whiskers, and outlier counts, and a CSV
+download of the calculated observations.
