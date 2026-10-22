@@ -168,9 +168,6 @@ def analyze_returns(
         )
     summary = summary.join(pd.DataFrame(boxplot_summaries, index=categories))
     summary["iqr"] = summary["q3"] - summary["q1"]
-    summary["whisker_range"] = (
-        summary["upper_whisker"] - summary["lower_whisker"]
-    )
     summary["range"] = summary["maximum"] - summary["minimum"]
     summary = summary[
         [
@@ -178,7 +175,6 @@ def analyze_returns(
             "observations",
             "mean",
             "range",
-            "whisker_range",
             "iqr",
             "lower_whisker",
             "q1",
@@ -526,36 +522,34 @@ st.pyplot(figure, width="stretch")
 plt.close(figure)
 
 st.subheader("Bin statistics")
-st.caption("FLR = future log return.")
+st.caption("Return statistics are based on future log return.")
 st.dataframe(
     summary.rename(
         columns={
             "bin": "Past log-return bin",
             "observations": "Observations",
-            "mean": "Mean FLR",
-            "range": "Range FLR",
-            "whisker_range": "Whisker range FLR",
-            "iqr": "IQR FLR",
-            "lower_whisker": "Lower whisker FLR",
-            "q1": "Q1 FLR",
-            "median": "Median FLR",
-            "q3": "Q3 FLR",
-            "upper_whisker": "Upper whisker FLR",
+            "mean": "Mean",
+            "range": "Range",
+            "iqr": "IQR",
+            "lower_whisker": "Lower whisker",
+            "q1": "Q1",
+            "median": "Median",
+            "q3": "Q3",
+            "upper_whisker": "Upper whisker",
             "outliers": "Outliers",
         }
     ),
     hide_index=True,
     width="stretch",
     column_config={
-        "Mean FLR": st.column_config.NumberColumn(format="%.4f"),
-        "Range FLR": st.column_config.NumberColumn(format="%.4f"),
-        "Whisker range FLR": st.column_config.NumberColumn(format="%.4f"),
-        "IQR FLR": st.column_config.NumberColumn(format="%.4f"),
-        "Lower whisker FLR": st.column_config.NumberColumn(format="%.4f"),
-        "Q1 FLR": st.column_config.NumberColumn(format="%.4f"),
-        "Median FLR": st.column_config.NumberColumn(format="%.4f"),
-        "Q3 FLR": st.column_config.NumberColumn(format="%.4f"),
-        "Upper whisker FLR": st.column_config.NumberColumn(format="%.4f"),
+        "Mean": st.column_config.NumberColumn(format="%.4f"),
+        "Range": st.column_config.NumberColumn(format="%.4f"),
+        "IQR": st.column_config.NumberColumn(format="%.4f"),
+        "Lower whisker": st.column_config.NumberColumn(format="%.4f"),
+        "Q1": st.column_config.NumberColumn(format="%.4f"),
+        "Median": st.column_config.NumberColumn(format="%.4f"),
+        "Q3": st.column_config.NumberColumn(format="%.4f"),
+        "Upper whisker": st.column_config.NumberColumn(format="%.4f"),
     },
 )
 
