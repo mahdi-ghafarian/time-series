@@ -89,20 +89,6 @@ def select_ticker_result(symbol: str) -> None:
     persist_suite_preferences()
 
 
-def select_past_return_bin() -> None:
-    selected_rows = st.session_state[
-        "_mean_reversion_bin_table"
-    ].selection.rows
-    if not selected_rows:
-        return
-
-    bin_ranges = st.session_state["_mean_reversion_bin_ranges"]
-    selected_index = selected_rows[0]
-    st.session_state["mean_reversion_past_log_return_range"] = bin_ranges[
-        selected_index
-    ]
-
-
 @st.cache_data(ttl=3600, show_spinner=False)
 def fetch_history(
     ticker_symbol: str,
