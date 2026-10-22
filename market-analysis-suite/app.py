@@ -41,6 +41,9 @@ def save_current_app_preferences() -> None:
     st.session_state["_suite_saved_preferences"] = preferences
 
 st.sidebar.title("Market Analysis Suite")
+st.sidebar.markdown(
+    "by [Mahdi Ghafarian](https://www.linkedin.com/in/mahdi-ghafarian)"
+)
 selected_app = st.sidebar.radio(
     "Choose an analysis",
     list(apps),
