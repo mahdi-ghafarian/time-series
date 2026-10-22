@@ -388,6 +388,8 @@ with st.sidebar:
             key="mean_reversion_requested_bin_size",
             on_change=persist_suite_preferences,
         )
+    st.divider()
+    st.subheader("Line chart")
     log_grid_interval = st.number_input(
         "Log-axis grid interval",
         min_value=0.1,
@@ -396,6 +398,15 @@ with st.sidebar:
         format="%.1f",
         help="Spacing between log-price grid lines.",
         key="mean_reversion_log_grid_interval",
+        on_change=persist_suite_preferences,
+    )
+    slider_decimal_places = st.number_input(
+        "Range slider decimal places",
+        min_value=0,
+        max_value=6,
+        value=1,
+        step=1,
+        key="mean_reversion_slider_decimal_places",
         on_change=persist_suite_preferences,
     )
 
@@ -444,7 +455,7 @@ except ValueError as exc:
 mean_future_return = float(prices["future_return"].mean())
 metric_columns = st.columns(3)
 metric_columns[0].metric("Valid observations", f"{len(prices):,}")
-metric_columns[1].metric("Mean future log return", f"{mean_future_return:.4f}")
+metric_columns[1].metric("Mean future log return", f"{mean_future_return:.2f}")
 metric_columns[2].metric("Past-return bin size", f"{bin_size:.3f}")
 
 # Calculate chart highlights independently from the future-return pairs used
@@ -473,8 +484,8 @@ selected_return_range = st.slider(
     min_value=return_min,
     max_value=return_max,
     value=(return_min, return_max),
-    step=0.0001,
-    format="%.2f",
+    step=10 ** -int(slider_decimal_places),
+    format=f"%.{int(slider_decimal_places)}f",
     key=range_key,
 )
 selected_dates = chart_past_returns.index[
@@ -483,8 +494,7 @@ selected_dates = chart_past_returns.index[
 selected_prices = price_history.reindex(selected_dates)["LOG AVG"]
 st.caption(
     f"Highlighted points: {len(selected_dates):,} of "
-    f"{len(chart_past_returns):,}. This selection only affects the price "
-    "chart; the box plot and bin statistics use all observations."
+    f"{len(chart_past_returns):,}."
 )
 
 st.subheader(f"{ticker_symbol} log average price ({interval})")
