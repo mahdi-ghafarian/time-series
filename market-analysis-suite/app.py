@@ -54,5 +54,9 @@ for key, value in preferences.items():
         st.session_state[key] = value
 
 st.session_state["_suite_current_app"] = selected_app
+st.session_state.setdefault("_suite_shared_ticker", "BTC-USD")
+st.session_state[f"{selected_prefix}ticker"] = st.session_state[
+    "_suite_shared_ticker"
+]
 st.session_state["_market_analysis_suite"] = True
 runpy.run_path(str(apps[selected_app]), run_name="__main__")

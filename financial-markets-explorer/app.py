@@ -48,6 +48,11 @@ def persist_suite_preferences():
     preferences = dict(
         st.session_state.get("_suite_saved_preferences", {})
     )
+    ticker_key = "explorer_ticker"
+    if ticker_key in st.session_state:
+        shared_ticker = st.session_state[ticker_key].strip().upper()
+        st.session_state[ticker_key] = shared_ticker
+        st.session_state["_suite_shared_ticker"] = shared_ticker
     for key in st.session_state:
         if key.startswith("explorer_"):
             preferences[key] = st.session_state[key]
