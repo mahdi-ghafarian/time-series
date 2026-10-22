@@ -474,7 +474,7 @@ selected_return_range = st.slider(
     max_value=return_max,
     value=(return_min, return_max),
     step=0.0001,
-    format="%.4f",
+    format="%.2f",
     key=range_key,
 )
 selected_dates = chart_past_returns.index[
@@ -537,7 +537,7 @@ if not selected_dates.empty:
             },
             customdata=chart_past_returns.reindex(selected_dates),
             hovertemplate=(
-                "Date: %{x}<br>Past log return: %{customdata:.4f}"
+                "Date: %{x}<br>Past log return: %{customdata:.2f}"
                 "<extra></extra>"
             ),
         )
