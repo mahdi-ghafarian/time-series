@@ -231,7 +231,7 @@ st.write(
 with st.sidebar:
     st.header("Parameters")
     ticker_query = st.text_input(
-        "Search Yahoo Finance",
+        "Search for ticker",
         placeholder="Type a ticker or company name",
         key="_mean_reversion_ticker_search",
         live="500ms",
