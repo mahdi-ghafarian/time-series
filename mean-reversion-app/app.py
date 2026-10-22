@@ -447,6 +447,45 @@ metric_columns[0].metric("Valid observations", f"{len(prices):,}")
 metric_columns[1].metric("Mean future log return", f"{mean_future_return:.2%}")
 metric_columns[2].metric("Past-return bin size", f"{bin_size:.3f}")
 
+# Calculate chart highlights independently from the future-return pairs used
+# by the box plot and bin statistics.
+chart_close = history["Close"].reindex(price_history.index)
+chart_past_returns = np.log(
+    chart_close / chart_close.shift(int(backward_window))
+).replace([np.inf, -np.inf], np.nan).dropna()
+chart_past_returns_pct = chart_past_returns * 100
+return_min = float(chart_past_returns_pct.min())
+return_max = float(chart_past_returns_pct.max())
+if return_min == return_max:
+    return_min -= 0.01
+    return_max += 0.01
+range_key = "mean_reversion_past_return_range_pct"
+if range_key in st.session_state:
+    saved_range = st.session_state[range_key]
+    st.session_state[range_key] = (
+        min(max(float(saved_range[0]), return_min), return_max),
+        min(max(float(saved_range[1]), return_min), return_max),
+    )
+range_step = max((return_max - return_min) / 200, 0.0001)
+selected_return_range = st.slider(
+    "Highlight points with past returns in this range (%)",
+    min_value=return_min,
+    max_value=return_max,
+    value=(return_min, return_max),
+    step=range_step,
+    format="%.3f%%",
+    key=range_key,
+)
+selected_dates = chart_past_returns_pct.index[
+    chart_past_returns_pct.between(*selected_return_range)
+]
+selected_prices = price_history.reindex(selected_dates)["LOG AVG"]
+st.caption(
+    f"Highlighted points: {len(selected_dates):,} of "
+    f"{len(chart_past_returns_pct):,}. This selection only affects the price "
+    "chart; the box plot and bin statistics use all observations."
+)
+
 st.subheader(f"{ticker_symbol} log average price ({interval})")
 price_figure = go.Figure(
     go.Scatter(
@@ -483,6 +522,25 @@ price_figure.add_trace(
         showlegend=False,
     )
 )
+if not selected_dates.empty:
+    price_figure.add_trace(
+        go.Scatter(
+            x=selected_dates,
+            y=selected_prices,
+            mode="markers",
+            name="Matching past returns",
+            marker={
+                "color": "#e63946",
+                "size": 8,
+                "line": {"color": "white", "width": 1},
+            },
+            customdata=chart_past_returns_pct.reindex(selected_dates),
+            hovertemplate=(
+                "Date: %{x}<br>Past return: %{customdata:.3f}%"
+                "<extra></extra>"
+            ),
+        )
+    )
 price_figure.update_layout(
     xaxis_title="Date",
     showlegend=False,
