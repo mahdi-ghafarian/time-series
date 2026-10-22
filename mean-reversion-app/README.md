@@ -19,6 +19,7 @@ switching between apps in the Market Analysis Suite. Set the interval, history
 range, return windows, bin settings, and line-chart settings in the sidebar.
 The price chart includes a raw log-return range control with configurable
 decimal precision (default one place) that highlights matching dates without
-changing the future-return boxplot or bin statistics. The app
+changing the future-return boxplot or bin statistics. Select a row in the bin
+statistics table to set the chart's highlight range to that bin. The app
 also displays those statistics, including quartiles, whiskers, and outlier
 counts, and provides a CSV download of the calculated observations.

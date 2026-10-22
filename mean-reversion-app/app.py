@@ -89,6 +89,20 @@ def select_ticker_result(symbol: str) -> None:
     persist_suite_preferences()
 
 
+def select_past_return_bin() -> None:
+    selected_rows = st.session_state[
+        "_mean_reversion_bin_table"
+    ].selection.rows
+    if not selected_rows:
+        return
+
+    bin_ranges = st.session_state["_mean_reversion_bin_ranges"]
+    selected_index = selected_rows[0]
+    st.session_state["mean_reversion_past_log_return_range"] = bin_ranges[
+        selected_index
+    ]
+
+
 @st.cache_data(ttl=3600, show_spinner=False)
 def fetch_history(
     ticker_symbol: str,
@@ -497,7 +511,6 @@ st.caption(
     f"{len(chart_past_returns):,}."
 )
 
-st.subheader(f"{ticker_symbol} log average price ({interval})")
 price_figure = go.Figure(
     go.Scatter(
         x=price_history.index,
@@ -576,8 +589,6 @@ price_figure.update_layout(
         "showgrid": False,
     },
 )
-st.plotly_chart(price_figure, width="stretch", config={"scrollZoom": False})
-
 st.subheader("How Past Returns Relate to Future Returns")
 st.caption(
     f"Past window: {int(backward_window)} observations · "
@@ -691,24 +702,39 @@ plt.close(figure)
 
 st.subheader("Bin statistics")
 st.caption("Return statistics are based on future log return.")
+st.caption(
+    "Select a bin row to set the price-chart highlight range to that bin."
+)
+bin_ranges = [
+    (
+        max(float(interval.left), return_min),
+        min(float(interval.right), return_max),
+    )
+    for interval in category_intervals
+]
+st.session_state["_mean_reversion_bin_ranges"] = bin_ranges
+bin_statistics = summary.rename(
+    columns={
+        "bin": "Past log-return bin",
+        "observations": "Observations",
+        "mean": "Mean",
+        "range": "Range",
+        "iqr": "IQR",
+        "lower_whisker": "Lower whisker",
+        "q1": "Q1",
+        "median": "Median",
+        "q3": "Q3",
+        "upper_whisker": "Upper whisker",
+        "outliers": "Outliers",
+    }
+)
 st.dataframe(
-    summary.rename(
-        columns={
-            "bin": "Past log-return bin",
-            "observations": "Observations",
-            "mean": "Mean",
-            "range": "Range",
-            "iqr": "IQR",
-            "lower_whisker": "Lower whisker",
-            "q1": "Q1",
-            "median": "Median",
-            "q3": "Q3",
-            "upper_whisker": "Upper whisker",
-            "outliers": "Outliers",
-        }
-    ),
+    bin_statistics,
     hide_index=True,
     width="stretch",
+    key="_mean_reversion_bin_table",
+    on_select=select_past_return_bin,
+    selection_mode="single-row",
     column_config={
         "Mean": st.column_config.NumberColumn(format="%.4f"),
         "Range": st.column_config.NumberColumn(format="%.4f"),
@@ -720,6 +746,9 @@ st.dataframe(
         "Upper whisker": st.column_config.NumberColumn(format="%.4f"),
     },
 )
+
+st.subheader(f"{ticker_symbol} log average price ({interval})")
+st.plotly_chart(price_figure, width="stretch", config={"scrollZoom": False})
 
 csv_data = prices[
     ["Close", "past_return", "future_return", "bin_label"]
