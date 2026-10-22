@@ -245,7 +245,7 @@ with st.sidebar:
         "Search Yahoo Finance",
         placeholder="Type a ticker or company name",
         key="mean_reversion_ticker_search",
-        live="debounce",
+        live="500ms",
     )
     normalized_query = ticker_query.strip()
     if len(normalized_query) >= 2:
