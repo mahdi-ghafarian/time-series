@@ -11,8 +11,9 @@ python -m pip install -r requirements.txt
 streamlit run app.py
 ```
 
-Enter a ticker manually or search Yahoo Finance by ticker or company name and
-choose a matching result. Then set the interval, history range, return windows,
-and bin settings in the sidebar. The app displays a log average-price chart,
+In the sidebar's ticker field, type a company name or ticker and press Enter to
+search Yahoo Finance, then choose a matching result. You can also enter a
+ticker directly. Set the interval, history range, return windows, and bin
+settings in the sidebar. The app displays a log average-price chart,
 future-return boxplot, bin statistics including quartiles, whiskers, and
 outlier counts, and a CSV download of the calculated observations.
