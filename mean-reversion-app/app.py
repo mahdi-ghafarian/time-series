@@ -4,6 +4,7 @@ import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import plotly.graph_objects as go
 import seaborn as sns
 import streamlit as st
 import yfinance as yf
@@ -233,7 +234,18 @@ metric_columns[1].metric("Mean future log return", f"{mean_future_return:.2%}")
 metric_columns[2].metric("Past-return bin size", f"{bin_size:.3f}")
 
 st.subheader(f"{ticker_symbol} log average price ({interval})")
-st.line_chart(price_history["LOG AVG"], y_label="Log average price (HLC3)")
+price_figure = go.Figure(
+    go.Scatter(
+        x=price_history.index,
+        y=price_history["LOG AVG"],
+        mode="lines",
+    )
+)
+price_figure.update_layout(
+    xaxis_title="Date",
+    yaxis_title="Log average price (HLC3)",
+)
+st.plotly_chart(price_figure, width="stretch", config={"scrollZoom": False})
 
 st.subheader("Future returns by past-return bin")
 st.caption(
