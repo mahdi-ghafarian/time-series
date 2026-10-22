@@ -66,31 +66,14 @@ def search_tickers(query: str) -> list[dict[str, str]]:
     return matches
 
 
-def select_ticker() -> None:
-    selected_value = st.session_state.get("_mean_reversion_ticker_picker")
+def select_ticker_result() -> None:
+    selected_value = st.session_state.get("_mean_reversion_ticker_result")
     if not selected_value:
         return
 
-    selected_text = str(selected_value).strip()
-    available_symbols = st.session_state.get(
-        "_mean_reversion_ticker_picker_symbols", []
-    )
-    if selected_text in available_symbols:
-        st.session_state["mean_reversion_ticker"] = selected_text.upper()
-        labels = st.session_state.get(
-            "_mean_reversion_ticker_picker_labels", {}
-        )
-        st.session_state["_mean_reversion_ticker_label"] = labels.get(
-            selected_text, selected_text
-        )
-        st.session_state["_mean_reversion_ticker_label_symbol"] = (
-            selected_text.upper()
-        )
-        st.session_state["_mean_reversion_ticker_search_query"] = ""
-        persist_suite_preferences()
-        return
-
-    st.session_state["_mean_reversion_ticker_search_query"] = selected_text
+    st.session_state["mean_reversion_ticker"] = str(selected_value).upper()
+    st.session_state["_mean_reversion_ticker_result"] = None
+    persist_suite_preferences()
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
@@ -250,79 +233,52 @@ st.write(
 
 with st.sidebar:
     st.header("Parameters")
-    ticker_symbol = st.session_state.get(
-        "mean_reversion_ticker", "BTC-USD"
-    ).strip().upper()
-    pending_query = st.session_state.get(
-        "_mean_reversion_ticker_search_query", ""
+    ticker_query = st.text_input(
+        "Search Yahoo Finance",
+        placeholder="Type a ticker or company name",
+        key="_mean_reversion_ticker_search",
+        live="500ms",
     ).strip()
-    ticker_matches = []
-    search_error = None
-    if len(pending_query) >= 2:
+    if len(ticker_query) >= 2:
         try:
             with st.spinner("Searching Yahoo Finance..."):
-                ticker_matches = search_tickers(pending_query)
+                ticker_matches = search_tickers(ticker_query)
         except Exception as exc:
-            search_error = str(exc)
-
-    should_use_query_as_ticker = pending_query and (
-        len(pending_query) < 2 or search_error or not ticker_matches
-    )
-    if should_use_query_as_ticker:
-        ticker_symbol = pending_query.upper()
-        st.session_state["mean_reversion_ticker"] = ticker_symbol
-        st.session_state["_mean_reversion_ticker_label"] = ticker_symbol
-        st.session_state["_mean_reversion_ticker_label_symbol"] = ticker_symbol
-        st.session_state["_mean_reversion_ticker_search_query"] = ""
-        persist_suite_preferences()
-        if search_error:
             st.warning(
-                f"Yahoo Finance ticker search failed: {search_error} "
-                "Using the entered value as a ticker."
+                f"Yahoo Finance ticker search failed: {exc} "
+                "You can still enter a ticker manually."
             )
         else:
-            st.caption(
-                "No Yahoo Finance matches; using the entered value as a ticker."
-            )
+            if ticker_matches:
+                match_labels = {
+                    match["symbol"]: (
+                        f'{match["name"]} — {match["symbol"]}'
+                        + (
+                            f' ({match["exchange"]})'
+                            if match["exchange"]
+                            else ""
+                        )
+                    )
+                    for match in ticker_matches
+                }
+                st.selectbox(
+                    "Search results",
+                    options=list(match_labels),
+                    index=None,
+                    format_func=lambda symbol: match_labels[symbol],
+                    key="_mean_reversion_ticker_result",
+                    on_change=select_ticker_result,
+                    help="Select a result to copy its ticker into the field below.",
+                )
+            else:
+                st.caption("No Yahoo Finance matches found.")
 
-    if st.session_state.get(
-        "_mean_reversion_ticker_label_symbol"
-    ) != ticker_symbol:
-        st.session_state["_mean_reversion_ticker_label"] = ticker_symbol
-        st.session_state["_mean_reversion_ticker_label_symbol"] = ticker_symbol
-    current_ticker_label = st.session_state.get(
-        "_mean_reversion_ticker_label", ticker_symbol
-    )
-    ticker_labels = {ticker_symbol: current_ticker_label}
-    for match in ticker_matches:
-        symbol = match["symbol"]
-        ticker_labels[symbol] = (
-            f'{match["name"]} — {symbol}'
-            + (f' ({match["exchange"]})' if match["exchange"] else "")
-        )
-    st.session_state["_mean_reversion_ticker_picker_symbols"] = list(
-        ticker_labels
-    )
-    st.session_state["_mean_reversion_ticker_picker_labels"] = ticker_labels
-    if not pending_query:
-        st.session_state["_mean_reversion_ticker_picker"] = ticker_symbol
-    st.selectbox(
-        "Search Yahoo Finance or enter ticker",
-        options=list(ticker_labels),
-        index=None,
-        format_func=lambda symbol: ticker_labels.get(symbol, str(symbol)),
-        key="_mean_reversion_ticker_picker",
-        on_change=select_ticker,
-        accept_new_options=True,
-        filter_mode="contains",
-        help=(
-            "Type a company name or ticker and press Enter to search Yahoo "
-            "Finance, then choose a match. You can also enter a ticker "
-            "directly."
-        ),
-    )
-    ticker_symbol = st.session_state.get(
-        "mean_reversion_ticker", ticker_symbol
+    ticker_symbol = st.text_input(
+        "Ticker",
+        value=st.session_state.get("mean_reversion_ticker", "BTC-USD"),
+        help="Examples: AAPL, MSFT, SPY, BTC-USD, or ^GSPC.",
+        key="mean_reversion_ticker",
+        on_change=persist_suite_preferences,
     ).strip().upper()
 
     interval = st.selectbox(
