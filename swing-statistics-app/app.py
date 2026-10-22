@@ -158,8 +158,8 @@ def descriptive_statistics(
         values = values.dropna()
         records.append(
             {
-                "Group": group_name,
                 "Metric": metric_label,
+                "Group": group_name,
                 "Count": int(values.count()),
                 "Mean": values.mean(),
                 "Std. dev.": values.std(),
@@ -306,7 +306,16 @@ for metric, title, y_label, y_ticks in plot_metrics:
 
 st.subheader("Descriptive statistics")
 statistics = descriptive_statistics(prices, swings)
-st.dataframe(statistics, hide_index=True, width="stretch")
+metric_families = statistics["Metric"].str.partition(" · ")[0]
+for metric_family in metric_families.drop_duplicates():
+    st.subheader(metric_family)
+    metric_rows = statistics.loc[metric_families == metric_family]
+    st.dataframe(
+        metric_rows,
+        hide_index=True,
+        width="stretch",
+        height="content",
+    )
 st.download_button(
     "Download descriptive statistics (CSV)",
     data=statistics.to_csv(index=False).encode("utf-8"),
