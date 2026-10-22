@@ -1,29 +1,14 @@
-from pathlib import Path
-
 import streamlit as st
 
 
-REPOSITORY_ROOT = Path(__file__).resolve().parent.parent
+st.set_page_config(
+    page_title="Market Analysis Suite",
+    page_icon="📊",
+    layout="wide",
+)
 
-pages = {
-    "Market analysis": [
-        st.Page(
-            REPOSITORY_ROOT / "swing-statistics-app" / "app.py",
-            title="Swing Statistics",
-            icon="📊",
-        ),
-        st.Page(
-            REPOSITORY_ROOT / "mean-reversion-app" / "app.py",
-            title="Mean Reversion Profile",
-            icon="📈",
-        ),
-        st.Page(
-            REPOSITORY_ROOT / "financial-markets-explorer" / "app.py",
-            title="Financial Markets Explorer",
-            icon="🔎",
-        ),
-    ]
-}
-
-page = st.navigation(pages, position="sidebar")
-page.run()
+st.title("Market Analysis Suite")
+st.write(
+    "Choose an analysis from the sidebar: Swing Statistics, Mean Reversion "
+    "Profile, or Financial Markets Explorer."
+)
