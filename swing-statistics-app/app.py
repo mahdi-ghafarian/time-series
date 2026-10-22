@@ -36,6 +36,41 @@ def persist_suite_preferences() -> None:
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
+def search_tickers(query: str) -> list[dict[str, str]]:
+    quotes = yf.Search(
+        query,
+        max_results=8,
+        news_count=0,
+        lists_count=0,
+        include_cb=False,
+    ).quotes
+    matches = []
+    for quote in quotes:
+        symbol = quote.get("symbol")
+        if not symbol:
+            continue
+        matches.append(
+            {
+                "symbol": str(symbol),
+                "name": str(
+                    quote.get("longname") or quote.get("shortname") or symbol
+                ),
+                "exchange": str(
+                    quote.get("exchDisp") or quote.get("exchange") or ""
+                ),
+            }
+        )
+    return matches
+
+
+def select_swing_ticker(symbol: str, label: str) -> None:
+    st.session_state["swing_ticker"] = symbol.upper()
+    st.session_state["swing_search_ticker"] = label
+    st.session_state["swing_search_ticker_label"] = label
+    persist_suite_preferences()
+
+
+@st.cache_data(ttl=3600, show_spinner=False)
 def fetch_history(
     ticker_symbol: str,
     interval: str,
@@ -212,6 +247,45 @@ st.write(
 
 with st.sidebar:
     st.header("Data")
+    ticker_query = st.text_input(
+        "Search for ticker",
+        placeholder="Type a ticker or company name",
+        key="swing_search_ticker",
+        live="500ms",
+        on_change=persist_suite_preferences,
+    ).strip()
+    selected_label = st.session_state.get("swing_search_ticker_label", "")
+    if ticker_query != selected_label and len(ticker_query) >= 2:
+        search_failed = False
+        try:
+            with st.spinner("Searching Yahoo Finance..."):
+                ticker_matches = search_tickers(ticker_query)
+        except Exception as exc:
+            search_failed = True
+            st.warning(
+                f"Yahoo Finance ticker search failed: {exc} "
+                "You can still enter a ticker manually."
+            )
+            ticker_matches = []
+        if ticker_matches:
+            for match in ticker_matches:
+                symbol = match["symbol"]
+                label = (
+                    f'{symbol} | {match["name"]} | '
+                    f'{match["exchange"] or "Unknown exchange"}'
+                )
+                st.button(
+                    label,
+                    key=f"_swing_ticker_result_{symbol}",
+                    on_click=select_swing_ticker,
+                    args=(symbol, label),
+                    width="stretch",
+                )
+        elif not search_failed:
+            st.caption("No Yahoo Finance matches found.")
+    elif ticker_query != selected_label and ticker_query:
+        st.caption("Enter at least two characters to search.")
+
     ticker_symbol = st.text_input(
         "Ticker",
         value="BTC-USD",

@@ -11,9 +11,11 @@ python -m pip install -r requirements.txt
 streamlit run app.py
 ```
 
-In the sidebar, search Yahoo Finance by company name or ticker and choose a
-matching result shown below the search field to fill the separate ticker field.
-You can also edit the ticker directly. Set the interval, history range, return
-windows, and bin settings in the sidebar. The app displays a log average-price
-chart, future-return boxplot, bin statistics including quartiles, whiskers, and
-outlier counts, and a CSV download of the calculated observations.
+In the sidebar, search Yahoo Finance by company name or ticker in **Search for
+ticker**, then choose a `TICKER | NAME | EXCHANGE` result to fill the separate
+ticker field with its symbol. You can also edit the ticker directly. Search
+text is retained when switching between apps in the Market Analysis Suite. Set
+the interval, history range, return windows, and bin settings in the sidebar.
+The app displays a log average-price chart, future-return boxplot, bin
+statistics including quartiles, whiskers, and outlier counts, and a CSV
+download of the calculated observations.

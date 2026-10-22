@@ -68,8 +68,8 @@ def search_tickers(query: str) -> list[dict[str, str]]:
 
 def select_ticker_result(symbol: str, label: str) -> None:
     st.session_state["mean_reversion_ticker"] = symbol.upper()
-    st.session_state["_mean_reversion_ticker_search"] = label
-    st.session_state["_mean_reversion_ticker_selected_label"] = label
+    st.session_state["mean_reversion_search_ticker"] = label
+    st.session_state["mean_reversion_search_ticker_label"] = label
     persist_suite_preferences()
 
 
@@ -233,13 +233,14 @@ with st.sidebar:
     ticker_query = st.text_input(
         "Search for ticker",
         placeholder="Type a ticker or company name",
-        key="_mean_reversion_ticker_search",
+        key="mean_reversion_search_ticker",
         live="500ms",
+        on_change=persist_suite_preferences,
     ).strip()
     ticker_matches = []
     search_failed = False
     selected_label = st.session_state.get(
-        "_mean_reversion_ticker_selected_label", ""
+        "mean_reversion_search_ticker_label", ""
     )
     if ticker_query != selected_label and len(ticker_query) >= 2:
         try:

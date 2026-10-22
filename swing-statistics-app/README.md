@@ -11,6 +11,8 @@ python -m pip install -r requirements.txt
 streamlit run app.py
 ```
 
-Choose a ticker, interval, history range, and ATR window in the sidebar. The app
-shows log average price, swing distribution boxplots, descriptive statistics,
-swing observations, and CSV downloads.
+Search Yahoo Finance by ticker or company name in **Search for ticker**, then
+select a `TICKER | NAME | EXCHANGE` result to fill the separate ticker field.
+You can also edit the ticker directly. Choose an interval, history range, and
+ATR window in the sidebar. The app shows log average price, swing distribution
+boxplots, descriptive statistics, swing observations, and CSV downloads.
