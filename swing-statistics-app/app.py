@@ -148,9 +148,14 @@ def descriptive_statistics(
         "True range (%)": (price_history["TR%"], "Price history"),
         "ATR (%)": (price_history["ATR%"], "Price history"),
     }
-    for metric in ("Swing_Size_Ratio", "Swing_Size%", "Swing_Duration"):
+    metric_titles = {
+        "Swing_Size_Ratio": "Swing size ratio",
+        "Swing_Size%": "Swing size (%)",
+        "Swing_Duration": "Swing duration (bars)",
+    }
+    for metric, title in metric_titles.items():
         for group_name, group_data in groups.items():
-            metrics[f"{metric} · {group_name}"] = (
+            metrics[f"{title} · {group_name}"] = (
                 group_data[metric],
                 group_name,
             )
