@@ -465,7 +465,7 @@ price_figure.add_trace(
         y=prices["LOG AVG"],
         mode="lines",
         name="HLC3",
-        line=dict(color="lightgray", width=1),
+        # line=dict(color="lightgray", width=1),
     )
 )
 
