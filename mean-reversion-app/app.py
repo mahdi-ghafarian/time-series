@@ -340,7 +340,7 @@ with st.sidebar:
         )
 
     st.divider()
-    st.subheader("Return windows")
+    st.subheader("Box plot")
     backward_window = st.number_input(
         "Backward window (observations)",
         min_value=1,
@@ -358,8 +358,6 @@ with st.sidebar:
         on_change=persist_suite_preferences,
     )
 
-    st.divider()
-    st.subheader("Past-return bins")
     auto_bin = st.checkbox(
         "Calculate bin size automatically",
         value=True,
