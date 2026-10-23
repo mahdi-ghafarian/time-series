@@ -582,8 +582,11 @@ st.download_button(
 )
 
 st.subheader("Swing observations")
+display_swings = swings.sort_values("end_date", ascending=False).copy()
+for column in ("start_date", "end_date"):
+    display_swings[column] = pd.to_datetime(display_swings[column]).dt.date
 st.dataframe(
-    swings.sort_values("end_date", ascending=False),
+    display_swings,
     hide_index=True,
     width="stretch",
 )
@@ -614,7 +617,9 @@ price_observations = (
     prices.rename(columns=price_observation_columns)
     .rename_axis("Date")
     .reset_index()
+    .sort_values("Date", ascending=False)
 )
+price_observations["Date"] = pd.to_datetime(price_observations["Date"]).dt.date
 preferred_observation_columns = [
     "Date",
     "Open",

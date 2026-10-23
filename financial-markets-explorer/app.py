@@ -583,6 +583,9 @@ df2 = df[['Open','High','Low','Close','avg','l_avg']]
 df2['Change'] = df2['Close'].diff()
 # Calculate percentage change
 df2['Change (%)'] = df2['Close'].pct_change() * 100
+# Show the latest observations first while keeping changes calculated in
+# chronological order.
+df2 = df2.sort_index(ascending=False)
 # Change index display format
 df2.index = df2.index.strftime('%Y-%m-%d')
 # Rename columns
