@@ -259,7 +259,7 @@ with tab_format: # third tab
         key='explorer_height', on_change=persist_suite_preferences)
 
     log_grid_interval = st.number_input(
-        'Log-axis grid interval',
+        'Y-axis grid interval',
         min_value=0.1,
         value=1.0,
         step=0.1,

@@ -389,7 +389,7 @@ with st.sidebar:
     st.divider()
     st.header("Line chart")
     log_grid_interval = st.number_input(
-        "Log-axis grid interval",
+        "Y-axis grid interval",
         min_value=0.1,
         value=1.0,
         step=0.1,
