@@ -616,7 +616,7 @@ axis.axvline(
     linestyle="--",
     linewidth=1,
     alpha=0.7,
-    label="Zero return boundary",
+    # label="Zero return boundary",
 )
 axis.set_xlim(-0.5, len(category_labels) - 0.5)
 axis.axhline(
