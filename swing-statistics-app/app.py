@@ -564,8 +564,11 @@ for chart_tab, (metric, title, y_label, y_ticks) in zip(chart_tabs, plot_metrics
 
 st.subheader("Descriptive statistics")
 st.caption(
-    "Indicator statistics describe the distribution across valid price "
-    "observations; return-to-ATR values are expressed in ATR multiples."
+    "Indicator summaries cover true range and ATR (absolute and percentage), "
+    "close and HLC3 returns (including absolute returns), and their ATR "
+    "multiples. They use valid price observations. Swing summaries cover "
+    "size / ATR, size (%), and duration, each grouped across all, up, and "
+    "down swings. Return-to-ATR values are multiples, not percentages."
 )
 statistics = descriptive_statistics(prices, swings)
 metric_families = statistics["Metric"].str.partition(" · ")[0]
@@ -578,13 +581,6 @@ for metric_family in metric_families.drop_duplicates():
             width="stretch",
             height="content",
         )
-st.download_button(
-    "Download descriptive statistics (CSV)",
-    data=statistics.to_csv(index=False).encode("utf-8"),
-    file_name=f"{ticker_symbol.lower()}_{interval}_swing_statistics.csv",
-    mime="text/csv",
-)
-
 display_swings = swings.sort_values("end_date", ascending=False).copy()
 for column in ("start_date", "end_date"):
     display_swings[column] = pd.to_datetime(display_swings[column]).dt.date
@@ -594,13 +590,6 @@ with st.expander("Swing observations", expanded=False):
         hide_index=True,
         width="stretch",
     )
-st.download_button(
-    "Download swing observations (CSV)",
-    data=swings.to_csv(index=False).encode("utf-8"),
-    file_name=f"{ticker_symbol.lower()}_{interval}_swings.csv",
-    mime="text/csv",
-)
-
 price_observation_columns = {
     "AVG": "Average price (HLC3)",
     "LOG AVG": "Log average price",
@@ -665,9 +654,26 @@ with st.expander("Price and indicator observations", expanded=False):
         width="stretch",
         height=500,
     )
-st.download_button(
-    "Download price and indicator observations (CSV)",
+st.subheader("Download")
+download_columns = st.columns(3)
+download_columns[0].download_button(
+    "Descriptive statistics CSV",
+    data=statistics.to_csv(index=False).encode("utf-8"),
+    file_name=f"{ticker_symbol.lower()}_{interval}_swing_statistics.csv",
+    mime="text/csv",
+    width="stretch",
+)
+download_columns[1].download_button(
+    "Swing observations CSV",
+    data=swings.to_csv(index=False).encode("utf-8"),
+    file_name=f"{ticker_symbol.lower()}_{interval}_swings.csv",
+    mime="text/csv",
+    width="stretch",
+)
+download_columns[2].download_button(
+    "Price and indicator observations CSV",
     data=price_observations.to_csv(index=False).encode("utf-8"),
     file_name=f"{ticker_symbol.lower()}_{interval}_price_observations.csv",
     mime="text/csv",
+    width="stretch",
 )
