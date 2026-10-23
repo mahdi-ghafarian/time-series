@@ -215,47 +215,50 @@ def descriptive_statistics(
         "Down swings": swings.loc[swings["swing_type"] == "DOWN"],
     }
     metrics = {
-        "Indicator · True range": (price_history["TR"], "Price history"),
+        "Indicator · True range": (price_history["TR"], "True range"),
         "Indicator · Average true range": (
             price_history["ATR"],
-            "Price history",
+            "Average true range",
         ),
-        "Indicator · True range (%)": (price_history["TR%"], "Price history"),
+        "Indicator · True range (%)": (
+            price_history["TR%"],
+            "True range (%)",
+        ),
         "Indicator · Average true range (%)": (
             price_history["ATR%"],
-            "Price history",
+            "Average true range (%)",
         ),
         "Indicator · Close return (%)": (
             price_history["Return_C%"],
-            "Price history",
+            "Close return (%)",
         ),
         "Indicator · Absolute close return (%)": (
             price_history["Abs_Return_C%"],
-            "Price history",
+            "Absolute close return (%)",
         ),
         "Indicator · Close return (ATR multiples)": (
             price_history["Return_C_Ratio"],
-            "Price history",
+            "Close return (ATR multiples)",
         ),
         "Indicator · Absolute close return (ATR multiples)": (
             price_history["Abs_Return_C_Ratio"],
-            "Price history",
+            "Absolute close return (ATR multiples)",
         ),
         "Indicator · HLC3 return (%)": (
             price_history["Return_A%"],
-            "Price history",
+            "HLC3 return (%)",
         ),
         "Indicator · Absolute HLC3 return (%)": (
             price_history["Abs_Return_A%"],
-            "Price history",
+            "Absolute HLC3 return (%)",
         ),
         "Indicator · HLC3 return (ATR multiples)": (
             price_history["Return_A_Ratio"],
-            "Price history",
+            "HLC3 return (ATR multiples)",
         ),
         "Indicator · Absolute HLC3 return (ATR multiples)": (
             price_history["Abs_Return_A_Ratio"],
-            "Price history",
+            "Absolute HLC3 return (ATR multiples)",
         ),
     }
     metric_titles = {
@@ -645,16 +648,16 @@ ordered_observation_columns.extend(
 )
 price_observations = price_observations[ordered_observation_columns]
 
-with st.expander("Price and indicator observations", expanded=True):
-    st.dataframe(
-        price_observations,
-        hide_index=True,
-        width="stretch",
-        height=500,
-    )
-    st.download_button(
-        "Download price and indicator observations (CSV)",
-        data=price_observations.to_csv(index=False).encode("utf-8"),
-        file_name=f"{ticker_symbol.lower()}_{interval}_price_observations.csv",
-        mime="text/csv",
-    )
+st.subheader("Price and indicator observations")
+st.dataframe(
+    price_observations,
+    hide_index=True,
+    width="stretch",
+    height=500,
+)
+st.download_button(
+    "Download price and indicator observations (CSV)",
+    data=price_observations.to_csv(index=False).encode("utf-8"),
+    file_name=f"{ticker_symbol.lower()}_{interval}_price_observations.csv",
+    mime="text/csv",
+)
