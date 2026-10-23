@@ -19,7 +19,7 @@ from datetime import datetime, timedelta
 # community cloud
 if not st.session_state.get("_market_analysis_suite"):
     st.set_page_config(layout="wide", # centered
-                       page_title="Explorer",
+                       page_title="Market Explorer",
                         initial_sidebar_state="expanded")
 
 # ------------------------------------------------------------------------------

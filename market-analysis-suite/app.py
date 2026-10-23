@@ -13,7 +13,7 @@ st.set_page_config(
 
 repository_root = Path(__file__).resolve().parent.parent
 apps = {
-    "Financial Markets Explorer": (
+    "Market Explorer": (
         repository_root / "financial-markets-explorer" / "app.py"
     ),
     "Mean Reversion Profile": repository_root / "mean-reversion-app" / "app.py",
