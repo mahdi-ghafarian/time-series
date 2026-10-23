@@ -301,7 +301,7 @@ def descriptive_statistics(
 st.title("Swing Statistics")
 st.write(
     "Explore price swings, average true range, swing size, and swing duration "
-    "using historical market data from Yahoo Finance."
+    "using historical market data."
 )
 
 with st.sidebar:

@@ -241,7 +241,7 @@ def analyze_returns(
 st.title("Mean Reversion Profile")
 st.write(
     "Explore how returns over a past window relate to returns over a future "
-    "window. Prices and return data are retrieved from Yahoo Finance."
+    "window."
 )
 
 with st.sidebar:
