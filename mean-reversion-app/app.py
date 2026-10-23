@@ -340,7 +340,7 @@ with st.sidebar:
         )
 
     st.divider()
-    st.subheader("Box plot")
+    st.header("Box plot")
     backward_window = st.number_input(
         "Backward window (observations)",
         min_value=1,
@@ -387,7 +387,7 @@ with st.sidebar:
             on_change=persist_suite_preferences,
         )
     st.divider()
-    st.subheader("Line chart")
+    st.header("Line chart")
     log_grid_interval = st.number_input(
         "Log-axis grid interval",
         min_value=0.1,
