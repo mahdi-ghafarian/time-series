@@ -570,14 +570,14 @@ st.caption(
 statistics = descriptive_statistics(prices, swings)
 metric_families = statistics["Metric"].str.partition(" · ")[0]
 for metric_family in metric_families.drop_duplicates():
-    st.subheader(metric_family)
     metric_rows = statistics.loc[metric_families == metric_family]
-    st.dataframe(
-        metric_rows.drop(columns=["Metric"]),
-        hide_index=True,
-        width="stretch",
-        height="content",
-    )
+    with st.expander(metric_family, expanded=False):
+        st.dataframe(
+            metric_rows.drop(columns=["Metric"]),
+            hide_index=True,
+            width="stretch",
+            height="content",
+        )
 st.download_button(
     "Download descriptive statistics (CSV)",
     data=statistics.to_csv(index=False).encode("utf-8"),
@@ -585,15 +585,15 @@ st.download_button(
     mime="text/csv",
 )
 
-st.subheader("Swing observations")
 display_swings = swings.sort_values("end_date", ascending=False).copy()
 for column in ("start_date", "end_date"):
     display_swings[column] = pd.to_datetime(display_swings[column]).dt.date
-st.dataframe(
-    display_swings,
-    hide_index=True,
-    width="stretch",
-)
+with st.expander("Swing observations", expanded=False):
+    st.dataframe(
+        display_swings,
+        hide_index=True,
+        width="stretch",
+    )
 st.download_button(
     "Download swing observations (CSV)",
     data=swings.to_csv(index=False).encode("utf-8"),
@@ -658,13 +658,13 @@ ordered_observation_columns.extend(
 )
 price_observations = price_observations[ordered_observation_columns]
 
-st.subheader("Price and indicator observations")
-st.dataframe(
-    price_observations,
-    hide_index=True,
-    width="stretch",
-    height=500,
-)
+with st.expander("Price and indicator observations", expanded=False):
+    st.dataframe(
+        price_observations,
+        hide_index=True,
+        width="stretch",
+        height=500,
+    )
 st.download_button(
     "Download price and indicator observations (CSV)",
     data=price_observations.to_csv(index=False).encode("utf-8"),
