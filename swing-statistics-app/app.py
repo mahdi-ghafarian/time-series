@@ -466,7 +466,6 @@ price_figure.add_trace(
         mode="lines",
         name="HLC3",
         # line=dict(color="lightgray", width=1),
-        line=dict(width=1),
     )
 )
 
