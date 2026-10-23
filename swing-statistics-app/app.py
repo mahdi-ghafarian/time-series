@@ -215,8 +215,48 @@ def descriptive_statistics(
         "Down swings": swings.loc[swings["swing_type"] == "DOWN"],
     }
     metrics = {
-        "True range (%)": (price_history["TR%"], "Price history"),
-        "ATR (%)": (price_history["ATR%"], "Price history"),
+        "Indicator · True range": (price_history["TR"], "Price history"),
+        "Indicator · Average true range": (
+            price_history["ATR"],
+            "Price history",
+        ),
+        "Indicator · True range (%)": (price_history["TR%"], "Price history"),
+        "Indicator · Average true range (%)": (
+            price_history["ATR%"],
+            "Price history",
+        ),
+        "Indicator · Close return (%)": (
+            price_history["Return_C%"],
+            "Price history",
+        ),
+        "Indicator · Absolute close return (%)": (
+            price_history["Abs_Return_C%"],
+            "Price history",
+        ),
+        "Indicator · Close return (ATR multiples)": (
+            price_history["Return_C_Ratio"],
+            "Price history",
+        ),
+        "Indicator · Absolute close return (ATR multiples)": (
+            price_history["Abs_Return_C_Ratio"],
+            "Price history",
+        ),
+        "Indicator · HLC3 return (%)": (
+            price_history["Return_A%"],
+            "Price history",
+        ),
+        "Indicator · Absolute HLC3 return (%)": (
+            price_history["Abs_Return_A%"],
+            "Price history",
+        ),
+        "Indicator · HLC3 return (ATR multiples)": (
+            price_history["Return_A_Ratio"],
+            "Price history",
+        ),
+        "Indicator · Absolute HLC3 return (ATR multiples)": (
+            price_history["Abs_Return_A_Ratio"],
+            "Price history",
+        ),
     }
     metric_titles = {
         "Swing_Size_Ratio": "Swing size ratio",
@@ -515,6 +555,10 @@ for metric, title, y_label, y_ticks in plot_metrics:
     plt.close(figure)
 
 st.subheader("Descriptive statistics")
+st.caption(
+    "Indicator statistics describe the distribution across valid price "
+    "observations; return-to-ATR values are expressed in ATR multiples."
+)
 statistics = descriptive_statistics(prices, swings)
 metric_families = statistics["Metric"].str.partition(" · ")[0]
 for metric_family in metric_families.drop_duplicates():
@@ -546,5 +590,71 @@ st.download_button(
     mime="text/csv",
 )
 
-with st.expander("Price and indicator observations"):
-    st.dataframe(prices, width="stretch")
+price_observation_columns = {
+    "AVG": "Average price (HLC3)",
+    "LOG AVG": "Log average price",
+    "TR": "True range",
+    "ATR": "Average true range",
+    "TR%": "True range (%)",
+    "ATR%": "Average true range (%)",
+    "Return_C%": "Close return (%)",
+    "Abs_Return_C%": "Absolute close return (%)",
+    "Return_C_Ratio": "Close return (ATR multiples)",
+    "Abs_Return_C_Ratio": "Absolute close return (ATR multiples)",
+    "Return_A%": "HLC3 return (%)",
+    "Abs_Return_A%": "Absolute HLC3 return (%)",
+    "Return_A_Ratio": "HLC3 return (ATR multiples)",
+    "Abs_Return_A_Ratio": "Absolute HLC3 return (ATR multiples)",
+}
+price_observations = (
+    prices.rename(columns=price_observation_columns)
+    .rename_axis("Date")
+    .reset_index()
+)
+preferred_observation_columns = [
+    "Date",
+    "Open",
+    "High",
+    "Low",
+    "Close",
+    "Volume",
+    "Average price (HLC3)",
+    "Log average price",
+    "True range",
+    "Average true range",
+    "True range (%)",
+    "Average true range (%)",
+    "Close return (%)",
+    "Absolute close return (%)",
+    "Close return (ATR multiples)",
+    "Absolute close return (ATR multiples)",
+    "HLC3 return (%)",
+    "Absolute HLC3 return (%)",
+    "HLC3 return (ATR multiples)",
+    "Absolute HLC3 return (ATR multiples)",
+]
+ordered_observation_columns = [
+    column
+    for column in preferred_observation_columns
+    if column in price_observations.columns
+]
+ordered_observation_columns.extend(
+    column
+    for column in price_observations.columns
+    if column not in ordered_observation_columns
+)
+price_observations = price_observations[ordered_observation_columns]
+
+with st.expander("Price and indicator observations", expanded=True):
+    st.dataframe(
+        price_observations,
+        hide_index=True,
+        width="stretch",
+        height=500,
+    )
+    st.download_button(
+        "Download price and indicator observations (CSV)",
+        data=price_observations.to_csv(index=False).encode("utf-8"),
+        file_name=f"{ticker_symbol.lower()}_{interval}_price_observations.csv",
+        mime="text/csv",
+    )
