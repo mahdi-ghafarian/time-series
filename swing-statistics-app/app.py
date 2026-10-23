@@ -391,6 +391,7 @@ with st.sidebar:
         )
 
     st.divider()
+    st.header("Bar Chart")
     atr_window = st.number_input(
         "ATR window (observations)",
         min_value=2,

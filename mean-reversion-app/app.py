@@ -245,7 +245,7 @@ st.write(
 )
 
 with st.sidebar:
-    st.header("Parameters")
+    st.header("Data")
     ticker_query = st.text_input(
         "Search for ticker",
         placeholder="Type a ticker or company name",
