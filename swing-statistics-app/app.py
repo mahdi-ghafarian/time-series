@@ -534,29 +534,33 @@ plot_metrics = [
         np.arange(0, np.ceil(swings["Swing_Duration"].max()) + 1, 1),
     ),
 ]
-for metric, title, y_label, y_ticks in plot_metrics:
-    figure, axes = plt.subplots(1, 3, figsize=(12, 6))
-    swing_groups = [
-        (swings, title),
-        (up_swings, f"Up {title[0].lower()}{title[1:]}"),
-        (down_swings, f"Down {title[0].lower()}{title[1:]}"),
-    ]
-    y_max = float(swings[metric].max())
-    for axis, (group_data, panel_title) in zip(axes, swing_groups):
-        plot_data = group_data[metric].dropna()
-        if plot_data.empty:
-            axis.text(0.5, 0.5, "No swings available", ha="center", va="center")
-        else:
-            sns.boxplot(y=plot_data, ax=axis)
-        axis.set_title(panel_title)
-        axis.set_ylabel(y_label)
-        axis.set_ylim(0, y_max)
-        if y_ticks is not None:
-            axis.set_yticks(y_ticks)
-        axis.grid(True, which="both", linestyle="--", linewidth=0.5)
-    figure.tight_layout()
-    st.pyplot(figure, width="stretch")
-    plt.close(figure)
+chart_tabs = st.tabs([title for _, title, _, _ in plot_metrics])
+for chart_tab, (metric, title, y_label, y_ticks) in zip(chart_tabs, plot_metrics):
+    with chart_tab:
+        figure, axes = plt.subplots(1, 3, figsize=(12, 6))
+        swing_groups = [
+            (swings, title),
+            (up_swings, f"Up {title[0].lower()}{title[1:]}"),
+            (down_swings, f"Down {title[0].lower()}{title[1:]}"),
+        ]
+        y_max = float(swings[metric].max())
+        for axis, (group_data, panel_title) in zip(axes, swing_groups):
+            plot_data = group_data[metric].dropna()
+            if plot_data.empty:
+                axis.text(
+                    0.5, 0.5, "No swings available", ha="center", va="center"
+                )
+            else:
+                sns.boxplot(y=plot_data, ax=axis)
+            axis.set_title(panel_title)
+            axis.set_ylabel(y_label)
+            axis.set_ylim(0, y_max)
+            if y_ticks is not None:
+                axis.set_yticks(y_ticks)
+            axis.grid(True, which="both", linestyle="--", linewidth=0.5)
+        figure.tight_layout()
+        st.pyplot(figure, width="stretch")
+        plt.close(figure)
 
 st.subheader("Descriptive statistics")
 st.caption(
