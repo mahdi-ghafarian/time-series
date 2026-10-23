@@ -20,7 +20,7 @@ apps = {
     "Swing Statistics": repository_root / "swing-statistics-app" / "app.py",
 }
 app_prefixes = {
-    "Financial Markets Explorer": "explorer_",
+    "Markets Explorer": "explorer_",
     "Mean Reversion Profile": "mean_reversion_",
     "Swing Statistics": "swing_",
 }
