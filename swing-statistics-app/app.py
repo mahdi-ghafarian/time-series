@@ -566,7 +566,7 @@ st.subheader("Descriptive statistics")
 st.caption(
     "Indicator summaries cover true range and ATR (absolute and percentage), "
     "close and HLC3 returns (including absolute returns), and their ATR multiples."
-    "\nSwing summaries cover size / ATR, size (%), and duration, each grouped across all, up, and "
+    "  \nSwing summaries cover size / ATR, size (%), and duration, each grouped across all, up, and "
     "down swings. Return-to-ATR values are multiples, not percentages."
 )
 statistics = descriptive_statistics(prices, swings)
