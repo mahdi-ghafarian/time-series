@@ -565,7 +565,7 @@ for chart_tab, (metric, title, y_label, y_ticks) in zip(chart_tabs, plot_metrics
 st.subheader("Descriptive statistics")
 st.caption(
     "Indicator summaries cover true range and ATR (absolute and percentage), "
-    "close and HLC3 returns (including absolute returns), and their ATR multiples."
+    "close and HLC3 returns (including absolute returns), and their ATR multiples. "
     "Swing summaries cover size / ATR, size (%), and duration, each grouped across all, up, and "
     "down swings. Return-to-ATR values are multiples, not percentages."
 )
