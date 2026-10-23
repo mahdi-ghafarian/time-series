@@ -455,24 +455,96 @@ metric_columns[3].metric(
 )
 
 st.subheader(f"{ticker_symbol} log average price ({interval})")
-price_figure = go.Figure(
-    go.Scatter(x=prices.index, y=prices["LOG AVG"], mode="lines")
+
+price_figure = go.Figure()
+
+# Price series
+price_figure.add_trace(
+    go.Scatter(
+        x=prices.index,
+        y=prices["LOG AVG"],
+        mode="lines",
+        name="HLC3",
+        line=dict(color="lightgray", width=1),
+    )
 )
+
+# ZigZag swing line
+zigzag_points = pd.concat(
+    [
+        swings[["start_date", "start_price"]]
+        .rename(
+            columns={
+                "start_date": "date",
+                "start_price": "price",
+            }
+        ),
+        swings[["end_date", "end_price"]]
+        .rename(
+            columns={
+                "end_date": "date",
+                "end_price": "price",
+            }
+        ),
+    ],
+    ignore_index=True,
+)
+
+zigzag_points = (
+    zigzag_points
+    .drop_duplicates(subset="date", keep="last")
+    .sort_values("date")
+)
+
+zigzag_points["log_price"] = np.log(zigzag_points["price"])
+
+price_figure.add_trace(
+    go.Scatter(
+        x=zigzag_points["date"],
+        y=zigzag_points["log_price"],
+        mode="lines+markers",
+        name="Swing ZigZag",
+        line=dict(color="orange", width=3),
+        marker=dict(size=6),
+    )
+)
+
 log_tick_min = float(
-    np.floor(prices["LOG AVG"].min() / log_grid_interval) * log_grid_interval
+    np.floor(
+        prices["LOG AVG"].min() / log_grid_interval
+    ) * log_grid_interval
 )
+
 log_tick_max = float(
-    np.ceil(prices["LOG AVG"].max() / log_grid_interval) * log_grid_interval
+    np.ceil(
+        prices["LOG AVG"].max() / log_grid_interval
+    ) * log_grid_interval
 )
+
 if log_tick_max <= log_tick_min:
     log_tick_max = log_tick_min + log_grid_interval
-tick_count = int(round((log_tick_max - log_tick_min) / log_grid_interval))
-log_price_ticks = (
-    log_tick_min + np.arange(tick_count + 1) * log_grid_interval
+
+tick_count = int(
+    round(
+        (log_tick_max - log_tick_min)
+        / log_grid_interval
+    )
 )
-log_tick_decimals = max(0, int(np.ceil(-np.log10(log_grid_interval))))
+
+log_price_ticks = (
+    log_tick_min
+    + np.arange(tick_count + 1)
+    * log_grid_interval
+)
+
+log_tick_decimals = max(
+    0,
+    int(np.ceil(-np.log10(log_grid_interval)))
+)
+
 natural_price_ticks = np.exp(log_price_ticks)
 log_price_range = [log_tick_min, log_tick_max]
+
 price_figure.add_trace(
     go.Scatter(
         x=prices.index,
@@ -484,16 +556,24 @@ price_figure.add_trace(
         showlegend=False,
     )
 )
+
 price_figure.update_layout(
     xaxis_title="Date",
-    showlegend=False,
+    legend=dict(
+        orientation="h",
+        yanchor="bottom",
+        y=1.02,
+        xanchor="left",
+        x=0,
+    ),
     yaxis={
         "title": "Log average price (HLC3)",
         "range": log_price_range,
         "tickmode": "array",
         "tickvals": log_price_ticks,
         "ticktext": [
-            f"{value:.{log_tick_decimals}f}" for value in log_price_ticks
+            f"{value:.{log_tick_decimals}f}"
+            for value in log_price_ticks
         ],
         "showgrid": True,
     },
@@ -512,7 +592,12 @@ price_figure.update_layout(
         "showgrid": False,
     },
 )
-st.plotly_chart(price_figure, width="stretch", config={"scrollZoom": False})
+
+st.plotly_chart(
+    price_figure,
+    width="stretch",
+    config={"scrollZoom": False},
+)
 
 st.subheader("Swing distributions")
 plot_metrics = [
