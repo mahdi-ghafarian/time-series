@@ -580,6 +580,8 @@ for metric_family in metric_families.drop_duplicates():
             width="stretch",
             height="content",
         )
+
+st.subheader("Observations")
 display_swings = swings.sort_values("end_date", ascending=False).copy()
 for column in ("start_date", "end_date"):
     display_swings[column] = pd.to_datetime(display_swings[column]).dt.date
