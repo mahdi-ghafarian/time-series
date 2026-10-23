@@ -17,12 +17,12 @@ apps = {
         repository_root / "financial-markets-explorer" / "app.py"
     ),
     "Mean Reversion Profile": repository_root / "mean-reversion-app" / "app.py",
-    "Swing Statistics": repository_root / "swing-statistics-app" / "app.py",
+    "Swing Trading": repository_root / "swing-statistics-app" / "app.py",
 }
 app_prefixes = {
     "Market Explorer": "explorer_",
     "Mean Reversion Profile": "mean_reversion_",
-    "Swing Statistics": "swing_",
+    "Swing Trading": "swing_",
 }
 app_search_keys = {
     app: f"{prefix}search_ticker"

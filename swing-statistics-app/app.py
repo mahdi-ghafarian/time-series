@@ -11,7 +11,7 @@ import yfinance as yf
 
 if not st.session_state.get("_market_analysis_suite"):
     st.set_page_config(
-        page_title="Swing Statistics",
+        page_title="Swing Trading",
         page_icon="📊",
         layout="wide",
     )
