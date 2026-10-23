@@ -505,8 +505,8 @@ price_figure.add_trace(
         y=zigzag_points["log_price"],
         mode="lines+markers",
         name="Swing",
-        line=dict(color="orange", width=3),
-        marker=dict(size=6),
+        line=dict(color="orange", width=1),
+        marker=dict(size=4),
         visible="legendonly",
     )
 )
