@@ -505,7 +505,7 @@ price_figure.add_trace(
         mode="lines+markers",
         name="Swing",
         line=dict(color="orange", width=1),
-        marker=dict(size=4),
+        marker=dict(size=6),
     )
 )
 
