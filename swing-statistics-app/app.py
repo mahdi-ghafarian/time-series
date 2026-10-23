@@ -469,7 +469,7 @@ price_figure.add_trace(
     )
 )
 
-# ZigZag swing line
+# swing line
 zigzag_points = pd.concat(
     [
         swings[["start_date", "start_price"]]
@@ -503,9 +503,9 @@ price_figure.add_trace(
         x=zigzag_points["date"],
         y=zigzag_points["log_price"],
         mode="lines+markers",
-        name="Swing ZigZag",
-        line=dict(color="orange", width=3),
-        marker=dict(size=6),
+        name="Swing",
+        line=dict(color="orange", width=2),
+        marker=dict(size=4),
     )
 )
 
