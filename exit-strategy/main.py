@@ -1,12 +1,12 @@
 
 import time
 from pathlib import Path
-
 import numpy as np
 import pandas as pd
 import yfinance as yf
 import matplotlib.pyplot as plt
 from tqdm.auto import tqdm
+from matplotlib.patches import Rectangle
 
 
 # ============================================================
@@ -14,8 +14,8 @@ from tqdm.auto import tqdm
 # ============================================================
 
 TICKER = "QQQ"
-START_DATE = "2000-01-01"
-END_DATE = None                # None = through the latest available data
+START_DATE = "2020-01-01"
+END_DATE = "2026-10-26"                # None = through the latest available data
 INTERVAL = "1d"
 
 NUMBER_OF_RANDOM_ENTRIES = 1000
@@ -33,10 +33,11 @@ HEATMAP_TOP_METRIC = "ExpectancyR"
 HEATMAP_BOTTOM_METRIC = "WinRatePct"
 HEATMAP_COLOR_METRIC = "ExpectancyR"
 HEATMAP_VMIN = 0        # None = Use min value
-HEATMAP_VMAX = 0.5       #None = Use max value
+HEATMAP_VMAX = 1        # None = Use max value
+HIGHLIGHT_WR_MIN = 50
+HIGHLIGHT_EXPECTANCYR_MIN = 0.5
 
 RANK_METRIC = "ExpectancyR"         # CSV file
-
 
 # Commission and slippage are percentages.
 # Example: 0.05 means 0.05%, not 5%.
@@ -595,7 +596,31 @@ def create_heatmap(results_df):
         index=TARGET_VALUES,
         columns=STOP_LOSS_VALUES
     )
+    
+    condition_data = (
+        (
+            (results_df["WinRatePct"] > HIGHLIGHT_WR_MIN)
+            &
+            (results_df["ExpectancyR"] > HIGHLIGHT_EXPECTANCYR_MIN)
+        )
+        .rename("Condition")
+    )
 
+    condition_data = (
+        pd.concat(
+            [results_df[["TargetPct", "StopLossPct"]], condition_data],
+            axis=1
+        )
+        .pivot(
+            index="TargetPct",
+            columns="StopLossPct",
+            values="Condition"
+        )
+        .reindex(
+            index=TARGET_VALUES,
+            columns=STOP_LOSS_VALUES
+        )
+    )
     display_values = heatmap_data.to_numpy(dtype=float)
     color_values = color_data.to_numpy(dtype=float)
     finite_values = color_values[np.isfinite(color_values)]
@@ -707,7 +732,17 @@ def create_heatmap(results_df):
                 color=text_color,
                 fontsize=8
             )
-
+            if condition_data.iloc[row, col]:
+                ax.add_patch(
+                    Rectangle(
+                        (col - 0.5, row - 0.5),
+                        1,
+                        1,
+                        fill=False,
+                        edgecolor="black",
+                        linewidth=2
+                    )
+                )
     ax.set_xticks(
         np.arange(-0.5, len(STOP_LOSS_VALUES), 1),
         minor=True
