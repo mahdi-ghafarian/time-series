@@ -13,9 +13,9 @@ from matplotlib.patches import Rectangle
 # CONFIGURATION
 # ============================================================
 
-TICKER = "QQQ"
-START_DATE = "2020-01-01"
-END_DATE = "2026-10-26"                # None = through the latest available data
+TICKER = "SPY"
+START_DATE = "2000-01-01"
+END_DATE = "2010-01-01"                # None = through the latest available data
 INTERVAL = "1d"
 
 NUMBER_OF_RANDOM_ENTRIES = 1000
@@ -31,9 +31,11 @@ RANDOM_SEED = 27
 
 HEATMAP_TOP_METRIC = "ExpectancyR"
 HEATMAP_BOTTOM_METRIC = "WinRatePct"
+
 HEATMAP_COLOR_METRIC = "ExpectancyR"
 HEATMAP_VMIN = 0        # None = Use min value
 HEATMAP_VMAX = 1        # None = Use max value
+
 HIGHLIGHT_WR_MIN = 50
 HIGHLIGHT_EXPECTANCYR_MIN = 0.5
 

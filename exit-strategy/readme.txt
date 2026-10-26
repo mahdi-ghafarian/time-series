@@ -6,4 +6,10 @@ Stop should be the minimium size that gives us:
 5-Performs good enough in good market conditions
 
 It seems that stop 15% and target 30% is the sweet spot
-Almost 2 x ATR (30) @ M1 for QQQ (ATR=8.4%)
+Almost 2 x ATR (30) @ M1 for QQQ (ATR=8.4%), out of noise but tight enough 
+to exit the trade relatively soon in market crashes
+
+Optimal zone:
+1-Stop = 2 x MED TR 
+2-RRR = 2
+
