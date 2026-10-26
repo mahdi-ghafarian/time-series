@@ -14,38 +14,42 @@ from tqdm.auto import tqdm
 # ============================================================
 
 TICKER = "QQQ"
-START_DATE = "2010-01-01"
+START_DATE = "2000-01-01"
 END_DATE = None                 # None = through the latest available data
 INTERVAL = "1d"
 
-NUMBER_OF_RANDOM_ENTRIES = 250
-RANDOM_SEED = 12
+NUMBER_OF_RANDOM_ENTRIES = 1000
+RANDOM_SEED = 27
 
 # Commission and slippage are percentages.
 # Example: 0.05 means 0.05%, not 5%.
-COMMISSION_PCT = 0.05
-SLIPPAGE_PCT = 0.02
+COMMISSION_PCT = 0.0
+SLIPPAGE_PCT = 0.0
 
 # STOCK
 STOP_LOSS_VALUES = [
     1, 2, 3, 4, 5, 7.5, 10,
-    15, 20, 25, 30, 35, 40, 45, 50
+    15, 20, 25, 30, 35, 40, 45, 50,
+    -1  # NS
 ]
 
 TARGET_VALUES = [
     1, 2, 3, 4, 5, 7.5, 10,
-    15, 20, 25, 30, 35, 40, 45, 50, 100, 200
+    15, 20, 25, 30, 35, 40, 45, 50, 100,
+    -1  # NT
 ]
 
 # BTC-USD
 # STOP_LOSS_VALUES = [
 #     5, 10, 15, 20, 25, 30, 35, 40, 45,
-#     50, 60, 70, 80, 90
+#     50, 60, 70, 80, 90,
+#     -1  # NS
 # ]
 
 # TARGET_VALUES = [
 #     5, 10, 15, 20, 25, 30, 35, 40, 45,
-#     50, 60, 70, 80, 90, 100, 150, 200, 250, 300, 400, 500
+#     50, 60, 70, 80, 90, 100, 200, 300, 400, 500,
+#     -1  # NT
 # ]
 
 
@@ -187,23 +191,26 @@ def simulate_trade(
     dates = data.index
 
     entry_reference_price = float(close_prices[entry_index])
+    no_stop = stop_loss_pct == -1
+    no_target = target_pct == -1
 
     # Buy-side slippage increases the entry execution price.
     entry_execution_price = (
         entry_reference_price * (1 + SLIPPAGE_PCT / 100)
     )
-
     stop_price = None
     target_price = None
 
-    if stop_loss_pct > 0:
+    if not no_stop:
         stop_price = (
-            entry_reference_price * (1 - stop_loss_pct / 100)
+            entry_reference_price *
+            (1 - float(stop_loss_pct) / 100)
         )
 
-    if target_pct > 0:
+    if not no_target:
         target_price = (
-            entry_reference_price * (1 + target_pct / 100)
+            entry_reference_price *
+            (1 + float(target_pct) / 100)
         )
 
     exit_index = len(data) - 1
@@ -266,10 +273,8 @@ def simulate_trade(
     # One R is defined as the planned stop distance measured
     # from the entry reference price. For no-stop trades,
     # realized R is undefined.
-    if stop_loss_pct > 0:
-        realized_r = net_return_pct / stop_loss_pct
-    else:
-        realized_r = np.nan
+    risk_pct = 100 if no_stop else float(stop_loss_pct)
+    realized_r = net_return_pct / risk_pct
 
     bars_held = exit_index - entry_index
 
@@ -322,18 +327,19 @@ def calculate_metrics(trades, stop_loss_pct, target_pct):
 
     # Expectancy in R:
     # average net return per trade / planned stop-loss risk.
-    #
-    # This is undefined if stop-loss is disabled.
-    if stop_loss_pct > 0:
-        expectancy_r = expectancy_pct / stop_loss_pct
-        planned_rrr = (
-            target_pct / stop_loss_pct
-            if target_pct > 0
-            else np.nan
-        )
-    else:
-        expectancy_r = np.nan
+    risk_pct = (
+        100 if stop_loss_pct == -1
+        else float(stop_loss_pct)
+    )
+
+    expectancy_r = expectancy_pct / risk_pct
+
+    if target_pct == -1:
         planned_rrr = np.nan
+    else:
+        planned_rrr = (
+            float(target_pct) / risk_pct
+        )
 
     # Realized reward-to-risk ratio based on average winning
     # and losing trades. Average loss is negative.
@@ -441,12 +447,12 @@ def compare_combinations(data, entries):
                     trade = simulate_trade(
                         data=data,
                         entry_index=int(entry.EntryIndex),
-                        stop_loss_pct=float(stop_loss_pct),
-                        target_pct=float(target_pct)
+                        stop_loss_pct=stop_loss_pct,
+                        target_pct=target_pct
                     )
 
-                    trade["StopLossPct"] = float(stop_loss_pct)
-                    trade["TargetPct"] = float(target_pct)
+                    trade["StopLossPct"] = stop_loss_pct
+                    trade["TargetPct"] = target_pct
 
                     combination_trades.append(trade)
 
@@ -454,8 +460,8 @@ def compare_combinations(data, entries):
 
                 metrics = calculate_metrics(
                     trades=trades_df,
-                    stop_loss_pct=float(stop_loss_pct),
-                    target_pct=float(target_pct)
+                    stop_loss_pct=stop_loss_pct,
+                    target_pct=target_pct
                 )
 
                 results.append(metrics)
@@ -502,7 +508,12 @@ def compare_combinations(data, entries):
 # ============================================================
 # CREATE EXPECTANCY IN R HEATMAP
 # ============================================================
+def format_stop_label(x):
+    return "NS" if x == -1 else str(x)
 
+def format_target_label(x):
+    return "NT" if x == -1 else str(x)
+    
 def create_expectancy_heatmap(results_df):
     heatmap_data = results_df.pivot(
         index="TargetPct",
@@ -575,10 +586,14 @@ def create_expectancy_heatmap(results_df):
     ax.set_ylabel("Target (%)")
 
     ax.set_xticks(np.arange(len(STOP_LOSS_VALUES)))
-    ax.set_xticklabels(STOP_LOSS_VALUES, rotation=0)
-
+    ax.set_xticklabels(
+        [format_stop_label(x) for x in STOP_LOSS_VALUES],
+        rotation=0
+    )
     ax.set_yticks(np.arange(len(TARGET_VALUES)))
-    ax.set_yticklabels(TARGET_VALUES)
+    ax.set_yticklabels(
+        [format_target_label(x) for x in TARGET_VALUES]
+    )
 
     # Annotate each cell with Expectancy in R.
     # Use a dash for undefined values, such as StopLossPct = 0.
