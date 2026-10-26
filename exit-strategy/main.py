@@ -14,12 +14,24 @@ from tqdm.auto import tqdm
 # ============================================================
 
 TICKER = "QQQ"
-START_DATE = "2000-01-01"
-END_DATE = None                 # None = through the latest available data
+START_DATE = "2020-01-01"
+END_DATE = None                # None = through the latest available data
 INTERVAL = "1d"
 
-NUMBER_OF_RANDOM_ENTRIES = 1000
+NUMBER_OF_RANDOM_ENTRIES = 10
 RANDOM_SEED = 27
+
+# Metrics:
+# StopLossPct, TargetPct, NumberOfTrades, WinRatePct,
+# AverageWinPct, AverageLossPct, RealizedRRR,
+# BreakEvenWinRatePct, PlannedRRR, PlannedBreakEvenWinRatePct,
+# ExpectancyPct, ExpectancyR, AverageBarsHeld,
+# StopExitPct, TargetExitPct, EndOfDataExitPct,
+# AverageCommissionPct
+
+RANK_METRIC = "ExpectancyR"
+HEATMAP_TOP_METRIC = "ExpectancyR"
+HEATMAP_BOTTOM_METRIC = "WinRatePct"
 
 # Commission and slippage are percentages.
 # Example: 0.05 means 0.05%, not 5%.
@@ -56,6 +68,14 @@ TARGET_VALUES = [
 # If both stop and target are reached in the same candle,
 # assume the stop was hit first.
 CONSERVATIVE_SAME_CANDLE = True
+
+HEATMAP_METRIC_FORMATS = {
+    "ExpectancyR": ".2f",
+    "ExpectancyPct": ".2f",
+    "WinRatePct": ".1f",
+    "RealizedRRR": ".2f",
+    "Score": ".0f",
+}
 
 # Output files are saved alongside this script.
 # In a Jupyter notebook, files are saved to the current directory.
@@ -402,7 +422,7 @@ def calculate_metrics(trades, stop_loss_pct, target_pct):
         "BreakEvenWinRatePct": break_even_win_rate,
         "PlannedRRR": planned_rrr,
         "PlannedBreakEvenWinRatePct": planned_break_even_win_rate,
-        "ExpectancyPctPerTrade": expectancy_pct,
+        "ExpectancyPct": expectancy_pct,
         "ExpectancyR": expectancy_r,
         "AverageBarsHeld": (
             float(trades["BarsHeld"].mean())
@@ -491,8 +511,8 @@ def compare_combinations(data, entries):
     # Rank by Expectancy in R, highest first.
     # NaN values (e.g. StopLossPct = 0) are placed at the bottom.
     results_df = results_df.sort_values(
-        by=["ExpectancyR", "WinRatePct"],
-        ascending=[False, False],
+        by=RANK_METRIC,
+        ascending=False,
         na_position="last"
     ).reset_index(drop=True)
 
@@ -514,20 +534,20 @@ def format_stop_label(x):
 def format_target_label(x):
     return "NT" if x == -1 else str(x)
     
-def create_expectancy_heatmap(results_df):
+def create_heatmap(results_df):
     heatmap_data = results_df.pivot(
         index="TargetPct",
         columns="StopLossPct",
-        values="ExpectancyR"
+        values=HEATMAP_TOP_METRIC
     ).reindex(
         index=TARGET_VALUES,
         columns=STOP_LOSS_VALUES
     )
 
-    win_rate_data = results_df.pivot(
+    bottom_metric_data  = results_df.pivot(
         index="TargetPct",
         columns="StopLossPct",
-        values="WinRatePct"
+        values=HEATMAP_BOTTOM_METRIC
     ).reindex(
         index=TARGET_VALUES,
         columns=STOP_LOSS_VALUES
@@ -575,12 +595,13 @@ def create_expectancy_heatmap(results_df):
     )
 
     colorbar = fig.colorbar(image, ax=ax)
-    colorbar.set_label("Expectancy in R")
+    colorbar.set_label(HEATMAP_TOP_METRIC)
 
     ax.set_title(
         f"{TICKER} | {START_DATE} to {END_DATE or 'Latest'} | "
         f"{NUMBER_OF_RANDOM_ENTRIES:,} Random Entries\n"
-        "Expectancy R (top), Win Rate % (bottom)"
+        f"{HEATMAP_TOP_METRIC} (top), "
+        f"{HEATMAP_BOTTOM_METRIC} (bottom)"
     )
     ax.set_xlabel("Stop-Loss (%)")
     ax.set_ylabel("Target (%)")
@@ -594,18 +615,34 @@ def create_expectancy_heatmap(results_df):
     ax.set_yticklabels(
         [format_target_label(x) for x in TARGET_VALUES]
     )
+    
+    
 
     # Annotate each cell with Expectancy in R.
     # Use a dash for undefined values, such as StopLossPct = 0.
+    
+    top_fmt = HEATMAP_METRIC_FORMATS.get(
+    HEATMAP_TOP_METRIC,
+    ".2f"
+    )
+
+    bottom_fmt = HEATMAP_METRIC_FORMATS.get(
+    HEATMAP_BOTTOM_METRIC,
+    ".2f"
+    )
+    
     midpoint = (vmin + vmax) / 2
 
     for row in range(values.shape[0]):
         for col in range(values.shape[1]):
             value = values[row, col]
-            win_rate = win_rate_data.iloc[row, col]
+            bottom_metric = bottom_metric_data.iloc[row, col]
 
             if np.isfinite(value):
-                label = f"{value:.2f}\n{win_rate:.0f}%"
+                label = (
+                    f"{value:{top_fmt}}\n"
+                    f"{bottom_metric:{bottom_fmt}}"
+                )
                 rgba = image.cmap(image.norm(value))
                 r, g, b, _ = rgba
                 brightness = 0.299 * r + 0.587 * g + 0.114 * b
@@ -683,7 +720,7 @@ def main():
     results_df.round(2).to_csv(results_path, index=False)
     trade_details_df.round(2).to_csv(details_path, index=False)
 
-    create_expectancy_heatmap(results_df)
+    create_heatmap(results_df)
 
     print("\n" + "=" * 80)
     print("TOP 20 STOP/TARGET COMBINATIONS — RANKED BY EXPECTANCY IN R")
@@ -695,7 +732,7 @@ def main():
         "TargetPct",
         "NumberOfTrades",
         "ExpectancyR",
-        "ExpectancyPctPerTrade",
+        "ExpectancyPct",
         "WinRatePct",
         "AverageWinPct",
         "AverageLossPct",
