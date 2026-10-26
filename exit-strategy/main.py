@@ -14,11 +14,11 @@ from tqdm.auto import tqdm
 # ============================================================
 
 TICKER = "QQQ"
-START_DATE = "2020-01-01"
+START_DATE = "2000-01-01"
 END_DATE = None                # None = through the latest available data
 INTERVAL = "1d"
 
-NUMBER_OF_RANDOM_ENTRIES = 10
+NUMBER_OF_RANDOM_ENTRIES = 1000
 RANDOM_SEED = 27
 
 # Metrics:
@@ -26,12 +26,17 @@ RANDOM_SEED = 27
 # AverageWinPct, AverageLossPct, RealizedRRR,
 # BreakEvenWinRatePct, PlannedRRR, PlannedBreakEvenWinRatePct,
 # ExpectancyPct, ExpectancyR, AverageBarsHeld,
-# StopExitPct, TargetExitPct, EndOfDataExitPct,
-# AverageCommissionPct
+# StopExitPct, TargetExitPct, EndOfDataExitPct,AverageCommissionPct,
+# Score
 
-RANK_METRIC = "ExpectancyR"
 HEATMAP_TOP_METRIC = "ExpectancyR"
 HEATMAP_BOTTOM_METRIC = "WinRatePct"
+HEATMAP_COLOR_METRIC = "ExpectancyR"
+HEATMAP_VMIN = 0        # None = Use min value
+HEATMAP_VMAX = 0.5       #None = Use max value
+
+RANK_METRIC = "ExpectancyR"         # CSV file
+
 
 # Commission and slippage are percentages.
 # Example: 0.05 means 0.05%, not 5%.
@@ -69,6 +74,7 @@ TARGET_VALUES = [
 # assume the stop was hit first.
 CONSERVATIVE_SAME_CANDLE = True
 
+# Metric formating
 HEATMAP_METRIC_FORMATS = {
     "ExpectancyR": ".2f",
     "ExpectancyPct": ".2f",
@@ -507,6 +513,34 @@ def compare_combinations(data, entries):
 
     results_df = pd.DataFrame(results)
     trade_details_df = pd.DataFrame(all_trade_details)
+    
+    # Calculate score
+    score_metrics = [
+    "ExpectancyR",
+    "WinRatePct",
+    ]
+
+    for metric in score_metrics:
+        results_df[f"z_{metric}"] = (
+            results_df[metric] - results_df[metric].mean()
+        ) / results_df[metric].std()
+    
+    # Adjust weights if needed to give a metric more weight
+    results_df["ScoreRaw"] = (
+    2 * results_df["z_ExpectancyR"] +
+    1 * results_df["z_WinRatePct"]
+    )
+    
+    # Convert score to 0-100 range
+    score_min = results_df["ScoreRaw"].min()
+    score_max = results_df["ScoreRaw"].max()
+
+    results_df["Score"] = (
+        100
+        * (results_df["ScoreRaw"] - score_min)
+        / (score_max - score_min)
+    )
+    
 
     # Rank by Expectancy in R, highest first.
     # NaN values (e.g. StopLossPct = 0) are placed at the bottom.
@@ -535,6 +569,15 @@ def format_target_label(x):
     return "NT" if x == -1 else str(x)
     
 def create_heatmap(results_df):
+    color_data = results_df.pivot(
+        index="TargetPct",
+        columns="StopLossPct",
+        values=HEATMAP_COLOR_METRIC
+    ).reindex(
+        index=TARGET_VALUES,
+        columns=STOP_LOSS_VALUES
+    )
+
     heatmap_data = results_df.pivot(
         index="TargetPct",
         columns="StopLossPct",
@@ -542,7 +585,7 @@ def create_heatmap(results_df):
     ).reindex(
         index=TARGET_VALUES,
         columns=STOP_LOSS_VALUES
-    )
+    )    
 
     bottom_metric_data  = results_df.pivot(
         index="TargetPct",
@@ -553,8 +596,9 @@ def create_heatmap(results_df):
         columns=STOP_LOSS_VALUES
     )
 
-    values = heatmap_data.to_numpy(dtype=float)
-    finite_values = values[np.isfinite(values)]
+    display_values = heatmap_data.to_numpy(dtype=float)
+    color_values = color_data.to_numpy(dtype=float)
+    finite_values = color_values[np.isfinite(color_values)]
 
     if finite_values.size == 0:
         print(
@@ -564,13 +608,15 @@ def create_heatmap(results_df):
         return
 
     # Use the actual minimum and maximum for the colour scale.
-    # vmin = float(np.min(finite_values))
-    # vmax = float(np.max(finite_values))
-    
-    # set hetmap colors
-    vmin = 0
-    vmax = 1
+    # This works on any metrics
+    vmin = HEATMAP_VMIN
+    if vmin is None:
+        vmin = float(np.min(finite_values))
 
+    vmax = HEATMAP_VMAX
+    if vmax is None:
+        vmax = float(np.max(finite_values))
+    
     # Avoid identical bounds if all finite values are equal.
     if vmin == vmax:
         pad = max(abs(vmin) * 0.01, 1e-9)
@@ -585,7 +631,7 @@ def create_heatmap(results_df):
     )
 
     image = ax.imshow(
-        values,
+        color_values,
         cmap="RdYlGn",
         aspect="auto",
         interpolation="nearest",
@@ -595,7 +641,7 @@ def create_heatmap(results_df):
     )
 
     colorbar = fig.colorbar(image, ax=ax)
-    colorbar.set_label(HEATMAP_TOP_METRIC)
+    colorbar.set_label(HEATMAP_COLOR_METRIC)
 
     ax.set_title(
         f"{TICKER} | {START_DATE} to {END_DATE or 'Latest'} | "
@@ -633,9 +679,10 @@ def create_heatmap(results_df):
     
     midpoint = (vmin + vmax) / 2
 
-    for row in range(values.shape[0]):
-        for col in range(values.shape[1]):
-            value = values[row, col]
+    for row in range(display_values.shape[0]):
+        for col in range(display_values.shape[1]):
+            value = display_values[row, col]
+            color_value = color_values[row, col]
             bottom_metric = bottom_metric_data.iloc[row, col]
 
             if np.isfinite(value):
@@ -643,7 +690,7 @@ def create_heatmap(results_df):
                     f"{value:{top_fmt}}\n"
                     f"{bottom_metric:{bottom_fmt}}"
                 )
-                rgba = image.cmap(image.norm(value))
+                rgba = image.cmap(image.norm(color_value))
                 r, g, b, _ = rgba
                 brightness = 0.299 * r + 0.587 * g + 0.114 * b
                 text_color = "black" if brightness > 0.55 else "white"
