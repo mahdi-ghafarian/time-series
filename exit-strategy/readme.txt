@@ -1,4 +1,5 @@
-Stop should be the minimium size that gives us:
+HOW TO DETERMINE STOP:
+Stop should be the minimium size that gives us
 1-WR > 50%, psychological / operational / drawdown
 2-Edge > 50%, Profitability of system
 3-Adjacent areas have acceptable performance
@@ -6,10 +7,15 @@ Stop should be the minimium size that gives us:
 5-Performs good enough in good market conditions
 
 It seems that stop 15% and target 30% is the sweet spot
-Almost 2 x ATR (30) @ M1 for QQQ (ATR=8.4%), out of noise but tight enough 
+Almost 2 x ATR (30) @ M1 for QQQ, out of noise but tight enough 
 to exit the trade relatively soon in market crashes
 
-Optimal zone:
-1-Stop = 2 x MED TR 
-2-RRR = 2
+TRUE RANGE:
+MED TR @ M1 = 8.3%
+MED TR @ M3 = 16.3%
+MED TR @ M12 = 35%
+
+OPTIMAL EXIT:
+Stop = 2 x MED TR @ M1
+RRR = 2
 
