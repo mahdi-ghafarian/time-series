@@ -13,7 +13,7 @@ from matplotlib.patches import Rectangle
 # CONFIGURATION
 # ============================================================
 
-TICKER = "SPY"
+TICKER = "QQQ"
 START_DATE = "2000-01-01"
 END_DATE = "2010-01-01"                # None = through the latest available data
 INTERVAL = "1d"
