@@ -14,8 +14,8 @@ from matplotlib.patches import Rectangle
 # ============================================================
 
 TICKER = "QQQ"
-START_DATE = "2000-01-01"
-END_DATE = "2010-01-01"                # None = through the latest available data
+START_DATE = "2010-01-01"
+END_DATE = None                # None = through the latest available data
 INTERVAL = "1d"
 
 NUMBER_OF_RANDOM_ENTRIES = 1000
