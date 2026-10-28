@@ -13,7 +13,7 @@ from matplotlib.patches import Rectangle
 # CONFIGURATION
 # ============================================================
 
-TICKER = "QQQ"
+TICKER = "SPY"
 START_DATE = "2010-01-01"
 END_DATE = None                # None = through the latest available data
 INTERVAL = "1d"
@@ -48,13 +48,13 @@ SLIPPAGE_PCT = 0.0
 
 # STOCK
 STOP_LOSS_VALUES = [
-    1, 2, 3, 4, 5, 7.5, 10,
+    1, 2, 3, 4, 5, 7.5, 10, 12.5,
     15, 20, 25, 30, 35, 40, 45, 50,
     -1  # NS
 ]
 
 TARGET_VALUES = [
-    1, 2, 3, 4, 5, 7.5, 10,
+    1, 2, 3, 4, 5, 7.5, 10, 12.5, 
     15, 20, 25, 30, 35, 40, 45, 50, 100,
     -1  # NT
 ]
