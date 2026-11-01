@@ -1,7 +1,7 @@
 from datetime import date, timedelta
-import time
 from pathlib import Path
 import pickle
+import time
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -17,9 +17,12 @@ from matplotlib.patches import Rectangle
 
 STARTUP_RESULT_FILE = Path(__file__).parent / "startup_result.pkl"
 
-# suite.py already calls set_page_config().
-# Only call it when this app is run by itself.
-if not st.session_state.get("_market_analysis_suite", False):
+IN_SUITE = st.session_state.get(
+    "_market_analysis_suite",
+    False,
+)
+
+if not IN_SUITE:
     st.set_page_config(
         page_title="Exit Strategy",
         page_icon="📊",
@@ -28,13 +31,65 @@ if not st.session_state.get("_market_analysis_suite", False):
 
 
 DEFAULT_STOPS = [
-    1, 2, 3, 4, 5, 7.5, 10, 12.5, 15,
-    20, 25, 30, 35, 40, 45, 50, -1
+    1,
+    2,
+    3,
+    4,
+    5,
+    7.5,
+    10,
+    12.5,
+    15,
+    20,
+    25,
+    30,
+    35,
+    40,
+    45,
+    50,
+    -1,
 ]
 
 DEFAULT_TARGETS = [
-    1, 2, 3, 4, 5, 7.5, 10, 12.5, 15,
-    20, 25, 30, 35, 40, 45, 50, 100, -1
+    1,
+    2,
+    3,
+    4,
+    5,
+    7.5,
+    10,
+    12.5,
+    15,
+    20,
+    25,
+    30,
+    35,
+    40,
+    45,
+    50,
+    100,
+    -1,
+]
+
+METRICS = [
+    "StopLossPct",
+    "TargetPct",
+    "NumberOfTrades",
+    "WinRatePct",
+    "AverageWinPct",
+    "AverageLossPct",
+    "RealizedRRR",
+    "BreakEvenWinRatePct",
+    "PlannedRRR",
+    "PlannedBreakEvenWinRatePct",
+    "ExpectancyPct",
+    "ExpectancyR",
+    "AverageBarsHeld",
+    "StopExitPct",
+    "TargetExitPct",
+    "EndOfDataExitPct",
+    "AverageCommissionPct",
+    "Score",
 ]
 
 
@@ -42,7 +97,10 @@ DEFAULT_TARGETS = [
 # Ticker search
 # ============================================================
 
-@st.cache_data(ttl=3600, show_spinner=False)
+@st.cache_data(
+    ttl=3600,
+    show_spinner=False,
+)
 def search_tickers(query):
 
     quotes = yf.Search(
@@ -80,16 +138,23 @@ def select_ticker(symbol, label=""):
     st.session_state["exit_search_ticker"] = ""
     st.session_state["exit_search_ticker_label"] = label
 
-    # Synchronize with the parent suite.
-    if st.session_state.get("_market_analysis_suite", False):
-        st.session_state["_suite_shared_ticker"] = symbol
+    if st.session_state.get(
+        "_market_analysis_suite",
+        False,
+    ):
+        st.session_state[
+            "_suite_shared_ticker"
+        ] = symbol
 
 
 # ============================================================
 # Historical data
 # ============================================================
 
-@st.cache_data(ttl=3600, show_spinner=False)
+@st.cache_data(
+    ttl=3600,
+    show_spinner=False,
+)
 def download_data(
     ticker,
     start_date,
@@ -97,7 +162,7 @@ def download_data(
     interval,
 ):
 
-    # yfinance treats end as exclusive.
+    # yfinance treats the end date as exclusive.
     yf_end = end_date + timedelta(days=1)
 
     data = yf.download(
@@ -114,18 +179,18 @@ def download_data(
             "No data downloaded. Check the ticker, dates, and interval."
         )
 
-    if isinstance(data.columns, pd.MultiIndex):
+    if isinstance(
+        data.columns,
+        pd.MultiIndex,
+    ):
 
         if ticker in data.columns.get_level_values(-1):
-
             data = data.xs(
                 ticker,
                 axis=1,
                 level=-1,
             )
-
         else:
-
             data.columns = data.columns.get_level_values(0)
 
     required = [
@@ -136,9 +201,9 @@ def download_data(
     ]
 
     missing = [
-        c
-        for c in required
-        if c not in data.columns
+        column
+        for column in required
+        if column not in data.columns
     ]
 
     if missing:
@@ -171,36 +236,46 @@ def download_data(
 
 def select_random_entries(
     data,
-    n,
+    number_of_entries,
     seed,
 ):
 
-    rng = np.random.default_rng(seed)
+    maximum_entries = len(data) - 1
 
-    n = min(
-        n,
-        len(data) - 1,
+    if maximum_entries < 1:
+        raise ValueError(
+            "Not enough price data to select entries."
+        )
+
+    actual_entries = min(
+        int(number_of_entries),
+        maximum_entries,
     )
 
-    idx = np.sort(
+    rng = np.random.default_rng(
+        int(seed)
+    )
+
+    indexes = np.sort(
         rng.choice(
-            np.arange(len(data) - 1),
-            size=n,
+            np.arange(maximum_entries),
+            size=actual_entries,
             replace=False,
         )
     )
 
     return pd.DataFrame(
         {
-            "EntryIndex": idx,
-            "EntryDate": data.index[idx],
-            "EntryClose": data["Close"].to_numpy()[idx],
+            "EntryIndex": indexes,
+            "EntryDate": data.index[indexes],
+            "EntryClose":
+                data["Close"].to_numpy()[indexes],
         }
     )
 
 
 # ============================================================
-# Individual trade simulation
+# Trade simulation
 # ============================================================
 
 def simulate_trade(
@@ -213,106 +288,127 @@ def simulate_trade(
     conservative,
 ):
 
-    close_prices = data["Close"].to_numpy()
-    high_prices = data["High"].to_numpy()
-    low_prices = data["Low"].to_numpy()
+    close_prices = data[
+        "Close"
+    ].to_numpy()
+
+    high_prices = data[
+        "High"
+    ].to_numpy()
+
+    low_prices = data[
+        "Low"
+    ].to_numpy()
+
     dates = data.index
 
-    entry_ref = float(
+    entry_reference = float(
         close_prices[entry_index]
     )
 
     no_stop = stop_loss_pct == -1
     no_target = target_pct == -1
 
-    entry_exec = (
-        entry_ref
-        * (1 + slippage_pct / 100)
+    entry_execution = (
+        entry_reference
+        * (
+            1
+            + float(slippage_pct) / 100
+        )
     )
 
     stop_price = (
         None
         if no_stop
-        else entry_ref
-        * (1 - float(stop_loss_pct) / 100)
+        else entry_reference
+        * (
+            1
+            - float(stop_loss_pct) / 100
+        )
     )
 
     target_price = (
         None
         if no_target
-        else entry_ref
-        * (1 + float(target_pct) / 100)
+        else entry_reference
+        * (
+            1
+            + float(target_pct) / 100
+        )
     )
 
     exit_index = len(data) - 1
 
-    exit_ref = float(
+    exit_reference = float(
         close_prices[exit_index]
     )
 
-    reason = "EndOfData"
+    exit_reason = "EndOfData"
 
-    for i in range(
+    for current_index in range(
         entry_index + 1,
         len(data),
     ):
 
         stop_hit = (
             stop_price is not None
-            and float(low_prices[i]) <= stop_price
+            and float(
+                low_prices[current_index]
+            ) <= stop_price
         )
 
         target_hit = (
             target_price is not None
-            and float(high_prices[i]) >= target_price
+            and float(
+                high_prices[current_index]
+            ) >= target_price
         )
 
         if stop_hit and target_hit:
 
-            exit_ref = (
-                stop_price
-                if conservative
-                else target_price
-            )
+            if conservative:
+                exit_reference = stop_price
+                exit_reason = "Stop"
+            else:
+                exit_reference = target_price
+                exit_reason = "Target"
 
-            reason = (
-                "Stop"
-                if conservative
-                else "Target"
-            )
-
-            exit_index = i
+            exit_index = current_index
             break
 
         if stop_hit:
-
-            exit_ref = stop_price
-            reason = "Stop"
-            exit_index = i
+            exit_reference = stop_price
+            exit_reason = "Stop"
+            exit_index = current_index
             break
 
         if target_hit:
-
-            exit_ref = target_price
-            reason = "Target"
-            exit_index = i
+            exit_reference = target_price
+            exit_reason = "Target"
+            exit_index = current_index
             break
 
-    exit_exec = (
-        exit_ref
-        * (1 - slippage_pct / 100)
+    exit_execution = (
+        exit_reference
+        * (
+            1
+            - float(slippage_pct) / 100
+        )
     )
 
-    gross = (
-        exit_exec / entry_exec - 1
+    gross_return = (
+        exit_execution
+        / entry_execution
+        - 1
     ) * 100
 
     total_commission = (
-        2 * commission_pct
+        2
+        * float(commission_pct)
     )
 
-    net = (
-        gross
+    net_return = (
+        gross_return
         - total_commission
     )
 
@@ -323,22 +419,53 @@ def simulate_trade(
     )
 
     return {
-        "EntryDate": dates[entry_index],
-        "ExitDate": dates[exit_index],
-        "EntryIndex": entry_index,
-        "ExitIndex": exit_index,
-        "EntryReferencePrice": entry_ref,
-        "EntryExecutionPrice": entry_exec,
-        "ExitReferencePrice": exit_ref,
-        "ExitExecutionPrice": exit_exec,
-        "StopLossPct": stop_loss_pct,
-        "TargetPct": target_pct,
-        "GrossReturnPct": gross,
-        "NetReturnPct": net,
-        "RealizedR": net / risk,
-        "BarsHeld": exit_index - entry_index,
-        "ExitReason": reason,
-        "CommissionPct": total_commission,
+        "EntryDate":
+            dates[entry_index],
+
+        "ExitDate":
+            dates[exit_index],
+
+        "EntryIndex":
+            entry_index,
+
+        "ExitIndex":
+            exit_index,
+
+        "EntryReferencePrice":
+            entry_reference,
+
+        "EntryExecutionPrice":
+            entry_execution,
+
+        "ExitReferencePrice":
+            exit_reference,
+
+        "ExitExecutionPrice":
+            exit_execution,
+
+        "StopLossPct":
+            stop_loss_pct,
+
+        "TargetPct":
+            target_pct,
+
+        "GrossReturnPct":
+            gross_return,
+
+        "NetReturnPct":
+            net_return,
+
+        "RealizedR":
+            net_return / risk,
+
+        "BarsHeld":
+            exit_index - entry_index,
+
+        "ExitReason":
+            exit_reason,
+
+        "CommissionPct":
+            total_commission,
     }
 
 
@@ -352,37 +479,39 @@ def calculate_metrics(
     target,
 ):
 
-    r = trades[
+    returns = trades[
         "NetReturnPct"
     ].to_numpy(float)
 
-    wins = r > 0
-    losses = r < 0
+    wins = returns > 0
+    losses = returns < 0
 
-    wr = r[wins]
-    lr = r[losses]
+    winning_returns = returns[wins]
+    losing_returns = returns[losses]
+
+    number_of_trades = len(returns)
 
     win_rate = (
         float(wins.mean() * 100)
-        if len(r)
+        if number_of_trades
         else np.nan
     )
 
-    avg_win = (
-        float(wr.mean())
-        if len(wr)
+    average_win = (
+        float(winning_returns.mean())
+        if len(winning_returns)
         else np.nan
     )
 
-    avg_loss = (
-        float(lr.mean())
-        if len(lr)
+    average_loss = (
+        float(losing_returns.mean())
+        if len(losing_returns)
         else np.nan
     )
 
     expectancy = (
-        float(r.mean())
-        if len(r)
+        float(returns.mean())
+        if number_of_trades
         else np.nan
     )
 
@@ -392,73 +521,97 @@ def calculate_metrics(
         else float(stop)
     )
 
-    er = expectancy / risk
+    expectancy_r = (
+        expectancy / risk
+    )
 
-    planned = (
+    planned_rrr = (
         np.nan
         if target == -1
         else float(target) / risk
     )
 
-    realized = (
-        avg_win / abs(avg_loss)
+    realized_rrr = (
+        average_win / abs(average_loss)
         if (
-            len(wr)
-            and len(lr)
-            and avg_loss != 0
+            len(winning_returns)
+            and len(losing_returns)
+            and average_loss != 0
         )
         else np.nan
     )
 
-    be = (
-        abs(avg_loss)
+    break_even_win_rate = (
+        abs(average_loss)
         / (
-            avg_win
-            + abs(avg_loss)
+            average_win
+            + abs(average_loss)
         )
         * 100
         if (
-            np.isfinite(avg_win)
-            and np.isfinite(avg_loss)
-            and avg_win > 0
-            and avg_loss < 0
+            np.isfinite(average_win)
+            and np.isfinite(average_loss)
+            and average_win > 0
+            and average_loss < 0
         )
         else np.nan
     )
 
-    pbe = (
+    planned_break_even_win_rate = (
         1
         / (
-            1 + planned
+            1
+            + planned_rrr
         )
         * 100
         if (
-            np.isfinite(planned)
-            and planned > 0
+            np.isfinite(planned_rrr)
+            and planned_rrr > 0
         )
         else np.nan
     )
 
-    counts = (
+    exit_counts = (
         trades["ExitReason"]
         .value_counts()
     )
 
-    total = len(trades)
-
     return {
-        "StopLossPct": stop,
-        "TargetPct": target,
-        "NumberOfTrades": total,
-        "WinRatePct": win_rate,
-        "AverageWinPct": avg_win,
-        "AverageLossPct": avg_loss,
-        "RealizedRRR": realized,
-        "BreakEvenWinRatePct": be,
-        "PlannedRRR": planned,
-        "PlannedBreakEvenWinRatePct": pbe,
-        "ExpectancyPct": expectancy,
-        "ExpectancyR": er,
+        "StopLossPct":
+            stop,
+
+        "TargetPct":
+            target,
+
+        "NumberOfTrades":
+            number_of_trades,
+
+        "WinRatePct":
+            win_rate,
+
+        "AverageWinPct":
+            average_win,
+
+        "AverageLossPct":
+            average_loss,
+
+        "RealizedRRR":
+            realized_rrr,
+
+        "BreakEvenWinRatePct":
+            break_even_win_rate,
+
+        "PlannedRRR":
+            planned_rrr,
+
+        "PlannedBreakEvenWinRatePct":
+            planned_break_even_win_rate,
+
+        "ExpectancyPct":
+            expectancy,
+
+        "ExpectancyR":
+            expectancy_r,
 
         "AverageBarsHeld":
             float(
@@ -466,37 +619,37 @@ def calculate_metrics(
                     "BarsHeld"
                 ].mean()
             )
-            if total
+            if number_of_trades
             else np.nan,
 
         "StopExitPct":
-            counts.get(
+            exit_counts.get(
                 "Stop",
                 0,
             )
-            / total
+            / number_of_trades
             * 100
-            if total
+            if number_of_trades
             else np.nan,
 
         "TargetExitPct":
-            counts.get(
+            exit_counts.get(
                 "Target",
                 0,
             )
-            / total
+            / number_of_trades
             * 100
-            if total
+            if number_of_trades
             else np.nan,
 
         "EndOfDataExitPct":
-            counts.get(
+            exit_counts.get(
                 "EndOfData",
                 0,
             )
-            / total
+            / number_of_trades
             * 100
-            if total
+            if number_of_trades
             else np.nan,
 
         "AverageCommissionPct":
@@ -505,13 +658,13 @@ def calculate_metrics(
                     "CommissionPct"
                 ].mean()
             )
-            if total
+            if number_of_trades
             else np.nan,
     }
 
 
 # ============================================================
-# Test stop / target combinations
+# Compare combinations
 # ============================================================
 
 def compare_combinations(
@@ -525,15 +678,15 @@ def compare_combinations(
     rank_metric,
 ):
 
-    results = []
-    details = []
+    result_records = []
+    trade_records = []
 
-    total = (
+    total_combinations = (
         len(stops)
         * len(targets)
     )
 
-    done = 0
+    combinations_completed = 0
 
     progress = st.progress(
         0,
@@ -544,91 +697,125 @@ def compare_combinations(
 
         for target in targets:
 
-            combo = [
+            combination_trades = [
                 simulate_trade(
-                    data,
-                    int(e.EntryIndex),
-                    stop,
-                    target,
-                    commission,
-                    slippage,
-                    conservative,
+                    data=data,
+                    entry_index=int(
+                        entry.EntryIndex
+                    ),
+                    stop_loss_pct=stop,
+                    target_pct=target,
+                    commission_pct=commission,
+                    slippage_pct=slippage,
+                    conservative=conservative,
                 )
-                for e in entries.itertuples(
+                for entry
+                in entries.itertuples(
                     index=False
                 )
             ]
 
-            df = pd.DataFrame(combo)
+            combination_frame = pd.DataFrame(
+                combination_trades
+            )
 
-            results.append(
+            result_records.append(
                 calculate_metrics(
-                    df,
+                    combination_frame,
                     stop,
                     target,
                 )
             )
 
-            details.extend(combo)
+            trade_records.extend(
+                combination_trades
+            )
 
-            done += 1
+            combinations_completed += 1
 
             progress.progress(
-                done / total,
+                combinations_completed
+                / total_combinations,
                 text=(
                     "Testing combinations: "
-                    f"{done}/{total}"
+                    f"{combinations_completed}"
+                    f"/{total_combinations}"
                 ),
             )
 
     progress.empty()
 
-    rdf = pd.DataFrame(results)
-    tdf = pd.DataFrame(details)
+    results = pd.DataFrame(
+        result_records
+    )
+
+    trades = pd.DataFrame(
+        trade_records
+    )
 
     for metric in [
         "ExpectancyR",
         "WinRatePct",
     ]:
 
-        sd = rdf[metric].std()
+        standard_deviation = (
+            results[metric].std()
+        )
 
-        rdf[f"z_{metric}"] = (
-            (
-                rdf[metric]
-                - rdf[metric].mean()
+        if (
+            standard_deviation
+            and np.isfinite(
+                standard_deviation
             )
-            / sd
-            if sd
-            and np.isfinite(sd)
-            else 0.0
-        )
+        ):
+            results[
+                f"z_{metric}"
+            ] = (
+                results[metric]
+                - results[metric].mean()
+            ) / standard_deviation
+        else:
+            results[
+                f"z_{metric}"
+            ] = 0.0
 
-    rdf["ScoreRaw"] = (
+    results["ScoreRaw"] = (
         2
-        * rdf["z_ExpectancyR"]
-        + rdf["z_WinRatePct"]
+        * results[
+            "z_ExpectancyR"
+        ]
+        + results[
+            "z_WinRatePct"
+        ]
     )
 
-    lo = rdf["ScoreRaw"].min()
-    hi = rdf["ScoreRaw"].max()
+    minimum_score = results[
+        "ScoreRaw"
+    ].min()
 
-    rdf["Score"] = (
-        100
-        * (
-            rdf["ScoreRaw"]
-            - lo
-        )
-        / (
-            hi
-            - lo
-        )
-        if hi != lo
-        else 50.0
-    )
+    maximum_score = results[
+        "ScoreRaw"
+    ].max()
 
-    rdf = (
-        rdf
+    if maximum_score != minimum_score:
+
+        results["Score"] = (
+            100
+            * (
+                results["ScoreRaw"]
+                - minimum_score
+            )
+            / (
+                maximum_score
+                - minimum_score
+            )
+        )
+
+    else:
+        results["Score"] = 50.0
+
+    results = (
+        results
         .sort_values(
             rank_metric,
             ascending=False,
@@ -639,16 +826,16 @@ def compare_combinations(
         )
     )
 
-    rdf.insert(
+    results.insert(
         0,
         "Rank",
         np.arange(
             1,
-            len(rdf) + 1,
+            len(results) + 1,
         ),
     )
 
-    return rdf, tdf
+    return results, trades
 
 
 # ============================================================
@@ -662,17 +849,17 @@ def create_heatmap(
     ticker,
     start_date,
     end_date,
-    n_entries,
+    number_of_entries,
     top_metric,
     bottom_metric,
     color_metric,
     vmin,
     vmax,
-    wr_min,
-    er_min,
+    win_rate_minimum,
+    expectancy_r_minimum,
 ):
 
-    color = (
+    color_values = (
         results
         .pivot(
             index="TargetPct",
@@ -685,7 +872,7 @@ def create_heatmap(
         )
     )
 
-    top = (
+    top_values = (
         results
         .pivot(
             index="TargetPct",
@@ -698,7 +885,7 @@ def create_heatmap(
         )
     )
 
-    bottom = (
+    bottom_values = (
         results
         .pivot(
             index="TargetPct",
@@ -711,7 +898,7 @@ def create_heatmap(
         )
     )
 
-    cond = (
+    highlighted = (
         pd.concat(
             [
                 results[
@@ -724,13 +911,15 @@ def create_heatmap(
                     (
                         results[
                             "WinRatePct"
-                        ] > wr_min
+                        ]
+                        > win_rate_minimum
                     )
                     &
                     (
                         results[
                             "ExpectancyR"
-                        ] > er_min
+                        ]
+                        > expectancy_r_minimum
                     )
                 ).rename(
                     "Condition"
@@ -749,44 +938,38 @@ def create_heatmap(
         )
     )
 
-    vals = color.to_numpy(
+    matrix = color_values.to_numpy(
         float
     )
 
-    finite = vals[
-        np.isfinite(vals)
+    finite_values = matrix[
+        np.isfinite(matrix)
     ]
 
-    if not finite.size:
+    if not finite_values.size:
         return None
 
-    vmin = (
-        float(
-            np.min(finite)
+    if vmin is None:
+        vmin = float(
+            np.min(finite_values)
         )
-        if vmin is None
-        else vmin
-    )
 
-    vmax = (
-        float(
-            np.max(finite)
+    if vmax is None:
+        vmax = float(
+            np.max(finite_values)
         )
-        if vmax is None
-        else vmax
-    )
 
     if vmin == vmax:
 
-        pad = max(
+        padding = max(
             abs(vmin) * 0.01,
             1e-9,
         )
 
-        vmin -= pad
-        vmax += pad
+        vmin -= padding
+        vmax += padding
 
-    fig, ax = plt.subplots(
+    figure, axis = plt.subplots(
         figsize=(
             max(
                 12,
@@ -799,8 +982,8 @@ def create_heatmap(
         )
     )
 
-    image = ax.imshow(
-        vals,
+    image = axis.imshow(
+        matrix,
         cmap="RdYlGn",
         aspect="auto",
         interpolation="nearest",
@@ -809,56 +992,56 @@ def create_heatmap(
         vmax=vmax,
     )
 
-    fig.colorbar(
+    figure.colorbar(
         image,
-        ax=ax,
+        ax=axis,
     ).set_label(
         color_metric
     )
 
-    ax.set_title(
+    axis.set_title(
         f"{ticker} | "
         f"{start_date} to {end_date} | "
-        f"{n_entries:,} Random Entries\n"
+        f"{number_of_entries:,} Random Entries\n"
         f"{top_metric} (top), "
         f"{bottom_metric} (bottom)"
     )
 
-    ax.set_xlabel(
+    axis.set_xlabel(
         "Stop-Loss (%)"
     )
 
-    ax.set_ylabel(
+    axis.set_ylabel(
         "Target (%)"
     )
 
-    ax.set_xticks(
+    axis.set_xticks(
         np.arange(
             len(stops)
         )
     )
 
-    ax.set_xticklabels(
+    axis.set_xticklabels(
         [
             "NS"
-            if x == -1
-            else str(x)
-            for x in stops
+            if value == -1
+            else str(value)
+            for value in stops
         ]
     )
 
-    ax.set_yticks(
+    axis.set_yticks(
         np.arange(
             len(targets)
         )
     )
 
-    ax.set_yticklabels(
+    axis.set_yticklabels(
         [
             "NT"
-            if x == -1
-            else str(x)
-            for x in targets
+            if value == -1
+            else str(value)
+            for value in targets
         ]
     )
 
@@ -870,12 +1053,12 @@ def create_heatmap(
         "Score": ".0f",
     }
 
-    tf = formats.get(
+    top_format = formats.get(
         top_metric,
         ".2f",
     )
 
-    bf = formats.get(
+    bottom_format = formats.get(
         bottom_metric,
         ".2f",
     )
@@ -884,47 +1067,51 @@ def create_heatmap(
         len(targets)
     ):
 
-        for col in range(
+        for column in range(
             len(stops)
         ):
 
-            a = top.iloc[
+            top_value = top_values.iloc[
                 row,
-                col,
+                column,
             ]
 
-            b = bottom.iloc[
+            bottom_value = bottom_values.iloc[
                 row,
-                col,
+                column,
             ]
 
-            cv = vals[
+            color_value = matrix[
                 row,
-                col,
+                column,
             ]
 
-            label = (
-                f"{a:{tf}}\n"
-                f"{b:{bf}}"
-                if (
-                    np.isfinite(a)
-                    and np.isfinite(b)
+            if (
+                np.isfinite(top_value)
+                and np.isfinite(
+                    bottom_value
                 )
-                else "N/A"
-            )
+            ):
+                label = (
+                    f"{top_value:{top_format}}\n"
+                    f"{bottom_value:{bottom_format}}"
+                )
+            else:
+                label = "N/A"
 
-            rgba = (
-                image.cmap(
-                    image.norm(cv)
+            if np.isfinite(color_value):
+                rgba = image.cmap(
+                    image.norm(
+                        color_value
+                    )
                 )
-                if np.isfinite(cv)
-                else (
+            else:
+                rgba = (
                     1,
                     1,
                     1,
                     1,
                 )
-            )
 
             brightness = (
                 0.299 * rgba[0]
@@ -932,8 +1119,8 @@ def create_heatmap(
                 + 0.114 * rgba[2]
             )
 
-            ax.text(
-                col,
+            axis.text(
+                column,
                 row,
                 label,
                 ha="center",
@@ -947,16 +1134,15 @@ def create_heatmap(
             )
 
             if bool(
-                cond.iloc[
+                highlighted.iloc[
                     row,
-                    col,
+                    column,
                 ]
             ):
-
-                ax.add_patch(
+                axis.add_patch(
                     Rectangle(
                         (
-                            col - 0.5,
+                            column - 0.5,
                             row - 0.5,
                         ),
                         1,
@@ -967,7 +1153,7 @@ def create_heatmap(
                     )
                 )
 
-    ax.set_xticks(
+    axis.set_xticks(
         np.arange(
             -0.5,
             len(stops),
@@ -976,7 +1162,7 @@ def create_heatmap(
         minor=True,
     )
 
-    ax.set_yticks(
+    axis.set_yticks(
         np.arange(
             -0.5,
             len(targets),
@@ -985,26 +1171,129 @@ def create_heatmap(
         minor=True,
     )
 
-    ax.grid(
+    axis.grid(
         which="minor",
         color="gray",
         linewidth=0.4,
         alpha=0.4,
     )
 
-    ax.tick_params(
+    axis.tick_params(
         which="minor",
         bottom=False,
         left=False,
     )
 
-    fig.tight_layout()
+    figure.tight_layout()
 
-    return fig
+    return figure
 
 
 # ============================================================
-# UI
+# Helper functions
+# ============================================================
+
+def parse_values(text):
+
+    return [
+        float(value.strip())
+        for value in text.split(",")
+        if value.strip()
+    ]
+
+
+def run_simulation_now(
+    ticker,
+    start_date,
+    end_date,
+    interval,
+    number_of_entries,
+    seed,
+    commission,
+    slippage,
+    conservative,
+    stops,
+    targets,
+):
+
+    with st.spinner(
+        f"Loading {ticker} data..."
+    ):
+
+        data = download_data(
+            ticker,
+            start_date,
+            end_date,
+            interval,
+        )
+
+    entries = select_random_entries(
+        data,
+        int(number_of_entries),
+        int(seed),
+    )
+
+    start_time = time.perf_counter()
+
+    results, trades = compare_combinations(
+        data=data,
+        entries=entries,
+        stops=stops,
+        targets=targets,
+        commission=float(commission),
+        slippage=float(slippage),
+        conservative=conservative,
+        rank_metric="ExpectancyR",
+    )
+
+    elapsed = (
+        time.perf_counter()
+        - start_time
+    )
+
+    return (
+        data,
+        entries,
+        results,
+        trades,
+        stops,
+        targets,
+        elapsed,
+        ticker,
+        start_date,
+        end_date,
+        int(number_of_entries),
+    )
+
+
+def load_startup_result():
+
+    if not STARTUP_RESULT_FILE.exists():
+        return None
+
+    try:
+
+        with open(
+            STARTUP_RESULT_FILE,
+            "rb",
+        ) as result_file:
+
+            return pickle.load(
+                result_file
+            )
+
+    except Exception as exc:
+
+        st.warning(
+            "The startup result could not be loaded: "
+            f"{exc}"
+        )
+
+        return None
+
+
+# ============================================================
+# Application title
 # ============================================================
 
 st.title(
@@ -1027,36 +1316,39 @@ with st.sidebar:
         "Data"
     )
 
-    # The suite expects this exact search key.
-    q = st.text_input(
+    search_query = st.text_input(
         "Search for ticker",
         placeholder="Type a ticker or company name",
         key="exit_search_ticker",
         live="500ms",
     ).strip()
 
-    if len(q) >= 2:
+    if len(search_query) >= 2:
 
         try:
 
-            for m in search_tickers(q):
+            search_results = search_tickers(
+                search_query
+            )
 
-                label = (
-                    f"{m['symbol']} | "
-                    f"{m['name']} | "
-                    f"{m['exchange'] or 'Unknown exchange'}"
+            for match in search_results:
+
+                result_label = (
+                    f"{match['symbol']} | "
+                    f"{match['name']} | "
+                    f"{match['exchange'] or 'Unknown exchange'}"
                 )
 
                 st.button(
-                    label,
+                    result_label,
                     key=(
-                        "exit_srch_"
-                        f"{m['symbol']}"
+                        "exit_search_result_"
+                        f"{match['symbol']}"
                     ),
                     on_click=select_ticker,
                     args=(
-                        m["symbol"],
-                        label,
+                        match["symbol"],
+                        result_label,
                     ),
                     width="stretch",
                 )
@@ -1068,15 +1360,15 @@ with st.sidebar:
                 f"{exc}"
             )
 
-    # suite.py initializes exit_ticker from _suite_shared_ticker.
-    # When running standalone, initialize it ourselves.
+    # suite.py initializes exit_ticker before running this app.
+    # When running independently, initialize it here.
     if "exit_ticker" not in st.session_state:
 
-        st.session_state["exit_ticker"] = (
-            st.session_state.get(
-                "_suite_shared_ticker",
-                "QQQ",
-            )
+        st.session_state[
+            "exit_ticker"
+        ] = st.session_state.get(
+            "_suite_shared_ticker",
+            "QQQ",
         )
 
     ticker = st.text_input(
@@ -1091,7 +1383,6 @@ with st.sidebar:
             "1wk",
             "1mo",
         ],
-        index=0,
         key="exit_interval",
     )
 
@@ -1125,7 +1416,7 @@ with st.sidebar:
         "Simulation"
     )
 
-    n_entries = st.number_input(
+    number_of_entries = st.number_input(
         "Random entries",
         min_value=1,
         value=1000,
@@ -1171,28 +1462,7 @@ with st.sidebar:
         "Heatmap"
     )
 
-    METRICS = [
-        "StopLossPct",
-        "TargetPct",
-        "NumberOfTrades",
-        "WinRatePct",
-        "AverageWinPct",
-        "AverageLossPct",
-        "RealizedRRR",
-        "BreakEvenWinRatePct",
-        "PlannedRRR",
-        "PlannedBreakEvenWinRatePct",
-        "ExpectancyPct",
-        "ExpectancyR",
-        "AverageBarsHeld",
-        "StopExitPct",
-        "TargetExitPct",
-        "EndOfDataExitPct",
-        "AverageCommissionPct",
-        "Score",
-    ]
-
-    hm_top = st.selectbox(
+    heatmap_top_metric = st.selectbox(
         "Top metric",
         METRICS,
         index=METRICS.index(
@@ -1201,7 +1471,7 @@ with st.sidebar:
         key="exit_hm_top",
     )
 
-    hm_bottom = st.selectbox(
+    heatmap_bottom_metric = st.selectbox(
         "Bottom metric",
         METRICS,
         index=METRICS.index(
@@ -1210,7 +1480,7 @@ with st.sidebar:
         key="exit_hm_bottom",
     )
 
-    hm_color = st.selectbox(
+    heatmap_color_metric = st.selectbox(
         "Color metric",
         METRICS,
         index=METRICS.index(
@@ -1219,48 +1489,56 @@ with st.sidebar:
         key="exit_hm_color",
     )
 
-    auto_scale = st.checkbox(
+    automatic_color_scale = st.checkbox(
         "Auto color scale (use min/max)",
         value=False,
         key="exit_auto_scale",
     )
 
-    c1, c2 = st.columns(2)
+    color_column_1, color_column_2 = (
+        st.columns(2)
+    )
 
-    hm_vmin = c1.number_input(
+    heatmap_vmin = color_column_1.number_input(
         "Color min",
         value=0.0,
         step=0.1,
-        disabled=auto_scale,
+        disabled=automatic_color_scale,
         key="exit_hm_vmin",
     )
 
-    hm_vmax = c2.number_input(
+    heatmap_vmax = color_column_2.number_input(
         "Color max",
         value=1.0,
         step=0.1,
-        disabled=auto_scale,
+        disabled=automatic_color_scale,
         key="exit_hm_vmax",
     )
 
-    if auto_scale:
-        hm_vmin = None
-        hm_vmax = None
+    if automatic_color_scale:
+        heatmap_vmin = None
+        heatmap_vmax = None
 
-    c3, c4 = st.columns(2)
-
-    hl_wr = c3.number_input(
-        "Highlight WR min",
-        value=50.0,
-        step=1.0,
-        key="exit_hl_wr",
+    highlight_column_1, highlight_column_2 = (
+        st.columns(2)
     )
 
-    hl_er = c4.number_input(
-        "Highlight ExpR min",
-        value=0.5,
-        step=0.1,
-        key="exit_hl_er",
+    highlight_win_rate = (
+        highlight_column_1.number_input(
+            "Highlight WR min",
+            value=50.0,
+            step=1.0,
+            key="exit_hl_wr",
+        )
+    )
+
+    highlight_expectancy_r = (
+        highlight_column_2.number_input(
+            "Highlight ExpR min",
+            value=0.5,
+            step=0.1,
+            key="exit_hl_er",
+        )
     )
 
     rank_metric = st.selectbox(
@@ -1312,38 +1590,39 @@ with st.sidebar:
 
     st.divider()
 
+    # IMPORTANT:
+    # Do not give this button an exit_* key.
+    # suite.py saves and restores all exit_* state.
+    # Button trigger states must not be restored.
     run_simulation = st.button(
         "Run simulation",
         type="primary",
         width="stretch",
-        key="exit_run_simulation",
     )
 
 
 # ============================================================
-# Synchronize ticker with parent suite
+# Synchronize ticker with suite
 # ============================================================
 
-if st.session_state.get(
-    "_market_analysis_suite",
-    False,
-):
+if IN_SUITE:
+
     st.session_state[
         "_suite_shared_ticker"
     ] = ticker
 
 
 # ============================================================
-# Helpers
+# Validate inputs
 # ============================================================
 
-def parse_values(s):
+if not ticker:
 
-    return [
-        float(x.strip())
-        for x in s.split(",")
-        if x.strip()
-    ]
+    st.warning(
+        "Enter a ticker symbol."
+    )
+
+    st.stop()
 
 
 if start_date >= end_date:
@@ -1355,131 +1634,8 @@ if start_date >= end_date:
     st.stop()
 
 
-if not ticker:
-
-    st.warning(
-        "Enter a ticker symbol."
-    )
-
-    st.stop()
-
-
 # ============================================================
-# Run simulation
-# ============================================================
-
-def run_simulation_now(
-    ticker,
-    start_date,
-    end_date,
-    interval,
-    n_entries,
-    seed,
-    commission,
-    slippage,
-    conservative,
-    stops,
-    targets,
-):
-
-    with st.spinner(
-        f"Loading {ticker} data..."
-    ):
-
-        data = download_data(
-            ticker,
-            start_date,
-            end_date,
-            interval,
-        )
-
-    entries = select_random_entries(
-        data,
-        int(n_entries),
-        int(seed),
-    )
-
-    t0 = time.perf_counter()
-
-    results, trades = compare_combinations(
-        data,
-        entries,
-        stops,
-        targets,
-        float(commission),
-        float(slippage),
-        conservative,
-        "ExpectancyR",
-    )
-
-    return (
-        data,
-        entries,
-        results,
-        trades,
-        stops,
-        targets,
-        time.perf_counter() - t0,
-        ticker,
-        start_date,
-        end_date,
-        int(n_entries),
-    )
-
-
-# ============================================================
-# Startup result
-# ============================================================
-
-def load_startup_result():
-
-    if not STARTUP_RESULT_FILE.exists():
-        return None
-
-    try:
-
-        with open(
-            STARTUP_RESULT_FILE,
-            "rb",
-        ) as f:
-
-            return pickle.load(f)
-
-    except Exception as exc:
-
-        st.warning(
-            "The startup result could not be loaded: "
-            f"{exc}"
-        )
-
-        return None
-
-
-def save_startup_result(output):
-
-    try:
-
-        with open(
-            STARTUP_RESULT_FILE,
-            "wb",
-        ) as f:
-
-            pickle.dump(
-                output,
-                f,
-            )
-
-    except OSError as exc:
-
-        st.warning(
-            "The initial result is displayed, but this server "
-            "did not allow startup_result.pkl to be written: "
-            f"{exc}"
-        )
-
-
-# ============================================================
-# Explicit simulation button
+# Run simulation only when requested
 # ============================================================
 
 if run_simulation:
@@ -1494,33 +1650,32 @@ if run_simulation:
             target_text
         )
 
-        if (
-            not stops
-            or not targets
-        ):
+        if not stops or not targets:
+
             raise ValueError(
-                "Provide at least one stop and one target value."
+                "Provide at least one stop "
+                "and one target value."
             )
 
         st.session_state[
-            "exit_output"
+            "_exit_output"
         ] = run_simulation_now(
-            ticker,
-            start_date,
-            end_date,
-            interval,
-            n_entries,
-            seed,
-            commission,
-            slippage,
-            conservative,
-            stops,
-            targets,
+            ticker=ticker,
+            start_date=start_date,
+            end_date=end_date,
+            interval=interval,
+            number_of_entries=number_of_entries,
+            seed=seed,
+            commission=commission,
+            slippage=slippage,
+            conservative=conservative,
+            stops=stops,
+            targets=targets,
         )
 
         st.caption(
             "Showing this session's latest simulation. "
-            "It is not written to the server filesystem."
+            "No user result file was created."
         )
 
     except Exception as exc:
@@ -1533,10 +1688,10 @@ if run_simulation:
 
 
 # ============================================================
-# Initial result
+# Initial startup result
 # ============================================================
 
-elif "exit_output" not in st.session_state:
+elif "_exit_output" not in st.session_state:
 
     startup_output = (
         load_startup_result()
@@ -1545,7 +1700,7 @@ elif "exit_output" not in st.session_state:
     if startup_output is not None:
 
         st.session_state[
-            "exit_output"
+            "_exit_output"
         ] = startup_output
 
         st.caption(
@@ -1556,43 +1711,38 @@ elif "exit_output" not in st.session_state:
 
         try:
 
-            stops = parse_values(
+            initial_stops = parse_values(
                 stop_text
             )
 
-            targets = parse_values(
+            initial_targets = parse_values(
                 target_text
             )
 
             st.info(
-                "No startup result exists yet. "
-                "Running the initial simulation once and "
-                "creating startup_result.pkl."
+                "No bundled startup result was found. "
+                "Running the initial display simulation "
+                "for this session."
             )
 
-            startup_output = (
-                run_simulation_now(
-                    ticker,
-                    start_date,
-                    end_date,
-                    interval,
-                    n_entries,
-                    seed,
-                    commission,
-                    slippage,
-                    conservative,
-                    stops,
-                    targets,
-                )
-            )
-
-            save_startup_result(
-                startup_output
-            )
-
+            # Do not write a file here.
+            # This avoids public users creating files
+            # on Streamlit Community Cloud.
             st.session_state[
-                "exit_output"
-            ] = startup_output
+                "_exit_output"
+            ] = run_simulation_now(
+                ticker=ticker,
+                start_date=start_date,
+                end_date=end_date,
+                interval=interval,
+                number_of_entries=number_of_entries,
+                seed=seed,
+                commission=commission,
+                slippage=slippage,
+                conservative=conservative,
+                stops=initial_stops,
+                targets=initial_targets,
+            )
 
         except Exception as exc:
 
@@ -1605,30 +1755,32 @@ elif "exit_output" not in st.session_state:
 else:
 
     st.caption(
-        "Change parameters as needed, then click Run simulation."
+        "Change parameters as needed, then click "
+        "Run simulation. The displayed results remain "
+        "unchanged until you run again."
     )
 
 
 # ============================================================
-# Results
+# Display results
 # ============================================================
 
-if "exit_output" in st.session_state:
+if "_exit_output" in st.session_state:
 
     (
         data,
         entries,
         results,
         trades,
-        stops,
-        targets,
+        result_stops,
+        result_targets,
         elapsed,
-        out_ticker,
-        out_start,
-        out_end,
-        out_n,
+        result_ticker,
+        result_start_date,
+        result_end_date,
+        result_number_of_entries,
     ) = st.session_state[
-        "exit_output"
+        "_exit_output"
     ]
 
 
@@ -1636,24 +1788,24 @@ if "exit_output" in st.session_state:
     # Summary
     # ========================================================
 
-    c = st.columns(4)
+    summary_columns = st.columns(4)
 
-    c[0].metric(
+    summary_columns[0].metric(
         "Bars",
         f"{len(data):,}",
     )
 
-    c[1].metric(
+    summary_columns[1].metric(
         "Random entries",
         f"{len(entries):,}",
     )
 
-    c[2].metric(
+    summary_columns[2].metric(
         "Combinations",
         f"{len(results):,}",
     )
 
-    c[3].metric(
+    summary_columns[3].metric(
         "Run time",
         f"{elapsed:.1f}s",
     )
@@ -1667,42 +1819,49 @@ if "exit_output" in st.session_state:
         "Heatmap"
     )
 
-    fig = create_heatmap(
-        results,
-        stops,
-        targets,
-        out_ticker,
-        out_start,
-        out_end,
-        len(entries),
-        hm_top,
-        hm_bottom,
-        hm_color,
-        hm_vmin,
-        hm_vmax,
-        hl_wr,
-        hl_er,
+    heatmap_figure = create_heatmap(
+        results=results,
+        stops=result_stops,
+        targets=result_targets,
+        ticker=result_ticker,
+        start_date=result_start_date,
+        end_date=result_end_date,
+        number_of_entries=len(entries),
+        top_metric=heatmap_top_metric,
+        bottom_metric=heatmap_bottom_metric,
+        color_metric=heatmap_color_metric,
+        vmin=heatmap_vmin,
+        vmax=heatmap_vmax,
+        win_rate_minimum=highlight_win_rate,
+        expectancy_r_minimum=
+            highlight_expectancy_r,
     )
 
-    if fig is not None:
+    if heatmap_figure is not None:
 
         st.pyplot(
-            fig,
+            heatmap_figure,
             width="stretch",
         )
 
-        plt.close(fig)
+        plt.close(
+            heatmap_figure
+        )
 
 
     # ========================================================
-    # Ranked results
+    # Ranked combinations
     # ========================================================
 
-    ranked = (
-        results
-        .drop(
+    ranked = results.copy()
+
+    if "Rank" in ranked.columns:
+        ranked = ranked.drop(
             columns="Rank"
         )
+
+    ranked = (
+        ranked
         .sort_values(
             rank_metric,
             ascending=False,
@@ -1722,7 +1881,7 @@ if "exit_output" in st.session_state:
         ),
     )
 
-    display_cols = [
+    display_columns = [
         "Rank",
         "StopLossPct",
         "TargetPct",
@@ -1740,13 +1899,14 @@ if "exit_output" in st.session_state:
     ]
 
     with st.expander(
-        f"Ranked combinations (by {rank_metric})",
+        f"Ranked combinations "
+        f"(by {rank_metric})",
         expanded=False,
     ):
 
         st.dataframe(
             ranked[
-                display_cols
+                display_columns
             ].round(2),
             hide_index=True,
             width="stretch",
@@ -1755,7 +1915,7 @@ if "exit_output" in st.session_state:
 
 
     # ========================================================
-    # Random entries
+    # Random entry bars
     # ========================================================
 
     with st.expander(
@@ -1793,9 +1953,9 @@ if "exit_output" in st.session_state:
         "Download"
     )
 
-    dl = st.columns(3)
+    download_columns = st.columns(3)
 
-    dl[0].download_button(
+    download_columns[0].download_button(
         "Results CSV",
         ranked
         .round(4)
@@ -1804,14 +1964,14 @@ if "exit_output" in st.session_state:
         )
         .encode(),
         (
-            f"{out_ticker.lower()}"
+            f"{result_ticker.lower()}"
             "_stop_target_results.csv"
         ),
-        "text/csv",
+        mime="text/csv",
         width="stretch",
     )
 
-    dl[1].download_button(
+    download_columns[1].download_button(
         "Trade details CSV",
         trades
         .round(4)
@@ -1820,14 +1980,14 @@ if "exit_output" in st.session_state:
         )
         .encode(),
         (
-            f"{out_ticker.lower()}"
+            f"{result_ticker.lower()}"
             "_trade_details.csv"
         ),
-        "text/csv",
+        mime="text/csv",
         width="stretch",
     )
 
-    dl[2].download_button(
+    download_columns[2].download_button(
         "Random entries CSV",
         entries
         .to_csv(
@@ -1835,9 +1995,9 @@ if "exit_output" in st.session_state:
         )
         .encode(),
         (
-            f"{out_ticker.lower()}"
+            f"{result_ticker.lower()}"
             "_random_entries.csv"
         ),
-        "text/csv",
+        mime="text/csv",
         width="stretch",
     )
