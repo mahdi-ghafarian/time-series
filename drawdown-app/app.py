@@ -22,7 +22,7 @@ DRAWDOWN_COLUMNS = [
 
 
 st.set_page_config(
-    page_title="Drawdown Calculator",
+    page_title="Drawdown Analysis",
     page_icon="📉",
     layout="wide",
 )
