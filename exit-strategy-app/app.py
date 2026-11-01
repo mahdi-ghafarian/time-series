@@ -2660,7 +2660,6 @@ if (
         f"Ticker changed from "
         f"{output_ticker or 'the previous ticker'} "
         f"to {ticker}. "
-        "The previous results are hidden. "
         f"Click Run simulation to generate "
         f"results for {ticker}."
     )
