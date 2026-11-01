@@ -279,7 +279,6 @@ elif "bt_output" not in st.session_state:
 else:
     st.caption(
         "Change parameters as needed, then click Run simulation. "
-        "The displayed result remains unchanged until you run again."
     )
 
 if 'bt_output' in st.session_state:
