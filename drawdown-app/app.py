@@ -101,7 +101,7 @@ def calculate_drawdowns(
     return prices, completed_drawdowns
 
 
-st.title("Drawdown Calculator")
+st.title("Drawdown Analysis")
 st.write(
     "Analyze historical peak-to-trough declines from a CSV price series. "
     "Drawdown episodes are counted when price recovers to a previous high."
