@@ -15,9 +15,11 @@ from matplotlib.patches import Rectangle
 # Configuration
 # ============================================================
 
+IN_SUITE = st.session_state.get("_market_analysis_suite", False)
+
 STARTUP_RESULT_FILE = Path(__file__).parent / "startup_result.pkl"
 
-if not st.session_state.get("_market_analysis_suite", False):
+if not IN_SUITE:
     st.set_page_config(
         page_title="Exit Strategy",
         page_icon="📊",
@@ -58,12 +60,53 @@ METRICS = [
 
 
 # ============================================================
+# Ticker synchronization
+# ============================================================
+
+def update_shared_ticker():
+    ticker_value = (
+        st.session_state
+        .get("exit_ticker", "")
+        .strip()
+        .upper()
+    )
+
+    st.session_state["exit_ticker"] = ticker_value
+
+    if IN_SUITE and ticker_value:
+        st.session_state["_suite_shared_ticker"] = ticker_value
+
+
+def update_shared_search():
+    search_value = st.session_state.get(
+        "exit_search_ticker",
+        "",
+    )
+
+    if IN_SUITE:
+        st.session_state["_suite_ticker_search"] = search_value
+        st.session_state["_suite_ticker_search_label"] = ""
+
+
+def select_ticker(symbol):
+    symbol = symbol.strip().upper()
+
+    st.session_state["exit_ticker"] = symbol
+    st.session_state["exit_search_ticker"] = ""
+    st.session_state["exit_search_ticker_label"] = ""
+
+    if IN_SUITE:
+        st.session_state["_suite_shared_ticker"] = symbol
+        st.session_state["_suite_ticker_search"] = ""
+        st.session_state["_suite_ticker_search_label"] = ""
+
+
+# ============================================================
 # Ticker search
 # ============================================================
 
 @st.cache_data(ttl=3600, show_spinner=False)
 def search_tickers(query):
-
     quotes = yf.Search(
         query,
         max_results=8,
@@ -91,17 +134,6 @@ def search_tickers(query):
     ]
 
 
-def select_ticker(symbol):
-
-    symbol = symbol.upper()
-
-    st.session_state["bt_ticker"] = symbol
-    st.session_state["bt_search"] = ""
-
-    if st.session_state.get("_market_analysis_suite", False):
-        st.session_state["_suite_shared_ticker"] = symbol
-
-
 # ============================================================
 # Historical data
 # ============================================================
@@ -113,8 +145,6 @@ def download_data(
     end_date,
     interval,
 ):
-
-    # Yahoo Finance treats end as exclusive.
     yahoo_end_date = end_date + timedelta(days=1)
 
     data = yf.download(
@@ -134,15 +164,12 @@ def download_data(
     if isinstance(data.columns, pd.MultiIndex):
 
         if ticker in data.columns.get_level_values(-1):
-
             data = data.xs(
                 ticker,
                 axis=1,
                 level=-1,
             )
-
         else:
-
             data.columns = data.columns.get_level_values(0)
 
     required_columns = [
@@ -191,7 +218,6 @@ def select_random_entries(
     number_of_entries,
     seed,
 ):
-
     maximum_entries = len(data) - 1
 
     if maximum_entries < 1:
@@ -204,12 +230,10 @@ def select_random_entries(
         maximum_entries,
     )
 
-    random_generator = np.random.default_rng(
-        int(seed)
-    )
+    rng = np.random.default_rng(int(seed))
 
     entry_indexes = np.sort(
-        random_generator.choice(
+        rng.choice(
             np.arange(maximum_entries),
             size=actual_entries,
             replace=False,
@@ -239,7 +263,6 @@ def simulate_trade(
     slippage_pct,
     conservative,
 ):
-
     close_prices = data["Close"].to_numpy()
     high_prices = data["High"].to_numpy()
     low_prices = data["Low"].to_numpy()
@@ -283,7 +306,6 @@ def simulate_trade(
         entry_index + 1,
         len(data),
     ):
-
         stop_hit = (
             stop_price is not None
             and float(low_prices[current_index]) <= stop_price
@@ -307,14 +329,12 @@ def simulate_trade(
             break
 
         if stop_hit:
-
             exit_reference = stop_price
             exit_reason = "Stop"
             exit_index = current_index
             break
 
         if target_hit:
-
             exit_reference = target_price
             exit_reason = "Target"
             exit_index = current_index
@@ -349,18 +369,42 @@ def simulate_trade(
         "ExitDate": dates[exit_index],
         "EntryIndex": entry_index,
         "ExitIndex": exit_index,
-        "EntryReferencePrice": entry_reference,
-        "EntryExecutionPrice": entry_execution,
-        "ExitReferencePrice": exit_reference,
-        "ExitExecutionPrice": exit_execution,
-        "StopLossPct": stop_loss_pct,
-        "TargetPct": target_pct,
-        "GrossReturnPct": gross_return_pct,
-        "NetReturnPct": net_return_pct,
-        "RealizedR": net_return_pct / risk_pct,
-        "BarsHeld": exit_index - entry_index,
-        "ExitReason": exit_reason,
-        "CommissionPct": total_commission_pct,
+
+        "EntryReferencePrice":
+            entry_reference,
+
+        "EntryExecutionPrice":
+            entry_execution,
+
+        "ExitReferencePrice":
+            exit_reference,
+
+        "ExitExecutionPrice":
+            exit_execution,
+
+        "StopLossPct":
+            stop_loss_pct,
+
+        "TargetPct":
+            target_pct,
+
+        "GrossReturnPct":
+            gross_return_pct,
+
+        "NetReturnPct":
+            net_return_pct,
+
+        "RealizedR":
+            net_return_pct / risk_pct,
+
+        "BarsHeld":
+            exit_index - entry_index,
+
+        "ExitReason":
+            exit_reason,
+
+        "CommissionPct":
+            total_commission_pct,
     }
 
 
@@ -373,10 +417,10 @@ def calculate_metrics(
     stop,
     target,
 ):
-
-    returns = trades[
-        "NetReturnPct"
-    ].to_numpy(float)
+    returns = (
+        trades["NetReturnPct"]
+        .to_numpy(float)
+    )
 
     wins = returns > 0
     losses = returns < 0
@@ -416,7 +460,9 @@ def calculate_metrics(
         else float(stop)
     )
 
-    expectancy_r = expectancy / risk
+    expectancy_r = (
+        expectancy / risk
+    )
 
     planned_rrr = (
         np.nan
@@ -425,7 +471,8 @@ def calculate_metrics(
     )
 
     realized_rrr = (
-        average_win / abs(average_loss)
+        average_win
+        / abs(average_loss)
         if (
             len(winning_returns)
             and len(losing_returns)
@@ -467,19 +514,41 @@ def calculate_metrics(
     )
 
     return {
-        "StopLossPct": stop,
-        "TargetPct": target,
-        "NumberOfTrades": number_of_trades,
-        "WinRatePct": win_rate,
-        "AverageWinPct": average_win,
-        "AverageLossPct": average_loss,
-        "RealizedRRR": realized_rrr,
-        "BreakEvenWinRatePct": break_even_win_rate,
-        "PlannedRRR": planned_rrr,
+        "StopLossPct":
+            stop,
+
+        "TargetPct":
+            target,
+
+        "NumberOfTrades":
+            number_of_trades,
+
+        "WinRatePct":
+            win_rate,
+
+        "AverageWinPct":
+            average_win,
+
+        "AverageLossPct":
+            average_loss,
+
+        "RealizedRRR":
+            realized_rrr,
+
+        "BreakEvenWinRatePct":
+            break_even_win_rate,
+
+        "PlannedRRR":
+            planned_rrr,
+
         "PlannedBreakEvenWinRatePct":
             planned_break_even_win_rate,
-        "ExpectancyPct": expectancy,
-        "ExpectancyR": expectancy_r,
+
+        "ExpectancyPct":
+            expectancy,
+
+        "ExpectancyR":
+            expectancy_r,
 
         "AverageBarsHeld":
             float(
@@ -532,7 +601,6 @@ def compare_combinations(
     conservative,
     rank_metric,
 ):
-
     result_records = []
     trade_records = []
 
@@ -555,7 +623,9 @@ def compare_combinations(
             combination_trades = [
                 simulate_trade(
                     data=data,
-                    entry_index=int(entry.EntryIndex),
+                    entry_index=int(
+                        entry.EntryIndex
+                    ),
                     stop_loss_pct=stop,
                     target_pct=target,
                     commission_pct=commission,
@@ -563,11 +633,15 @@ def compare_combinations(
                     conservative=conservative,
                 )
                 for entry
-                in entries.itertuples(index=False)
+                in entries.itertuples(
+                    index=False
+                )
             ]
 
-            combination_frame = pd.DataFrame(
-                combination_trades
+            combination_frame = (
+                pd.DataFrame(
+                    combination_trades
+                )
             )
 
             result_records.append(
@@ -585,7 +659,8 @@ def compare_combinations(
             completed += 1
 
             progress_bar.progress(
-                completed / total_combinations,
+                completed
+                / total_combinations,
                 text=(
                     "Testing combinations: "
                     f"{completed}/{total_combinations}"
@@ -606,37 +681,41 @@ def compare_combinations(
         "ExpectancyR",
         "WinRatePct",
     ]:
-
         standard_deviation = (
             results[metric].std()
         )
 
         if (
             standard_deviation
-            and np.isfinite(standard_deviation)
+            and np.isfinite(
+                standard_deviation
+            )
         ):
-
-            results[f"z_{metric}"] = (
+            results[
+                f"z_{metric}"
+            ] = (
                 results[metric]
                 - results[metric].mean()
             ) / standard_deviation
 
         else:
-
-            results[f"z_{metric}"] = 0.0
+            results[
+                f"z_{metric}"
+            ] = 0.0
 
     results["ScoreRaw"] = (
-        2 * results["z_ExpectancyR"]
+        2
+        * results["z_ExpectancyR"]
         + results["z_WinRatePct"]
     )
 
-    minimum_score = results[
-        "ScoreRaw"
-    ].min()
+    minimum_score = (
+        results["ScoreRaw"].min()
+    )
 
-    maximum_score = results[
-        "ScoreRaw"
-    ].max()
+    maximum_score = (
+        results["ScoreRaw"].max()
+    )
 
     if maximum_score != minimum_score:
 
@@ -663,7 +742,9 @@ def compare_combinations(
             ascending=False,
             na_position="last",
         )
-        .reset_index(drop=True)
+        .reset_index(
+            drop=True
+        )
     )
 
     results.insert(
@@ -698,7 +779,6 @@ def create_heatmap(
     win_rate_minimum,
     expectancy_r_minimum,
 ):
-
     color_values = (
         results
         .pivot(
@@ -757,7 +837,9 @@ def create_heatmap(
                         results["ExpectancyR"]
                         > expectancy_r_minimum
                     )
-                ).rename("Condition"),
+                ).rename(
+                    "Condition"
+                ),
             ],
             axis=1,
         )
@@ -893,9 +975,13 @@ def create_heatmap(
         ".2f",
     )
 
-    for row in range(len(targets)):
+    for row in range(
+        len(targets)
+    ):
 
-        for column in range(len(stops)):
+        for column in range(
+            len(stops)
+        ):
 
             top_value = top_values.iloc[
                 row,
@@ -914,32 +1000,28 @@ def create_heatmap(
 
             if (
                 np.isfinite(top_value)
-                and np.isfinite(bottom_value)
+                and np.isfinite(
+                    bottom_value
+                )
             ):
 
-                top_label = format(
-                    top_value,
-                    top_format,
-                )
-
-                bottom_label = format(
-                    bottom_value,
-                    bottom_format,
-                )
-
                 label = (
-                    f"{top_label}\n"
-                    f"{bottom_label}"
+                    f"{format(top_value, top_format)}\n"
+                    f"{format(bottom_value, bottom_format)}"
                 )
 
             else:
 
                 label = "N/A"
 
-            if np.isfinite(color_value):
+            if np.isfinite(
+                color_value
+            ):
 
                 rgba = image.cmap(
-                    image.norm(color_value)
+                    image.norm(
+                        color_value
+                    )
                 )
 
             else:
@@ -1054,7 +1136,6 @@ def run_simulation_now(
     stops,
     targets,
 ):
-
     with st.spinner(
         f"Loading {ticker} data..."
     ):
@@ -1079,10 +1160,16 @@ def run_simulation_now(
         entries=entries,
         stops=stops,
         targets=targets,
-        commission=float(commission),
-        slippage=float(slippage),
-        conservative=conservative,
-        rank_metric="ExpectancyR",
+        commission=float(
+            commission
+        ),
+        slippage=float(
+            slippage
+        ),
+        conservative=
+            conservative,
+        rank_metric=
+            "ExpectancyR",
     )
 
     elapsed = (
@@ -1132,7 +1219,7 @@ def load_startup_result():
 
 
 # ============================================================
-# Page heading
+# Heading
 # ============================================================
 
 st.title(
@@ -1146,6 +1233,48 @@ st.write(
 
 
 # ============================================================
+# Initialize Exit Strategy state
+#
+# IMPORTANT:
+# The parent suite populates exit_ticker with the latest
+# _suite_shared_ticker before this app runs.
+#
+# Therefore NEVER reset exit_ticker to QQQ here when it exists.
+# ============================================================
+
+if "exit_ticker" not in st.session_state:
+
+    st.session_state[
+        "exit_ticker"
+    ] = (
+        st.session_state.get(
+            "_suite_shared_ticker",
+            "QQQ",
+        )
+    )
+
+
+if (
+    "exit_search_ticker"
+    not in st.session_state
+):
+
+    st.session_state[
+        "exit_search_ticker"
+    ] = ""
+
+
+if (
+    "exit_search_ticker_label"
+    not in st.session_state
+):
+
+    st.session_state[
+        "exit_search_ticker_label"
+    ] = ""
+
+
+# ============================================================
 # Sidebar
 # ============================================================
 
@@ -1155,12 +1284,21 @@ with st.sidebar:
         "Data"
     )
 
+    # --------------------------------------------------------
+    # Search
+    # --------------------------------------------------------
+
     search_query = st.text_input(
         "Search for ticker",
-        placeholder="Type a ticker or company name",
-        key="bt_search",
+        placeholder=(
+            "Type a ticker or company name"
+        ),
+        key="exit_search_ticker",
         live="500ms",
+        on_change=
+            update_shared_search,
     ).strip()
+
 
     if len(search_query) >= 2:
 
@@ -1179,10 +1317,11 @@ with st.sidebar:
                 st.button(
                     result_label,
                     key=(
-                        "search_result_"
+                        "exit_search_result_"
                         f"{match['symbol']}"
                     ),
-                    on_click=select_ticker,
+                    on_click=
+                        select_ticker,
                     args=(
                         match["symbol"],
                     ),
@@ -1196,11 +1335,26 @@ with st.sidebar:
                 f"{exc}"
             )
 
+
+    # --------------------------------------------------------
+    # Ticker
+    #
+    # NO value="QQQ" here.
+    # Parent controls the initial/shared value through
+    # exit_ticker.
+    # --------------------------------------------------------
+
     ticker = st.text_input(
         "Ticker",
-        value="QQQ",
-        key="bt_ticker",
+        key="exit_ticker",
+        on_change=
+            update_shared_ticker,
     ).strip().upper()
+
+
+    # --------------------------------------------------------
+    # Simulation settings
+    # --------------------------------------------------------
 
     interval = st.selectbox(
         "Interval",
@@ -1210,6 +1364,7 @@ with st.sidebar:
             "1mo",
         ],
         index=0,
+        key="exit_interval",
     )
 
     st.subheader(
@@ -1223,6 +1378,7 @@ with st.sidebar:
             1,
             1,
         ),
+        key="exit_start_date",
     )
 
     end_date = st.date_input(
@@ -1232,6 +1388,7 @@ with st.sidebar:
             10,
             30,
         ),
+        key="exit_end_date",
     )
 
     st.divider()
@@ -1240,11 +1397,14 @@ with st.sidebar:
         "Simulation"
     )
 
-    number_of_entries = st.number_input(
-        "Random entries",
-        min_value=1,
-        value=1000,
-        step=100,
+    number_of_entries = (
+        st.number_input(
+            "Random entries",
+            min_value=1,
+            value=1000,
+            step=100,
+            key="exit_number_of_entries",
+        )
     )
 
     seed = st.number_input(
@@ -1252,6 +1412,7 @@ with st.sidebar:
         min_value=0,
         value=27,
         step=1,
+        key="exit_seed",
     )
 
     commission = st.number_input(
@@ -1260,6 +1421,7 @@ with st.sidebar:
         value=0.0,
         step=0.01,
         format="%.3f",
+        key="exit_commission",
     )
 
     slippage = st.number_input(
@@ -1268,11 +1430,13 @@ with st.sidebar:
         value=0.0,
         step=0.01,
         format="%.3f",
+        key="exit_slippage",
     )
 
     conservative = st.checkbox(
         "Stop first when stop and target hit same candle",
         value=True,
+        key="exit_conservative",
     )
 
     st.divider()
@@ -1287,6 +1451,7 @@ with st.sidebar:
         index=METRICS.index(
             "ExpectancyR"
         ),
+        key="exit_top_metric",
     )
 
     bottom_metric = st.selectbox(
@@ -1295,6 +1460,7 @@ with st.sidebar:
         index=METRICS.index(
             "WinRatePct"
         ),
+        key="exit_bottom_metric",
     )
 
     color_metric = st.selectbox(
@@ -1303,50 +1469,71 @@ with st.sidebar:
         index=METRICS.index(
             "ExpectancyR"
         ),
+        key="exit_color_metric",
     )
 
-    automatic_color_scale = st.checkbox(
-        "Auto color scale (use min/max)",
-        value=False,
+    automatic_color_scale = (
+        st.checkbox(
+            "Auto color scale (use min/max)",
+            value=False,
+            key="exit_auto_color_scale",
+        )
     )
 
-    color_column_1, color_column_2 = st.columns(2)
-
-    color_minimum = color_column_1.number_input(
-        "Color min",
-        value=0.0,
-        step=0.1,
-        disabled=automatic_color_scale,
+    color_column_1, color_column_2 = (
+        st.columns(2)
     )
 
-    color_maximum = color_column_2.number_input(
-        "Color max",
-        value=1.0,
-        step=0.1,
-        disabled=automatic_color_scale,
+    color_minimum = (
+        color_column_1
+        .number_input(
+            "Color min",
+            value=0.0,
+            step=0.1,
+            disabled=
+                automatic_color_scale,
+            key="exit_color_minimum",
+        )
+    )
+
+    color_maximum = (
+        color_column_2
+        .number_input(
+            "Color max",
+            value=1.0,
+            step=0.1,
+            disabled=
+                automatic_color_scale,
+            key="exit_color_maximum",
+        )
     )
 
     if automatic_color_scale:
         color_minimum = None
         color_maximum = None
 
+
     highlight_column_1, highlight_column_2 = (
         st.columns(2)
     )
 
     highlight_win_rate = (
-        highlight_column_1.number_input(
+        highlight_column_1
+        .number_input(
             "Highlight WR min",
             value=50.0,
             step=1.0,
+            key="exit_highlight_win_rate",
         )
     )
 
     highlight_expectancy_r = (
-        highlight_column_2.number_input(
+        highlight_column_2
+        .number_input(
             "Highlight ExpR min",
             value=0.5,
             step=0.1,
+            key="exit_highlight_expectancy_r",
         )
     )
 
@@ -1356,6 +1543,7 @@ with st.sidebar:
         index=METRICS.index(
             "ExpectancyR"
         ),
+        key="exit_rank_metric",
     )
 
     st.divider()
@@ -1376,7 +1564,10 @@ with st.sidebar:
                     DEFAULT_STOPS,
                 )
             ),
-            help="Use -1 for no stop (NS).",
+            help=(
+                "Use -1 for no stop (NS)."
+            ),
+            key="exit_stop_text",
         )
 
         target_text = st.text_area(
@@ -1387,10 +1578,20 @@ with st.sidebar:
                     DEFAULT_TARGETS,
                 )
             ),
-            help="Use -1 for no target (NT).",
+            help=(
+                "Use -1 for no target (NT)."
+            ),
+            key="exit_target_text",
         )
 
     st.divider()
+
+
+    # IMPORTANT:
+    # Deliberately no exit_* key.
+    #
+    # The parent suite saves all exit_* values and trying
+    # to restore a button trigger can cause Streamlit errors.
 
     run_simulation = st.button(
         "Run simulation",
@@ -1409,23 +1610,22 @@ if not ticker:
         "Enter a ticker symbol."
     )
 
-    st.stop()
 
-
-if start_date >= end_date:
+elif start_date >= end_date:
 
     st.warning(
         "The start date must be earlier than the end date."
     )
 
-    st.stop()
-
 
 # ============================================================
-# Run simulation ONLY after the button is clicked
+# Run simulation
+#
+# This is the ONLY place that calls run_simulation_now().
+# Changing ticker/sidebar settings does not run the simulation.
 # ============================================================
 
-if run_simulation:
+elif run_simulation:
 
     try:
 
@@ -1444,8 +1644,19 @@ if run_simulation:
                 "and one target value."
             )
 
+
+        # Keep parent suite synchronized with the ticker
+        # actually used by this simulation.
+
+        if IN_SUITE:
+
+            st.session_state[
+                "_suite_shared_ticker"
+            ] = ticker
+
+
         st.session_state[
-            "bt_output"
+            "_exit_output"
         ] = run_simulation_now(
             ticker=ticker,
             start_date=start_date,
@@ -1456,7 +1667,8 @@ if run_simulation:
             seed=seed,
             commission=commission,
             slippage=slippage,
-            conservative=conservative,
+            conservative=
+                conservative,
             stops=stops,
             targets=targets,
         )
@@ -1465,34 +1677,41 @@ if run_simulation:
             "Showing this session's latest simulation."
         )
 
+
     except Exception as exc:
 
         st.error(
             str(exc)
         )
 
-        st.stop()
-
 
 # ============================================================
-# Initial display: load only, never calculate automatically
+# Initial display
+#
+# This can load a precomputed startup result but NEVER runs a
+# simulation automatically.
 # ============================================================
 
-elif "bt_output" not in st.session_state:
+elif (
+    "_exit_output"
+    not in st.session_state
+):
 
     startup_output = (
         load_startup_result()
     )
 
+
     if startup_output is not None:
 
         st.session_state[
-            "bt_output"
+            "_exit_output"
         ] = startup_output
 
         st.caption(
             "Showing the precomputed startup result."
         )
+
 
     else:
 
@@ -1502,7 +1721,7 @@ elif "bt_output" not in st.session_state:
 
 
 # ============================================================
-# Existing results stay displayed
+# Existing result
 # ============================================================
 
 else:
@@ -1517,7 +1736,10 @@ else:
 # Display results
 # ============================================================
 
-if "bt_output" in st.session_state:
+if (
+    "_exit_output"
+    in st.session_state
+):
 
     (
         data,
@@ -1532,27 +1754,42 @@ if "bt_output" in st.session_state:
         result_end_date,
         result_entry_count,
     ) = st.session_state[
-        "bt_output"
+        "_exit_output"
     ]
 
-    summary_columns = st.columns(4)
 
-    summary_columns[0].metric(
+    # ========================================================
+    # Summary
+    # ========================================================
+
+    summary_columns = (
+        st.columns(4)
+    )
+
+    summary_columns[
+        0
+    ].metric(
         "Bars",
         f"{len(data):,}",
     )
 
-    summary_columns[1].metric(
+    summary_columns[
+        1
+    ].metric(
         "Random entries",
         f"{len(entries):,}",
     )
 
-    summary_columns[2].metric(
+    summary_columns[
+        2
+    ].metric(
         "Combinations",
         f"{len(results):,}",
     )
 
-    summary_columns[3].metric(
+    summary_columns[
+        3
+    ].metric(
         "Run time",
         f"{elapsed:.1f}s",
     )
@@ -1571,19 +1808,35 @@ if "bt_output" in st.session_state:
         stops=result_stops,
         targets=result_targets,
         ticker=result_ticker,
-        start_date=result_start_date,
-        end_date=result_end_date,
-        number_of_entries=len(entries),
-        top_metric=top_metric,
-        bottom_metric=bottom_metric,
-        color_metric=color_metric,
-        vmin=color_minimum,
-        vmax=color_maximum,
+        start_date=
+            result_start_date,
+        end_date=
+            result_end_date,
+        number_of_entries=
+            len(entries),
+
+        top_metric=
+            top_metric,
+
+        bottom_metric=
+            bottom_metric,
+
+        color_metric=
+            color_metric,
+
+        vmin=
+            color_minimum,
+
+        vmax=
+            color_maximum,
+
         win_rate_minimum=
             highlight_win_rate,
+
         expectancy_r_minimum=
             highlight_expectancy_r,
     )
+
 
     if heatmap is not None:
 
@@ -1601,13 +1854,16 @@ if "bt_output" in st.session_state:
     # Ranked combinations
     # ========================================================
 
-    ranked = results.copy()
+    ranked = (
+        results.copy()
+    )
 
     if "Rank" in ranked.columns:
 
         ranked = ranked.drop(
             columns="Rank"
         )
+
 
     ranked = (
         ranked
@@ -1621,6 +1877,7 @@ if "bt_output" in st.session_state:
         )
     )
 
+
     ranked.insert(
         0,
         "Rank",
@@ -1629,6 +1886,7 @@ if "bt_output" in st.session_state:
             len(ranked) + 1,
         ),
     )
+
 
     display_columns = [
         "Rank",
@@ -1647,6 +1905,7 @@ if "bt_output" in st.session_state:
         "Score",
     ]
 
+
     with st.expander(
         f"Ranked combinations (by {rank_metric})",
         expanded=False,
@@ -1656,6 +1915,7 @@ if "bt_output" in st.session_state:
             ranked[
                 display_columns
             ].round(2),
+
             hide_index=True,
             width="stretch",
             height=600,
@@ -1701,51 +1961,71 @@ if "bt_output" in st.session_state:
         "Download"
     )
 
-    download_columns = st.columns(3)
+    download_columns = (
+        st.columns(3)
+    )
 
-    download_columns[0].download_button(
+
+    download_columns[
+        0
+    ].download_button(
         "Results CSV",
+
         ranked
         .round(4)
         .to_csv(
             index=False
         )
         .encode(),
+
         (
             f"{result_ticker.lower()}"
             "_stop_target_results.csv"
         ),
+
         mime="text/csv",
         width="stretch",
     )
 
-    download_columns[1].download_button(
+
+    download_columns[
+        1
+    ].download_button(
         "Trade details CSV",
+
         trades
         .round(4)
         .to_csv(
             index=False
         )
         .encode(),
+
         (
             f"{result_ticker.lower()}"
             "_trade_details.csv"
         ),
+
         mime="text/csv",
         width="stretch",
     )
 
-    download_columns[2].download_button(
+
+    download_columns[
+        2
+    ].download_button(
         "Random entries CSV",
+
         entries
         .to_csv(
             index=False
         )
         .encode(),
+
         (
             f"{result_ticker.lower()}"
             "_random_entries.csv"
         ),
+
         mime="text/csv",
         width="stretch",
     )
