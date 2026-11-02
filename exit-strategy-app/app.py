@@ -61,6 +61,7 @@ METRICS = [
     "AverageBarsHeld",
     "StopExitPct",
     "TargetExitPct",
+    "MovingAverageExitPct",
     "EndOfDataExitPct",
     "AverageCommissionPct",
     "Score",
@@ -382,6 +383,9 @@ def select_random_entries(
     data: pd.DataFrame,
     number_of_entries: int,
     seed: int,
+    sma_period: int,
+    trade_direction: str,
+    ma_enabled: bool = True,
 ) -> pd.DataFrame:
 
     maximum_entries = (
@@ -394,9 +398,97 @@ def select_random_entries(
             "Not enough historical data to select entries."
         )
 
+    if sma_period < 1:
+
+        raise ValueError(
+            "The moving-average period must be at least 1."
+        )
+
+    if trade_direction not in {
+        "Long",
+        "Short",
+        "Both",
+    }:
+
+        raise ValueError(
+            "Trade direction must be Long, Short, or Both."
+        )
+
+    if ma_enabled:
+
+        moving_average_values = (
+            data["Close"]
+            .rolling(
+                window=int(sma_period),
+                min_periods=int(sma_period),
+            )
+            .mean()
+            .to_numpy()
+        )
+
+    else:
+
+        moving_average_values = np.full(
+            len(data),
+            np.nan,
+        )
+
+    close_prices = (
+        data["Close"]
+        .to_numpy()
+    )
+
+    eligible_indexes = np.arange(
+        maximum_entries
+    )
+
+    above_average = (
+        close_prices
+        > moving_average_values
+    )
+
+    below_average = (
+        close_prices
+        < moving_average_values
+    )
+
+    if ma_enabled and trade_direction == "Long":
+
+        eligible_indexes = eligible_indexes[
+            above_average[
+                eligible_indexes
+            ]
+        ]
+
+    elif ma_enabled and trade_direction == "Short":
+
+        eligible_indexes = eligible_indexes[
+            below_average[
+                eligible_indexes
+            ]
+        ]
+
+    elif ma_enabled:
+
+        eligible_indexes = eligible_indexes[
+            above_average[
+                eligible_indexes
+            ]
+            | below_average[
+                eligible_indexes
+            ]
+        ]
+
+    if not len(eligible_indexes):
+
+        raise ValueError(
+            "No eligible random entries match the selected "
+            "moving-average period and trade direction."
+        )
+
     actual_entries = min(
         int(number_of_entries),
-        maximum_entries,
+        len(eligible_indexes),
     )
 
     rng = np.random.default_rng(
@@ -405,13 +497,45 @@ def select_random_entries(
 
     entry_indexes = np.sort(
         rng.choice(
-            np.arange(
-                maximum_entries
-            ),
+            eligible_indexes,
             size=actual_entries,
             replace=False,
         )
     )
+
+    entry_directions = np.where(
+        above_average[
+            entry_indexes
+        ],
+        "Long",
+        "Short",
+    )
+
+    if not ma_enabled:
+
+        if trade_direction == "Long":
+
+            entry_directions = np.full(
+                len(entry_indexes),
+                "Long",
+            )
+
+        elif trade_direction == "Short":
+
+            entry_directions = np.full(
+                len(entry_indexes),
+                "Short",
+            )
+
+        else:
+
+            entry_directions = rng.choice(
+                [
+                    "Long",
+                    "Short",
+                ],
+                size=len(entry_indexes),
+            )
 
     return pd.DataFrame(
         {
@@ -429,6 +553,14 @@ def select_random_entries(
                 ].to_numpy()[
                     entry_indexes
                 ],
+
+            "EntrySMA":
+                moving_average_values[
+                    entry_indexes
+                ],
+
+            "Direction":
+                entry_directions,
         }
     )
 
@@ -445,7 +577,24 @@ def simulate_trade(
     commission_pct: float,
     slippage_pct: float,
     conservative: bool,
+    direction: str = "Long",
+    sma_values: np.ndarray | None = None,
 ) -> dict:
+
+    if direction not in {
+        "Long",
+        "Short",
+    }:
+
+        raise ValueError(
+            "Trade direction must be Long or Short."
+        )
+
+    direction_sign = (
+        1
+        if direction == "Long"
+        else -1
+    )
 
     close_prices = (
         data["Close"]
@@ -482,7 +631,8 @@ def simulate_trade(
         entry_reference
         * (
             1
-            + float(
+            + direction_sign
+            * float(
                 slippage_pct
             )
             / 100
@@ -495,7 +645,8 @@ def simulate_trade(
         else entry_reference
         * (
             1
-            - float(
+            - direction_sign
+            * float(
                 stop_loss_pct
             )
             / 100
@@ -508,7 +659,8 @@ def simulate_trade(
         else entry_reference
         * (
             1
-            + float(
+            + direction_sign
+            * float(
                 target_pct
             )
             / 100
@@ -536,20 +688,36 @@ def simulate_trade(
 
         stop_hit = (
             stop_price is not None
-            and float(
-                low_prices[
-                    current_index
-                ]
-            ) <= stop_price
+            and (
+                float(
+                    low_prices[
+                        current_index
+                    ]
+                ) <= stop_price
+                if direction == "Long"
+                else float(
+                    high_prices[
+                        current_index
+                    ]
+                ) >= stop_price
+            )
         )
 
         target_hit = (
             target_price is not None
-            and float(
-                high_prices[
-                    current_index
-                ]
-            ) >= target_price
+            and (
+                float(
+                    high_prices[
+                        current_index
+                    ]
+                ) >= target_price
+                if direction == "Long"
+                else float(
+                    low_prices[
+                        current_index
+                    ]
+                ) <= target_price
+            )
         )
 
         if stop_hit and target_hit:
@@ -612,11 +780,74 @@ def simulate_trade(
 
             break
 
+        if (
+            sma_values is not None
+            and np.isfinite(
+                sma_values[
+                    current_index - 1
+                ]
+            )
+            and np.isfinite(
+                sma_values[
+                    current_index
+                ]
+            )
+        ):
+
+            previous_close = float(
+                close_prices[
+                    current_index - 1
+                ]
+            )
+
+            current_close = float(
+                close_prices[
+                    current_index
+                ]
+            )
+
+            previous_sma = float(
+                sma_values[
+                    current_index - 1
+                ]
+            )
+
+            current_sma = float(
+                sma_values[
+                    current_index
+                ]
+            )
+
+            crossed_against_position = (
+                previous_close >= previous_sma
+                and current_close < current_sma
+                if direction == "Long"
+                else previous_close <= previous_sma
+                and current_close > current_sma
+            )
+
+            if crossed_against_position:
+
+                exit_reference = (
+                    current_close
+                )
+
+                exit_reason = (
+                    "MovingAverage"
+                )
+
+                exit_index = (
+                    current_index
+                )
+
+                break
+
     exit_execution = (
         exit_reference
         * (
             1
-            - float(
+            - direction_sign
+            * float(
                 slippage_pct
             )
             / 100
@@ -624,10 +855,14 @@ def simulate_trade(
     )
 
     gross_return_pct = (
-        exit_execution
-        / entry_execution
-        - 1
-    ) * 100
+        direction_sign
+        * (
+            exit_execution
+            / entry_execution
+            - 1
+        )
+        * 100
+    )
 
     total_commission_pct = (
         2
@@ -654,6 +889,9 @@ def simulate_trade(
             dates[
                 entry_index
             ],
+
+        "Direction":
+            direction,
 
         "ExitDate":
             dates[
@@ -929,6 +1167,16 @@ def calculate_metrics(
             if number_of_trades
             else np.nan,
 
+        "MovingAverageExitPct":
+            exit_counts.get(
+                "MovingAverage",
+                0,
+            )
+            / number_of_trades
+            * 100
+            if number_of_trades
+            else np.nan,
+
         "EndOfDataExitPct":
             exit_counts.get(
                 "EndOfData",
@@ -950,6 +1198,66 @@ def calculate_metrics(
     }
 
 
+def calculate_directional_statistics(
+    trades: pd.DataFrame,
+) -> pd.DataFrame:
+
+    if "Direction" not in trades.columns:
+
+        raise ValueError(
+            "Trade direction data is required to calculate "
+            "directional statistics."
+        )
+
+    statistics = []
+
+    for (
+        stop,
+        target,
+    ), combination_trades in trades.groupby(
+        [
+            "StopLossPct",
+            "TargetPct",
+        ],
+        sort=False,
+    ):
+
+        for direction in [
+            "All",
+            "Long",
+            "Short",
+        ]:
+
+            direction_trades = (
+                combination_trades
+                if direction == "All"
+                else combination_trades.loc[
+                    combination_trades[
+                        "Direction"
+                    ]
+                    == direction
+                ]
+            )
+
+            metrics = calculate_metrics(
+                direction_trades,
+                float(stop),
+                float(target),
+            )
+
+            metrics[
+                "Direction"
+            ] = direction
+
+            statistics.append(
+                metrics
+            )
+
+    return pd.DataFrame(
+        statistics
+    )
+
+
 # ============================================================
 # Compare combinations
 # ============================================================
@@ -962,10 +1270,24 @@ def compare_combinations(
     commission: float,
     slippage: float,
     conservative: bool,
+    sma_period: int,
+    ma_exit_enabled: bool,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
 
     result_records = []
     trade_records = []
+
+    sma_values = (
+        data["Close"]
+        .rolling(
+            window=int(sma_period),
+            min_periods=int(sma_period),
+        )
+        .mean()
+        .to_numpy()
+        if ma_exit_enabled
+        else None
+    )
 
     total_combinations = (
         len(stops)
@@ -1005,6 +1327,14 @@ def compare_combinations(
 
                     conservative=
                         conservative,
+
+                    direction=
+                        str(
+                            entry.Direction
+                        ),
+
+                    sma_values=
+                        sma_values,
                 )
 
                 for entry
@@ -1642,6 +1972,185 @@ def result_ticker(
         return None
 
 
+def result_has_directional_entries(
+    output,
+) -> bool:
+
+    if output is None:
+
+        return False
+
+    try:
+
+        entries = output[1]
+        results = output[2]
+        trades = output[3]
+
+    except (
+        IndexError,
+        TypeError,
+    ):
+
+        return False
+
+    return (
+        hasattr(
+            entries,
+            "columns",
+        )
+        and {
+            "EntrySMA",
+            "Direction",
+        }.issubset(
+            entries.columns
+        )
+        and hasattr(
+            results,
+            "columns",
+        )
+        and "MovingAverageExitPct" in results.columns
+        and hasattr(
+            trades,
+            "columns",
+        )
+        and "Direction" in trades.columns
+    )
+
+
+def upgrade_startup_result(
+    output,
+) -> tuple:
+
+    (
+        data,
+        entries,
+        results,
+        trades,
+        stops,
+        targets,
+        elapsed,
+        ticker,
+        start_date,
+        end_date,
+        number_of_entries,
+    ) = output
+
+    entries = entries.copy()
+    entries["EntrySMA"] = np.nan
+    entries["Direction"] = "Long"
+
+    results = results.copy()
+    results["MovingAverageExitPct"] = 0.0
+
+    trades = trades.copy()
+    trades["Direction"] = "Long"
+
+    return (
+        data,
+        entries,
+        results,
+        trades,
+        stops,
+        targets,
+        elapsed,
+        ticker,
+        start_date,
+        end_date,
+        number_of_entries,
+    )
+
+
+def startup_result_matches_settings(
+    output,
+    ticker: str,
+    start_date: date,
+    end_date: date,
+    interval: str,
+    number_of_entries: int,
+    seed: int,
+    commission: float,
+    slippage: float,
+    conservative: bool,
+    stop_text: str,
+    target_text: str,
+    trade_direction: str,
+    ma_enabled: bool,
+    ma_exit_enabled: bool,
+) -> bool:
+
+    if output is None:
+
+        return False
+
+    try:
+
+        result_start_date = output[8]
+        result_end_date = output[9]
+        result_entry_count = output[10]
+        result_stops = output[4]
+        result_targets = output[5]
+
+    except (
+        IndexError,
+        TypeError,
+    ):
+
+        return False
+
+    if (
+        ticker.strip().upper() != STARTUP_TICKER
+        or result_ticker(output) != STARTUP_TICKER
+        or start_date != result_start_date
+        or end_date != result_end_date
+        or interval != "1d"
+        or int(number_of_entries) != result_entry_count
+        or int(seed) != 27
+        or float(commission) != 0
+        or float(slippage) != 0
+        or not conservative
+        or trade_direction != "Long"
+        or ma_enabled
+        or ma_exit_enabled
+    ):
+
+        return False
+
+    try:
+
+        selected_stops = parse_values(
+            stop_text
+        )
+
+        selected_targets = parse_values(
+            target_text
+        )
+
+    except ValueError:
+
+        return False
+
+    if (
+        selected_stops != result_stops
+        or selected_targets != result_targets
+    ):
+
+        return False
+
+    expected_entries = select_random_entries(
+        output[0],
+        result_entry_count,
+        27,
+        1,
+        "Long",
+        False,
+    )
+
+    return np.array_equal(
+        expected_entries["EntryIndex"].to_numpy(),
+        output[1]["EntryIndex"].to_numpy(),
+    )
+
+
 def run_simulation_now(
     ticker,
     start_date,
@@ -1654,6 +2163,10 @@ def run_simulation_now(
     conservative,
     stops,
     targets,
+    sma_period,
+    trade_direction,
+    ma_enabled,
+    ma_exit_enabled,
 ):
 
     with st.spinner(
@@ -1672,6 +2185,9 @@ def run_simulation_now(
             data,
             number_of_entries,
             seed,
+            sma_period,
+            trade_direction,
+            ma_enabled,
         )
     )
 
@@ -1704,6 +2220,12 @@ def run_simulation_now(
 
             conservative=
                 conservative,
+
+            sma_period=
+                sma_period,
+
+            ma_exit_enabled=
+                ma_exit_enabled,
         )
     )
 
@@ -1770,7 +2292,8 @@ st.title(
 
 st.write(
     "Test stop-loss and target combinations "
-    "across randomly selected historical entries."
+    "using random historical entries in the direction "
+    "of the selected simple moving average."
 )
 
 
@@ -2049,6 +2572,97 @@ with st.sidebar:
 
     st.header(
         "Simulation"
+    )
+
+
+    sma_period = (
+        st.number_input(
+            "SMA period (bars)",
+
+            min_value=1,
+
+            value=200,
+
+            step=1,
+
+            help=(
+                "Random entries are long when the close is "
+                "above this simple moving average and short "
+                "when it is below."
+            ),
+
+            key=
+                "exit_sma_period",
+
+            on_change=
+                persist_exit_preferences,
+        )
+    )
+
+    ma_enabled = (
+        st.checkbox(
+            "Use SMA for entry direction",
+
+            value=False,
+
+            help=(
+                "When enabled, entries are long above the SMA "
+                "and short below it."
+            ),
+
+            key=
+                "exit_ma_enabled",
+
+            on_change=
+                persist_exit_preferences,
+        )
+    )
+
+    ma_exit_enabled = (
+        st.checkbox(
+            "Exit on opposite SMA crossover",
+
+            value=False,
+
+            help=(
+                "Close an open trade when price crosses the "
+                "SMA against its direction. Stop-loss and "
+                "target exits remain active and take priority."
+            ),
+
+            key=
+                "exit_ma_exit_enabled",
+
+            on_change=
+                persist_exit_preferences,
+        )
+    )
+
+
+    trade_direction = (
+        st.selectbox(
+            "Trade direction",
+
+            [
+                "Both",
+                "Long",
+                "Short",
+            ],
+
+            index=1,
+
+            help=(
+                "When SMA logic is on, entries follow the SMA. "
+                "When it is off, Both randomly assigns long "
+                "or short to each entry."
+            ),
+
+            key=
+                "exit_trade_direction",
+
+            on_change=
+                persist_exit_preferences,
+        )
     )
 
 
@@ -2533,6 +3147,18 @@ if (
 
             targets=
                 targets,
+
+            sma_period=
+                sma_period,
+
+            trade_direction=
+                trade_direction,
+
+            ma_enabled=
+                ma_enabled,
+
+            ma_exit_enabled=
+                ma_exit_enabled,
         )
 
 
@@ -2572,6 +3198,36 @@ if (
                 startup_output
             )
             == STARTUP_TICKER
+
+            and
+
+            result_has_directional_entries(
+                startup_output
+            )
+        ):
+
+            st.session_state[
+                "_exit_output"
+            ] = startup_output
+
+        elif (
+            startup_result_matches_settings(
+                output=startup_output,
+                ticker=ticker,
+                start_date=start_date,
+                end_date=end_date,
+                interval=interval,
+                number_of_entries=number_of_entries,
+                seed=seed,
+                commission=commission,
+                slippage=slippage,
+                conservative=conservative,
+                stop_text=stop_text,
+                target_text=target_text,
+                trade_direction=trade_direction,
+                ma_enabled=ma_enabled,
+                ma_exit_enabled=ma_exit_enabled,
+            )
         ):
 
             st.session_state[
@@ -2587,6 +3243,27 @@ if (
             st.info(
                 "No precomputed QQQ startup result "
                 "is available. Click Run simulation."
+            )
+
+        elif (
+            startup_output
+            is not None
+
+            and
+
+            not result_has_directional_entries(
+                startup_output
+            )
+        ):
+
+            st.info(
+                "The bundled QQQ result is available for "
+                "daily data from 2010-01-01 to 2026-10-30, "
+                "1,000 entries with seed 27, Long direction, "
+                "SMA entry and exit disabled, zero commission "
+                "and slippage, and the default stop/target "
+                "values. Select those settings to display it, "
+                "or run a new simulation."
             )
 
 
@@ -2619,6 +3296,40 @@ output_to_display = (
     )
 )
 
+if (
+    output_to_display is not None
+
+    and
+
+    not result_has_directional_entries(
+        output_to_display
+    )
+
+    and
+
+    startup_result_matches_settings(
+        output=output_to_display,
+        ticker=ticker,
+        start_date=start_date,
+        end_date=end_date,
+        interval=interval,
+        number_of_entries=number_of_entries,
+        seed=seed,
+        commission=commission,
+        slippage=slippage,
+        conservative=conservative,
+        stop_text=stop_text,
+        target_text=target_text,
+        trade_direction=trade_direction,
+        ma_enabled=ma_enabled,
+        ma_exit_enabled=ma_exit_enabled,
+    )
+):
+
+    output_to_display = upgrade_startup_result(
+        output_to_display
+    )
+
 
 output_ticker = (
     result_ticker(
@@ -2637,6 +3348,12 @@ show_results = (
 
     and
 
+    result_has_directional_entries(
+        output_to_display
+    )
+
+    and
+
     output_ticker
     == ticker
 )
@@ -2649,6 +3366,38 @@ if (
 
     output_to_display
     is not None
+
+    and
+
+    not result_has_directional_entries(
+        output_to_display
+    )
+
+):
+
+    st.info(
+        "The bundled result is for QQQ daily data from "
+        "2010-01-01 to 2026-10-30, 1,000 Long entries with "
+        "seed 27, SMA entry and exit disabled, zero "
+        "commission/slippage, and the default stop/target "
+        "values. Select those settings to display it, or "
+        "click Run simulation."
+    )
+
+
+if (
+    valid_inputs
+
+    and
+
+    output_to_display
+    is not None
+
+    and
+
+    result_has_directional_entries(
+        output_to_display
+    )
 
     and
 
@@ -2883,6 +3632,7 @@ if show_results:
         "RealizedRRR",
         "StopExitPct",
         "TargetExitPct",
+        "MovingAverageExitPct",
         "EndOfDataExitPct",
         "Score",
     ]
@@ -2912,6 +3662,85 @@ if show_results:
             height=
                 600,
         )
+
+
+    # ========================================================
+    # Directional statistics
+    # ========================================================
+
+    directional_statistics = (
+        calculate_directional_statistics(
+            trades
+        )
+    )
+
+    statistics_columns = [
+        "StopLossPct",
+        "TargetPct",
+        "NumberOfTrades",
+        "ExpectancyR",
+        "ExpectancyPct",
+        "WinRatePct",
+        "AverageWinPct",
+        "AverageLossPct",
+        "RealizedRRR",
+        "StopExitPct",
+        "TargetExitPct",
+        "MovingAverageExitPct",
+        "EndOfDataExitPct",
+    ]
+
+    st.subheader(
+        "Statistics by direction"
+    )
+
+    all_statistics, long_statistics, short_statistics = (
+        st.tabs(
+            [
+                "All trades",
+                "Long trades",
+                "Short trades",
+            ]
+        )
+    )
+
+    for tab, direction in [
+        (all_statistics, "All"),
+        (long_statistics, "Long"),
+        (short_statistics, "Short"),
+    ]:
+
+        with tab:
+
+            direction_statistics = (
+                directional_statistics.loc[
+                    directional_statistics[
+                        "Direction"
+                    ]
+                    == direction
+                ]
+                .sort_values(
+                    rank_metric,
+                    ascending=False,
+                    na_position="last",
+                )
+            )
+
+            st.dataframe(
+                direction_statistics[
+                    statistics_columns
+                ].round(
+                    2
+                ),
+
+                hide_index=True,
+
+                width=
+                    "stretch",
+
+                height=
+                    400,
+            )
 
 
     # ========================================================
@@ -2961,7 +3790,7 @@ if show_results:
 
 
     download_columns = (
-        st.columns(3)
+        st.columns(4)
     )
 
 
@@ -3017,6 +3846,31 @@ if show_results:
 
     download_columns[
         2
+    ].download_button(
+        "Directional stats CSV",
+
+        directional_statistics
+        .round(4)
+        .to_csv(
+            index=False
+        )
+        .encode(),
+
+        (
+            f"{result_ticker_value.lower()}"
+            "_directional_statistics.csv"
+        ),
+
+        mime=
+            "text/csv",
+
+        width=
+            "stretch",
+    )
+
+
+    download_columns[
+        3
     ].download_button(
         "Random entries CSV",
 
