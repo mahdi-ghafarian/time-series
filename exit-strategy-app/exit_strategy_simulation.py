@@ -153,7 +153,7 @@ def compare_combinations(
         | (results["StopLossPct"] == -1)
         | (results["TargetPct"] == -1),
         0.0,
-        base_score / results["StopLossPct"],
+        base_score,
     )
 
     minimum_score = (
