@@ -142,53 +142,15 @@ def compare_combinations(
         trade_records
     )
 
-    for metric in [
-        "ExpectancyR",
-        "WinRatePct",
-    ]:
-
-        standard_deviation = (
-            results[
-                metric
-            ].std()
-        )
-
-        if (
-            standard_deviation
-            and np.isfinite(
-                standard_deviation
-            )
-        ):
-
-            results[
-                f"z_{metric}"
-            ] = (
-                results[
-                    metric
-                ]
-                - results[
-                    metric
-                ].mean()
-            ) / standard_deviation
-
-        else:
-
-            results[
-                f"z_{metric}"
-            ] = 0.0
-
     base_score = (
-        results[
-            "z_ExpectancyR"
-        ] 
-        * results[
-            "z_WinRatePct"
-        ] ** 2
+        (results["WinRatePct"] / 100) ** 2
+        * results["ExpectancyR"]
     )
     results[
         "ScoreRaw"
     ] = np.where(
-        (results["StopLossPct"] == -1)
+        (results["WinRatePct"] < 50)
+        | (results["StopLossPct"] == -1)
         | (results["TargetPct"] == -1),
         0.0,
         base_score / results["StopLossPct"],
