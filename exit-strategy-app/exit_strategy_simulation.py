@@ -180,11 +180,10 @@ def compare_combinations(
     results[
         "ScoreRaw"
     ] = (
-        2
-        * results[
+        results[
             "z_ExpectancyR"
-        ]
-        + results[
+        ] ** 2
+        * results[
             "z_WinRatePct"
         ]
     )
@@ -228,10 +227,11 @@ def compare_combinations(
             "Score"
         ] = 50.0
 
+    # Sort results by score
     results = (
         results
         .sort_values(
-            "ExpectancyR",
+            "Score",
             ascending=False,
             na_position="last",
         )
