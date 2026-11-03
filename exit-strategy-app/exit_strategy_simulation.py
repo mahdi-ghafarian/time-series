@@ -145,13 +145,13 @@ def compare_combinations(
     base_score = (
         (results["WinRatePct"] / 100) ** 2
         * results["ExpectancyR"] ** 1
-        *(results["StopLossPct"] / 100) ** -0.5
+        *(results["StopLossPct"] / 100) ** -1
     )
-    results[
-        "ScoreRaw"
-    ] = np.where(
+    
+    results["ScoreRaw"] = np.where
+    (
         (results["WinRatePct"] < 50)
-        | (results["ExpectancyR"] < 0.25)
+        | (results["ExpectancyR"] < 0)
         | (results["StopLossPct"] == -1)
         | (results["TargetPct"] == -1),
         0.0,
