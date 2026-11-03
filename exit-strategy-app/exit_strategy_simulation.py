@@ -157,44 +157,27 @@ def compare_combinations(
         base_score,
     )
 
-    minimum_score = (
-        results[
-            "ScoreRaw"
-        ].min()
-    )
-
     maximum_score = (
         results[
             "ScoreRaw"
         ].max()
     )
 
-    if (
-        maximum_score
-        != minimum_score
-    ):
+    if np.isfinite(maximum_score) and maximum_score > 0:
 
         results[
             "Score"
         ] = (
-            100
-            * (
-                results[
-                    "ScoreRaw"
-                ]
-                - minimum_score
-            )
-            / (
-                maximum_score
-                - minimum_score
-            )
+            100 * results["ScoreRaw"] / maximum_score
+        ).clip(
+            lower=0
         )
 
     else:
 
         results[
             "Score"
-        ] = 50.0
+        ] = 0.0
 
     return (
         results,
