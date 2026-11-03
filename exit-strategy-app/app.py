@@ -460,6 +460,12 @@ if (
 
             ma_exit_enabled=
                 ma_exit_enabled,
+
+            highlight_win_rate=
+                highlight_win_rate,
+
+            highlight_expectancy_r=
+                highlight_expectancy_r,
         )
 
 

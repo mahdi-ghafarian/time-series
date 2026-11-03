@@ -24,6 +24,8 @@ def compare_combinations(
     conservative: bool,
     sma_period: int,
     ma_exit_enabled: bool,
+    highlight_win_rate: float,
+    highlight_expectancy_r: float,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Simulate each stop/target pair for the supplied entry bars.
 
@@ -142,49 +144,47 @@ def compare_combinations(
         trade_records
     )
 
-    base_score = (
-        (results["WinRatePct"] / 100) ** 2
-        * results["ExpectancyR"] ** 1
-        *(results["StopLossPct"] / 100) ** -1
-    )
     
-    results["ScoreRaw"] = np.where(
-        (results["WinRatePct"] < 50)
-        | (results["ExpectancyR"] < 0.25)
-        | (results["StopLossPct"] == -1)
-        | (results["TargetPct"] == -1),
-        0.0,
-        base_score,
-    )
+    # Scoring based on minimum requirements for win rate and edge ratio
+    required_wr = highlight_win_rate
+    required_edge_r = highlight_expectancy_r
 
-    maximum_score = (
-        results[
-            "ScoreRaw"
-        ].max()
-    )
-
-    if np.isfinite(maximum_score) and maximum_score > 0:
-
-        results[
-            "Score"
-        ] = (
-            100 * results["ScoreRaw"] / maximum_score
-        ).clip(
-            lower=0
+    # Find qualifying stops at RRR = 1
+    rrr1 = results[
+        (results["StopLossPct"] != -1)
+        & (results["TargetPct"] != -1)
+        & np.isclose(
+            results["TargetPct"],
+            results["StopLossPct"],
         )
+        & (results["WinRatePct"] >= required_wr)
+        & (results["ExpectancyR"] >= required_edge_r)
+    ]
 
-    else:
+    qualified_stops = rrr1["StopLossPct"].unique()
 
-        results[
-            "Score"
-        ] = 0.0
+    # Rank valid combinations for qualifying stops by expectancy
+    results["Score"] = np.where(
+        (results["StopLossPct"] != -1)
+        & (results["TargetPct"] != -1)
+        & results["StopLossPct"].isin(qualified_stops),
+        results["ExpectancyR"],
+        0.0,
+    )
 
+    results = results.sort_values(
+        "Score",
+        ascending=False,
+    )
+
+
+# return the results and trades DataFrames
     return (
         results,
         trades,
     )
-
-
+    
+    
 def run_simulation_now(
     ticker,
     start_date,
@@ -201,6 +201,8 @@ def run_simulation_now(
     trade_direction,
     ma_enabled,
     ma_exit_enabled,
+    highlight_win_rate,
+    highlight_expectancy_r,
 ):
     """Download data, select entries, simulate combinations, and package results."""
 
@@ -261,6 +263,12 @@ def run_simulation_now(
 
             ma_exit_enabled=
                 ma_exit_enabled,
+
+            highlight_win_rate=
+                highlight_win_rate,
+
+            highlight_expectancy_r=
+                highlight_expectancy_r,
         )
     )
 
