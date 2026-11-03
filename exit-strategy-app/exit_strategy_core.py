@@ -128,10 +128,12 @@ def select_random_entries(
 ) -> pd.DataFrame:
     """Select reproducible entry bars and assign each a trade direction.
 
-    When SMA filtering is enabled, long entries must close above the SMA and
-    short entries below it; bars equal to or lacking an SMA are excluded. When
-    disabled, every eligible bar can be selected and ``Both`` assigns random
-    directions. The final data bar is excluded because no later exit bar exists.
+    The random baseline is selected before SMA filtering, so enabled Long and
+    Short entries are subsets of the same seeded baseline used with filtering
+    disabled. Long entries must close above the SMA and short entries below it;
+    bars equal to or lacking an SMA are excluded. When disabled, every selected
+    bar can be used and ``Both`` assigns random directions. The final data bar
+    is excluded because no later exit bar exists.
     """
 
     maximum_entries = (
@@ -188,50 +190,6 @@ def select_random_entries(
         maximum_entries
     )
 
-    above_average = (
-        close_prices
-        > moving_average_values
-    )
-
-    below_average = (
-        close_prices
-        < moving_average_values
-    )
-
-    if ma_enabled and trade_direction == "Long":
-
-        eligible_indexes = eligible_indexes[
-            above_average[
-                eligible_indexes
-            ]
-        ]
-
-    elif ma_enabled and trade_direction == "Short":
-
-        eligible_indexes = eligible_indexes[
-            below_average[
-                eligible_indexes
-            ]
-        ]
-
-    elif ma_enabled:
-
-        eligible_indexes = eligible_indexes[
-            above_average[
-                eligible_indexes
-            ]
-            | below_average[
-                eligible_indexes
-            ]
-        ]
-
-    if not len(eligible_indexes):
-
-        raise ValueError(
-            "No eligible random entries match the selected "
-            "moving-average period and trade direction."
-        )
-
     actual_entries = min(
         int(number_of_entries),
         len(eligible_indexes),
@@ -248,6 +206,51 @@ def select_random_entries(
             replace=False,
         )
     )
+
+    above_average = (
+        close_prices
+        > moving_average_values
+    )
+
+    below_average = (
+        close_prices
+        < moving_average_values
+    )
+
+    if ma_enabled and trade_direction == "Long":
+
+        entry_indexes = entry_indexes[
+            above_average[
+                entry_indexes
+            ]
+        ]
+
+    elif ma_enabled and trade_direction == "Short":
+
+        entry_indexes = entry_indexes[
+            below_average[
+                entry_indexes
+            ]
+        ]
+
+    elif ma_enabled:
+
+        entry_indexes = entry_indexes[
+            above_average[
+                entry_indexes
+            ]
+            | below_average[
+                entry_indexes
+            ]
+        ]
+
+    if ma_enabled and actual_entries and not len(entry_indexes):
+
+        raise ValueError(
+            "None of the selected baseline entries match the "
+            "moving-average filter and trade direction. Increase "
+            "the random entry count or adjust the moving average."
+        )
 
     entry_directions = np.where(
         above_average[
