@@ -144,7 +144,8 @@ def compare_combinations(
 
     base_score = (
         (results["WinRatePct"] / 100) ** 2
-        * results["ExpectancyR"]
+        * results["ExpectancyR"] ** 1
+        *(results["StopLossPct"] / 100) ** -1
     )
     results[
         "ScoreRaw"
