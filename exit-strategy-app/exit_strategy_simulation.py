@@ -27,7 +27,7 @@ def compare_combinations(
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Simulate each stop/target pair for the supplied entry bars.
 
-    Returns the ranked combination metrics and the corresponding individual
+    Returns the combination metrics and the corresponding individual
     trade records. The SMA exit series is calculated once per run and passed
     to each trade only when opposite-crossover exits are enabled.
     """
@@ -226,28 +226,6 @@ def compare_combinations(
         results[
             "Score"
         ] = 50.0
-
-    # Sort results by score
-    results = (
-        results
-        .sort_values(
-            "Score",
-            ascending=False,
-            na_position="last",
-        )
-        .reset_index(
-            drop=True
-        )
-    )
-
-    results.insert(
-        0,
-        "Rank",
-        np.arange(
-            1,
-            len(results) + 1,
-        ),
-    )
 
     return (
         results,
