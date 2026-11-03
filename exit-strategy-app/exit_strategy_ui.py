@@ -880,7 +880,7 @@ def render_results(
         summary_columns[
             1
         ].metric(
-            "Trades used / requested",
+            "Randomr entries",
             f"{len(entries):,} / {requested_entries:,}",
         )
 
