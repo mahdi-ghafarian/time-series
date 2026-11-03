@@ -180,15 +180,16 @@ def compare_combinations(
     base_score = (
         results[
             "z_ExpectancyR"
-        ] ** 2
+        ] 
         * results[
             "z_WinRatePct"
-        ]
+        ] ** 2
     )
     results[
         "ScoreRaw"
     ] = np.where(
-        results["StopLossPct"] == -1,
+        (results["StopLossPct"] == -1)
+        | (results["TargetPct"] == -1),
         0.0,
         base_score / results["StopLossPct"],
     )
