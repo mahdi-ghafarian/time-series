@@ -151,7 +151,7 @@ def compare_combinations(
         "ScoreRaw"
     ] = np.where(
         (results["WinRatePct"] < 50)
-        | (results["ExpectancyR"] < 25)
+        | (results["ExpectancyR"] < 0.25)
         | (results["StopLossPct"] == -1)
         | (results["TargetPct"] == -1),
         0.0,
