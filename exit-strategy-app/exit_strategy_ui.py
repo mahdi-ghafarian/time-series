@@ -1078,6 +1078,35 @@ def render_results(
             )
         )
 
+        combination_order = ranked[
+            [
+                "StopLossPct",
+                "TargetPct",
+            ]
+        ].copy()
+        combination_order["_SelectedMetricRank"] = np.arange(
+            1,
+            len(combination_order) + 1,
+        )
+        directional_statistics = directional_statistics.merge(
+            combination_order,
+            on=[
+                "StopLossPct",
+                "TargetPct",
+            ],
+            how="left",
+            validate="many_to_one",
+        )
+
+        directional_sort_column = (
+            rank_metric
+            if rank_metric in directional_statistics.columns
+            else "_SelectedMetricRank"
+        )
+        directional_sort_ascending = (
+            directional_sort_column == "_SelectedMetricRank"
+        )
+
         statistics_columns = [
             "StopLossPct",
             "TargetPct",
@@ -1128,8 +1157,8 @@ def render_results(
                         == direction
                     ]
                     .sort_values(
-                        rank_metric,
-                        ascending=False,
+                        directional_sort_column,
+                        ascending=directional_sort_ascending,
                         na_position="last",
                     )
                 )
