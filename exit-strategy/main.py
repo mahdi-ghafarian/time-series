@@ -1,5 +1,6 @@
 
 import time
+from datetime import date, timedelta
 from pathlib import Path
 import numpy as np
 import pandas as pd
@@ -13,9 +14,9 @@ from matplotlib.patches import Rectangle
 # CONFIGURATION
 # ============================================================
 
-TICKER = "SPY"
-START_DATE = "2010-01-01"
-END_DATE = None                # None = through the latest available data
+TICKER = "QQQ"
+START_DATE = "2000-01-01"
+END_DATE = "2026-10-30"                # Inclusive; None = through latest available data
 INTERVAL = "1d"
 
 NUMBER_OF_RANDOM_ENTRIES = 1000
@@ -101,10 +102,18 @@ except NameError:
 def download_data():
     print(f"Downloading {TICKER} data...")
 
+    # Yahoo Finance treats `end` as exclusive; advance it so END_DATE is included,
+    # matching the UI application's date-range behavior.
+    yahoo_end_date = (
+        (date.fromisoformat(END_DATE) + timedelta(days=1)).isoformat()
+        if END_DATE is not None
+        else None
+    )
+
     data = yf.download(
         TICKER,
         start=START_DATE,
-        end=END_DATE,
+        end=yahoo_end_date,
         interval=INTERVAL,
         auto_adjust=True,
         progress=False
