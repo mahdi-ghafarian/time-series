@@ -69,6 +69,11 @@ def persist_exit_preferences() -> None:
     widget-owned key after that widget has been created.
     """
 
+    st.session_state.pop(
+        "_exit_output",
+        None,
+    )
+
     if not st.session_state.get(
         "_market_analysis_suite",
         False,
@@ -490,23 +495,6 @@ if (
 
             and
 
-            result_ticker(
-                startup_output
-            )
-            == STARTUP_TICKER
-
-            and
-
-            result_has_directional_entries(
-                startup_output
-            )
-        ):
-
-            st.session_state[
-                "_exit_output"
-            ] = startup_output
-
-        elif (
             startup_result_matches_settings(
                 output=startup_output,
                 ticker=ticker,
@@ -530,7 +518,6 @@ if (
                 "_exit_output"
             ] = startup_output
 
-
         elif (
             startup_output
             is None
@@ -541,33 +528,12 @@ if (
                 "is available. Click Run simulation."
             )
 
-        elif (
-            startup_output
-            is not None
-
-            and
-
-            not result_has_directional_entries(
-                startup_output
-            )
-        ):
-
-            st.info(
-                "The bundled QQQ result is available for "
-                "daily data from 2010-01-01 to 2026-10-30, "
-                "1,000 entries with seed 27, Long direction, "
-                "SMA entry and exit disabled, zero commission "
-                "and slippage, and the default stop/target "
-                "values. Select those settings to display it, "
-                "or run a new simulation."
-            )
-
-
         else:
 
-            st.warning(
-                "The bundled startup result "
-                "is not for QQQ."
+            st.info(
+                "The bundled QQQ result does not match the "
+                "current settings. Click Run simulation to "
+                "generate matching results."
             )
 
 
