@@ -22,6 +22,7 @@ def create_heatmap(
     start_date: date,
     end_date: date,
     number_of_entries: int,
+    requested_entries: int,
     top_metric: str,
     bottom_metric: str,
     color_metric: str,
@@ -207,7 +208,8 @@ def create_heatmap(
     axis.set_title(
         f"{ticker} | "
         f"{start_date} to {end_date} | "
-        f"{number_of_entries:,} Random Entries\n"
+        f"{number_of_entries:,} Trades Used / "
+        f"{requested_entries:,} Requested Entries\n"
         f"{top_metric} (top), "
         f"{bottom_metric} (bottom)"
     )

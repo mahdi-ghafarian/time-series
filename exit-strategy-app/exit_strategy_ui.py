@@ -832,7 +832,7 @@ def render_results(
             result_ticker_value,
             result_start_date,
             result_end_date,
-            _,
+            requested_entries,
         ) = output_to_display
 
 
@@ -880,8 +880,8 @@ def render_results(
         summary_columns[
             1
         ].metric(
-            "Random entries",
-            f"{len(entries):,}",
+            "Trades used / requested",
+            f"{len(entries):,} / {requested_entries:,}",
         )
 
 
@@ -932,6 +932,9 @@ def render_results(
 
                 number_of_entries=
                     len(entries),
+
+                requested_entries=
+                    requested_entries,
 
                 top_metric=
                     top_metric,
@@ -1093,6 +1096,10 @@ def render_results(
 
         st.subheader(
             "Statistics by direction"
+        )
+        st.caption(
+            "NumberOfTrades reflects the actual entries used in this run; "
+            "the SMA filter can reduce this below the requested count."
         )
 
         all_statistics, long_statistics, short_statistics = (
