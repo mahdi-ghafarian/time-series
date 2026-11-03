@@ -177,15 +177,20 @@ def compare_combinations(
                 f"z_{metric}"
             ] = 0.0
 
-    results[
-        "ScoreRaw"
-    ] = (
+    base_score = (
         results[
             "z_ExpectancyR"
         ] ** 2
         * results[
             "z_WinRatePct"
         ]
+    )
+    results[
+        "ScoreRaw"
+    ] = np.where(
+        results["StopLossPct"] == -1,
+        0.0,
+        base_score / results["StopLossPct"],
     )
 
     minimum_score = (
