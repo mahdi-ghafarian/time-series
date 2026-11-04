@@ -183,7 +183,7 @@ with tab_data: # first tab
     # Timeframe
     tf_options = ['1d','1wk','1mo','3mo']
     interval = st.pills(label="Timeframe", options=tf_options, 
-        default='1mo', selection_mode="single", key='explorer_interval',
+        default='1wk', selection_mode="single", key='explorer_interval',
         help = 'Duration of time that each data point on the chart \
             represents.', on_change = set_data_window)
     
@@ -200,7 +200,7 @@ with tab_data: # first tab
         dw_options = ['3mo','6mo','1y','2y','5y'
             ,'10y','ytd','max'] # '1d','5d', '1mo' are also available in YF
         data_window = st.pills(label="Data Window", options=dw_options, 
-            default='10y', selection_mode="single", key='explorer_data_window',
+            default='2y', selection_mode="single", key='explorer_data_window',
             on_change=persist_suite_preferences,
             label_visibility="collapsed")
     # use start date and end date
