@@ -261,7 +261,7 @@ with tab_format: # third tab
     log_grid_interval = st.number_input(
         'Y-axis grid interval',
         min_value=0.1,
-        value=1.0,
+        value=0.1,
         step=0.1,
         format='%.1f',
         help='Spacing between log-price grid lines.',
