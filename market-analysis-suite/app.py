@@ -335,7 +335,7 @@ if (
         "_exit_preferences_migrated",
         0,
     )
-    < 2
+    < 3
 ):
 
     preferences.update({
@@ -359,13 +359,13 @@ if (
         "exit_highlight_win_rate": 67.0,
         "exit_highlight_expectancy_r": 1.0,
         "exit_rank_metric": "ExpectancyR",
-        "exit_stop_text": (
-            "5, 7.5, 10, 12.5, 15, 20, 25, 30, 35, "
-            "40, 45, 50, 60, 70, 80, 90, -1"
-        ),
         "exit_target_text": (
             "5, 7.5, 10, 12.5, 15, 20, 25, 30, 35, "
-            "40, 45, 50, 60, 70, 80, 90, 100, -1"
+            "40, 45, 50, 75, 100, -1"
+        ),
+        "exit_stop_text": (
+            "5, 7.5, 10, 12.5, 15, 20, 25, 30, 35, "
+            "40, 45, 50, 75, 90, -1"
         ),
     })
 
@@ -375,7 +375,7 @@ if (
 
     st.session_state[
         "_exit_preferences_migrated"
-    ] = 2
+    ] = 3
 
     st.session_state.pop(
         "_exit_output",

@@ -67,9 +67,9 @@ The current startup configuration is:
 - Highlight win rate: `67.0`
 - Highlight expectancy R: `1.0`
 - Stops:
-  `5, 7.5, 10, 12.5, 15, 20, 25, 30, 35, 40, 45, 50, 60, 70, 80, 90, -1`
+  `5, 7.5, 10, 12.5, 15, 20, 25, 30, 35, 40, 45, 50, 75, 90, -1`
 - Targets:
-  `5, 7.5, 10, 12.5, 15, 20, 25, 30, 35, 40, 45, 50, 60, 70, 80, 90, 100, -1`
+  `5, 7.5, 10, 12.5, 15, 20, 25, 30, 35, 40, 45, 50, 75, 100, -1`
 
 ## Recreate the startup bundle
 
@@ -82,7 +82,7 @@ From the repository root, run:
 ```powershell
 Remove-Item -LiteralPath "exit-strategy-app/startup_result.pkl" -Force
 
-python -c "import sys; from datetime import date; sys.path.insert(0, r'exit-strategy-app'); from exit_strategy_simulation import run_simulation_now; from exit_strategy_startup import save_startup_result_if_missing; stops=[5,7.5,10,12.5,15,20,25,30,35,40,45,50,60,70,80,90,-1]; targets=[5,7.5,10,12.5,15,20,25,30,35,40,45,50,60,70,80,90,100,-1]; out=run_simulation_now('QQQ',date(2000,1,1),date(2026,12,31),'1d',1000,27,0.0,0.0,True,stops,targets,200,'Long',False,False,False,False); print(save_startup_result_if_missing(out))"
+python -c "import sys; from datetime import date; sys.path.insert(0, r'exit-strategy-app'); from exit_strategy_simulation import run_simulation_now; from exit_strategy_startup import save_startup_result_if_missing; stops=[5,7.5,10,12.5,15,20,25,30,35,40,45,50,75,90,-1]; targets=[5,7.5,10,12.5,15,20,25,30,35,40,45,50,75,100,-1]; out=run_simulation_now('QQQ',date(2000,1,1),date(2026,12,31),'1d',1000,27,0.0,0.0,True,stops,targets,200,'Long',False,False,False,False); print(save_startup_result_if_missing(out))"
 ```
 
 The simulation downloads QQQ data and may take several minutes. The command
@@ -91,7 +91,7 @@ prints `True` when `startup_result.pkl` was created successfully.
 Verify the saved bundle and settings with:
 
 ```powershell
-python -c "import sys; from datetime import date; sys.path.insert(0, r'exit-strategy-app'); import exit_strategy_startup as s; o=s.load_startup_result(); stops=', '.join(map(str,[5,7.5,10,12.5,15,20,25,30,35,40,45,50,60,70,80,90,-1])).replace(', ', ','); targets=', '.join(map(str,[5,7.5,10,12.5,15,20,25,30,35,40,45,50,60,70,80,90,100,-1])).replace(', ', ','); print(s.result_ticker(o)); print(s.result_has_directional_entries(o)); print(s.startup_result_matches_settings(o,'QQQ',date(2000,1,1),date(2026,12,31),'1d',1000,27,0.0,0.0,True,stops,targets,'Long',False,False))"
+python -c "import sys; from datetime import date; sys.path.insert(0, r'exit-strategy-app'); import exit_strategy_startup as s; o=s.load_startup_result(); stops=', '.join(map(str,[5,7.5,10,12.5,15,20,25,30,35,40,45,50,75,90,-1])).replace(', ', ','); targets=', '.join(map(str,[5,7.5,10,12.5,15,20,25,30,35,40,45,50,75,100,-1])).replace(', ', ','); print(s.result_ticker(o)); print(s.result_has_directional_entries(o)); print(s.startup_result_matches_settings(o,'QQQ',date(2000,1,1),date(2026,12,31),'1d',1000,27,0.0,0.0,True,stops,targets,'Long',False,False))"
 ```
 
 The final three lines should indicate `QQQ`, `True`, and `True`.
