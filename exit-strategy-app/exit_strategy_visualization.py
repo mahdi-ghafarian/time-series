@@ -389,66 +389,67 @@ def create_heatmap(
                 fontsize=8,
             )
 
+    # Draw blue diagonal borders first. A later black pass makes highlighted
+    # borders authoritative whenever a black and blue border share an edge.
+    for row in range(len(targets)):
+        for column in range(len(stops)):
             stop_value = stops[column]
             target_value = targets[row]
+            is_highlighted = bool(
+                highlighted.iloc[
+                    row,
+                    column,
+                ]
+            )
 
             if (
-                stop_value != -1
+                not is_highlighted
+                and stop_value != -1
                 and target_value != -1
                 and np.isclose(
                     stop_value,
                     target_value,
                 )
             ):
-
                 axis.add_patch(
                     Rectangle(
                         (
                             column - 0.5,
                             row - 0.5,
                         ),
-
                         1,
                         1,
-
                         fill=False,
-
-                        edgecolor=
-                            (
-                                0.20,
-                                0.55,
-                                0.85,
-                                1.0,
-                            ),
-
+                        edgecolor=(
+                            0.20,
+                            0.55,
+                            0.85,
+                            1.0,
+                        ),
                         linewidth=2,
                         zorder=3,
                     )
                 )
 
+    for row in range(len(targets)):
+        for column in range(len(stops)):
             if bool(
                 highlighted.iloc[
                     row,
                     column,
                 ]
             ):
-
                 axis.add_patch(
                     Rectangle(
                         (
                             column - 0.5,
                             row - 0.5,
                         ),
-
                         1,
                         1,
-
                         fill=False,
-
-                        edgecolor=
-                            "black",
-
-                        linewidth=2,
+                        edgecolor="black",
+                        linewidth=3,
                         zorder=4,
                     )
                 )
