@@ -18,14 +18,14 @@ from exit_strategy_visualization import create_heatmap
 
 
 DEFAULT_STOPS = [
-    1, 2, 3, 4, 5, 7.5, 10, 12.5, 15,
-    20, 25, 30, 35, 40, 45, 50, -1,
+    5, 7.5, 10, 12.5, 15, 20, 25,
+    30, 35, 40, 45, 50, 60, 70, 80, 90, -1,
 ]
 
 
 DEFAULT_TARGETS = [
-    1, 2, 3, 4, 5, 7.5, 10, 12.5, 15,
-    20, 25, 30, 35, 40, 45, 50, 100, -1,
+    5, 7.5, 10, 12.5, 15, 20, 25,
+    30, 35, 40, 45, 50, 60, 70, 80, 90, -1,
 ]
 
 
@@ -258,7 +258,7 @@ def render_sidebar(
                 "Start date",
 
                 value=date(
-                    2010,
+                    2000,
                     1,
                     1,
                 ),
@@ -278,8 +278,8 @@ def render_sidebar(
 
                 value=date(
                     2026,
-                    10,
-                    30,
+                    12,
+                    31,
                 ),
 
                 key=
@@ -641,7 +641,7 @@ def render_sidebar(
             .number_input(
                 "Highlight WR min",
 
-                value=50.0,
+                value=67.0,
 
                 step=1.0,
 
@@ -659,7 +659,7 @@ def render_sidebar(
             .number_input(
                 "Highlight ExpR min",
 
-                value=0.5,
+                value=1.0,
 
                 step=0.1,
 

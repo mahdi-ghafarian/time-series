@@ -33,6 +33,7 @@ try:
         load_startup_result,
         result_has_directional_entries,
         result_ticker,
+        save_startup_result_if_missing,
         startup_result_matches_settings,
         upgrade_startup_result,
     )
@@ -413,9 +414,7 @@ if (
         persist_exit_preferences()
 
 
-        st.session_state[
-            "_exit_output"
-        ] = run_simulation_now(
+        simulation_output = run_simulation_now(
             ticker=
                 ticker,
 
@@ -467,6 +466,39 @@ if (
             highlight_expectancy_r=
                 highlight_expectancy_r,
         )
+
+        st.session_state[
+            "_exit_output"
+        ] = simulation_output
+
+        if startup_result_matches_settings(
+            output=simulation_output,
+            ticker=ticker,
+            start_date=start_date,
+            end_date=end_date,
+            interval=interval,
+            number_of_entries=number_of_entries,
+            seed=seed,
+            commission=commission,
+            slippage=slippage,
+            conservative=conservative,
+            stop_text=stop_text,
+            target_text=target_text,
+            trade_direction=trade_direction,
+            ma_enabled=ma_enabled,
+            ma_exit_enabled=ma_exit_enabled,
+        ):
+
+            startup_result_saved = save_startup_result_if_missing(
+                simulation_output
+            )
+
+            if startup_result_saved:
+
+                st.success(
+                    "The compatible QQQ startup result "
+                    "was saved for future launches."
+                )
 
 
     except Exception as exc:
@@ -531,7 +563,8 @@ if (
 
             st.info(
                 "No precomputed QQQ startup result "
-                "is available. Click Run simulation."
+                "is available. Run a compatible QQQ "
+                "simulation to create it."
             )
 
         else:

@@ -258,3 +258,38 @@ def load_startup_result():
         )
 
         return None
+
+
+def save_startup_result_if_missing(
+    output,
+) -> bool:
+    """Save a startup result without replacing an existing bundle."""
+
+    if (
+        STARTUP_RESULT_FILE
+        .exists()
+    ):
+
+        return False
+
+    serialized_output = pickle.dumps(
+        output,
+        protocol=pickle.HIGHEST_PROTOCOL,
+    )
+
+    try:
+
+        with open(
+            STARTUP_RESULT_FILE,
+            "xb",
+        ) as result_file:
+
+            result_file.write(
+                serialized_output
+            )
+
+        return True
+
+    except FileExistsError:
+
+        return False
