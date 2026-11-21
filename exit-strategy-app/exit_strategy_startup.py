@@ -159,6 +159,16 @@ def startup_result_matches_settings(
 
         return False
 
+    def normalize_date(value):
+        if hasattr(value, "date"):
+            return value.date()
+        return value
+
+    if hasattr(start_date, "date"):
+        start_date = start_date.date()
+    if hasattr(end_date, "date"):
+        end_date = end_date.date()
+
     try:
 
         result_start_date = output[8]
@@ -177,8 +187,8 @@ def startup_result_matches_settings(
     if (
         ticker.strip().upper() != STARTUP_TICKER
         or result_ticker(output) != STARTUP_TICKER
-        or start_date != result_start_date
-        or end_date != result_end_date
+        or normalize_date(start_date) != normalize_date(result_start_date)
+        or normalize_date(end_date) != normalize_date(result_end_date)
         or interval != "1d"
         or int(number_of_entries) != result_entry_count
         or int(seed) != 27
