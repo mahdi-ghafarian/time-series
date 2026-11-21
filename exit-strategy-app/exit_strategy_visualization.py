@@ -422,6 +422,7 @@ def create_heatmap(
                             ),
 
                         linewidth=2,
+                        zorder=3,
                     )
                 )
 
@@ -448,6 +449,7 @@ def create_heatmap(
                             "black",
 
                         linewidth=2,
+                        zorder=4,
                     )
                 )
 
