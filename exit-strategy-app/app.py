@@ -1,8 +1,10 @@
 """Streamlit entry point for the Exit Strategy application.
 
-This module coordinates ticker and preference state and runs simulations.
-Data and trade calculations, simulation orchestration, visualization, and
-page rendering live in adjacent ``exit_strategy_*`` modules.
+This module coordinates ticker and preference state, runs simulations, and
+selects either the compatible bundled QQQ result or newly calculated results.
+Data and trade calculations, simulation orchestration, bundled-result
+compatibility, visualization, and page rendering live in adjacent
+``exit_strategy_*`` modules.
 
 The Market Analysis Suite executes this file with ``runpy.run_path``. Imports
 therefore temporarily add this app's directory to ``sys.path``; the suite's
@@ -10,6 +12,7 @@ session-state keys and ``exit_*`` widget keys remain the integration contract.
 """
 
 from pathlib import Path
+import pickle
 import sys
 
 import streamlit as st
@@ -26,48 +29,56 @@ if _ADDED_APP_DIRECTORY:
 try:
     from exit_strategy_core import parse_values
     from exit_strategy_simulation import run_simulation_now
+    import exit_strategy_startup
+    from exit_strategy_startup import (
+        STARTUP_TICKER,
+        load_startup_result,
+        result_has_directional_entries,
+        result_ticker,
+        startup_result_matches_settings,
+        upgrade_startup_result,
+    )
     from exit_strategy_ui import render_results, render_sidebar
 finally:
     if _ADDED_APP_DIRECTORY:
         sys.path.remove(_APP_DIRECTORY)
 
 
-DEFAULT_TICKER = "QQQ"
+def save_startup_result_if_missing(output) -> bool:
+    """Compatibility fallback for a briefly mismatched startup module."""
 
-
-def result_ticker(output):
-    """Read the ticker from a simulation output."""
-
-    if output is None:
-        return None
-
-    try:
-        return str(output[7]).strip().upper()
-    except (IndexError, TypeError):
-        return None
-
-
-def result_has_directional_entries(output) -> bool:
-    """Check whether an output uses the current directional result schema."""
-
-    if output is None:
-        return False
-
-    try:
-        entries = output[1]
-        results = output[2]
-        trades = output[3]
-    except (IndexError, TypeError):
-        return False
-
-    return (
-        hasattr(entries, "columns")
-        and {"EntrySMA", "Direction"}.issubset(entries.columns)
-        and hasattr(results, "columns")
-        and "MovingAverageExitPct" in results.columns
-        and hasattr(trades, "columns")
-        and "Direction" in trades.columns
+    startup_file = getattr(
+        exit_strategy_startup,
+        "STARTUP_RESULT_FILE",
+        Path(__file__).resolve().parent / "startup_result.pkl",
     )
+
+    save_result = getattr(
+        exit_strategy_startup,
+        "save_startup_result_if_missing",
+        None,
+    )
+    if save_result is not None:
+        return save_result(output)
+
+    if startup_file.exists():
+        return False
+
+    serialized_output = pickle.dumps(
+        output,
+        protocol=pickle.HIGHEST_PROTOCOL,
+    )
+
+    try:
+        with open(
+            startup_file,
+            "xb",
+        ) as result_file:
+            result_file.write(serialized_output)
+        return True
+    except FileExistsError:
+        return False
+
 
 IN_SUITE = st.session_state.get(
     "_market_analysis_suite",
@@ -320,7 +331,7 @@ if "exit_ticker" not in st.session_state:
         "exit_ticker"
     ] = st.session_state.get(
         "_suite_shared_ticker",
-        DEFAULT_TICKER,
+        STARTUP_TICKER,
     )
 
 
@@ -404,31 +415,6 @@ elif start_date >= end_date:
     )
 
     valid_inputs = False
-
-
-output_signature = (
-    ticker,
-    start_date,
-    end_date,
-    interval,
-    number_of_entries,
-    seed,
-    commission,
-    slippage,
-    conservative,
-    stop_text,
-    target_text,
-    trade_direction,
-    ma_enabled,
-    ma_exit_enabled,
-)
-
-if (
-    "_exit_output_signature" not in st.session_state
-    or st.session_state["_exit_output_signature"] != output_signature
-):
-    st.session_state.pop("_exit_output", None)
-    st.session_state.pop("_exit_output_signature", None)
 
 
 # ============================================================
@@ -521,14 +507,120 @@ if (
         st.session_state[
             "_exit_output"
         ] = simulation_output
-        st.session_state[
-            "_exit_output_signature"
-        ] = output_signature
+
+        if startup_result_matches_settings(
+            output=simulation_output,
+            ticker=ticker,
+            start_date=start_date,
+            end_date=end_date,
+            interval=interval,
+            number_of_entries=number_of_entries,
+            seed=seed,
+            commission=commission,
+            slippage=slippage,
+            conservative=conservative,
+            stop_text=stop_text,
+            target_text=target_text,
+            trade_direction=trade_direction,
+            ma_enabled=ma_enabled,
+            ma_exit_enabled=ma_exit_enabled,
+        ):
+
+            startup_result_saved = save_startup_result_if_missing(
+                simulation_output
+            )
+
+            if startup_result_saved:
+
+                st.success(
+                    "The compatible QQQ startup result "
+                    "was saved for future launches."
+                )
+
 
     except Exception as exc:
 
         st.error(
             str(exc)
+        )
+
+
+# ============================================================
+# Load QQQ startup result only when current ticker is QQQ
+# ============================================================
+
+if (
+    "_exit_output"
+    not in st.session_state
+):
+
+    if (
+        ticker
+        == STARTUP_TICKER
+    ):
+
+        startup_output = (
+            load_startup_result()
+        )
+
+
+        if (
+            startup_output
+            is not None
+
+            and
+
+            startup_result_matches_settings(
+                output=startup_output,
+                ticker=ticker,
+                start_date=start_date,
+                end_date=end_date,
+                interval=interval,
+                number_of_entries=number_of_entries,
+                seed=seed,
+                commission=commission,
+                slippage=slippage,
+                conservative=conservative,
+                stop_text=stop_text,
+                target_text=target_text,
+                trade_direction=trade_direction,
+                ma_enabled=ma_enabled,
+                ma_exit_enabled=ma_exit_enabled,
+            )
+        ):
+
+            st.session_state[
+                "_exit_output"
+            ] = startup_output
+
+        elif (
+            startup_output
+            is None
+        ):
+
+            st.info(
+                "No precomputed QQQ startup result "
+                "is available. Run a compatible QQQ "
+                "simulation to create it."
+            )
+
+        else:
+
+            st.info(
+                "The bundled QQQ result does not match the "
+                "current settings. Click Run simulation to "
+                "generate matching results."
+            )
+
+
+    else:
+
+        st.info(
+            f"Ticker is {ticker}. "
+            "The bundled startup results are for QQQ "
+            "and are therefore hidden. "
+            f"Click Run simulation to generate "
+            f"results for {ticker}."
         )
 
 
@@ -541,6 +633,40 @@ output_to_display = (
         "_exit_output"
     )
 )
+
+if (
+    output_to_display is not None
+
+    and
+
+    not result_has_directional_entries(
+        output_to_display
+    )
+
+    and
+
+    startup_result_matches_settings(
+        output=output_to_display,
+        ticker=ticker,
+        start_date=start_date,
+        end_date=end_date,
+        interval=interval,
+        number_of_entries=number_of_entries,
+        seed=seed,
+        commission=commission,
+        slippage=slippage,
+        conservative=conservative,
+        stop_text=stop_text,
+        target_text=target_text,
+        trade_direction=trade_direction,
+        ma_enabled=ma_enabled,
+        ma_exit_enabled=ma_exit_enabled,
+    )
+):
+
+    output_to_display = upgrade_startup_result(
+        output_to_display
+    )
 
 
 output_ticker = (
@@ -569,6 +695,32 @@ show_results = (
     output_ticker
     == ticker
 )
+
+
+if (
+    valid_inputs
+
+    and
+
+    output_to_display
+    is not None
+
+    and
+
+    not result_has_directional_entries(
+        output_to_display
+    )
+
+):
+
+    st.info(
+        "The bundled result is for QQQ daily data from "
+        "2010-01-01 to 2026-10-30, 1,000 Long entries with "
+        "seed 27, SMA entry and exit disabled, zero "
+        "commission/slippage, and the default stop/target "
+        "values. Select those settings to display it, or "
+        "click Run simulation."
+    )
 
 
 if (
@@ -616,4 +768,5 @@ render_results(
     highlight_win_rate=highlight_win_rate,
     highlight_expectancy_r=highlight_expectancy_r,
     rank_metric=rank_metric,
+    startup_ticker=STARTUP_TICKER,
 )

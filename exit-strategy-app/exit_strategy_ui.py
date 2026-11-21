@@ -815,6 +815,7 @@ def render_results(
     highlight_win_rate,
     highlight_expectancy_r,
     rank_metric,
+    startup_ticker,
 ) -> None:
     """Render simulation summaries, rankings, details, and downloads."""
 
@@ -835,10 +836,28 @@ def render_results(
         ) = output_to_display
 
 
-        st.caption(
-            "Showing simulation results for "
-            f"{result_ticker_value}."
-        )
+        if (
+            result_ticker_value
+            .strip()
+            .upper()
+            == startup_ticker
+
+            and
+
+            not run_simulation
+        ):
+
+            st.caption(
+                "Showing precomputed QQQ startup results."
+            )
+
+
+        else:
+
+            st.caption(
+                "Showing simulation results for "
+                f"{result_ticker_value}."
+            )
 
 
         # ========================================================
