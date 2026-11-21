@@ -1,5 +1,6 @@
 from pathlib import Path
 import runpy
+from datetime import date
 
 import streamlit as st
 
@@ -298,6 +299,88 @@ preferences = (
         {},
     )
 )
+
+preferences = dict(preferences)
+
+old_start_date = date(2010, 1, 1)
+new_start_date = date(2000, 1, 1)
+old_end_date = date(2026, 10, 30)
+new_end_date = date(2026, 12, 31)
+
+def preference_date(value):
+    if hasattr(value, "date"):
+        return value.date()
+    if isinstance(value, date):
+        return value
+    if isinstance(value, str):
+        try:
+            return date.fromisoformat(value)
+        except ValueError:
+            return None
+    return None
+
+if preference_date(preferences.get("exit_start_date")) == old_start_date:
+    preferences["exit_start_date"] = new_start_date
+    st.session_state["_suite_saved_preferences"] = preferences
+
+if preference_date(preferences.get("exit_end_date")) == old_end_date:
+    preferences["exit_end_date"] = new_end_date
+    st.session_state["_suite_saved_preferences"] = preferences
+
+
+# One-time migration of Exit Strategy settings saved by the older suite.
+# These values are the defaults rendered when Exit Strategy runs directly.
+if (
+    st.session_state.get(
+        "_exit_preferences_migrated",
+        0,
+    )
+    < 2
+):
+
+    preferences.update({
+        "exit_interval": "1d",
+        "exit_start_date": new_start_date,
+        "exit_end_date": new_end_date,
+        "exit_ma_enabled": False,
+        "exit_ma_exit_enabled": False,
+        "exit_trade_direction": "Long",
+        "exit_number_of_entries": 1000,
+        "exit_seed": 27,
+        "exit_commission": 0.0,
+        "exit_slippage": 0.0,
+        "exit_conservative": True,
+        "exit_top_metric": "ExpectancyR",
+        "exit_bottom_metric": "WinRatePct",
+        "exit_color_metric": "ExpectancyR",
+        "exit_auto_color_scale": False,
+        "exit_color_minimum": 0.0,
+        "exit_color_maximum": 1.0,
+        "exit_highlight_win_rate": 67.0,
+        "exit_highlight_expectancy_r": 1.0,
+        "exit_rank_metric": "ExpectancyR",
+        "exit_stop_text": (
+            "5, 7.5, 10, 12.5, 15, 20, 25, 30, 35, "
+            "40, 45, 50, 60, 70, 80, 90, -1"
+        ),
+        "exit_target_text": (
+            "5, 7.5, 10, 12.5, 15, 20, 25, 30, 35, "
+            "40, 45, 50, 60, 70, 80, 90, -1"
+        ),
+    })
+
+    st.session_state[
+        "_suite_saved_preferences"
+    ] = preferences
+
+    st.session_state[
+        "_exit_preferences_migrated"
+    ] = 2
+
+    st.session_state.pop(
+        "_exit_output",
+        None,
+    )
 
 selected_prefix = (
     app_prefixes[
