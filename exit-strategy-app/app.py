@@ -715,7 +715,7 @@ if (
 
     st.info(
         "The bundled result is for QQQ daily data from "
-        "2010-01-01 to 2026-10-30, 1,000 Long entries with "
+        "2000-01-01 to 2026-12-31, 1,000 Long entries with "
         "seed 27, SMA entry and exit disabled, zero "
         "commission/slippage, and the default stop/target "
         "values. Select those settings to display it, or "
