@@ -30,14 +30,8 @@ if not st.session_state.get("_market_analysis_suite"):
 st.sidebar.header('Parameters')
 
 # Initialize session state
-# This is not necessary in this app, because all widgets are created
-# and theirs keys stored in session_state when on_change
-# callback is triggered for timeframe. Kept for future reference.
-
-# if ('interval' not in st.session_state):
-#     st.session_state.interval='1wk'
-# if ('data_window' not in st.session_state):
-#     st.session_state.data_window='2y'
+st.session_state.setdefault("explorer_interval", "1wk")
+st.session_state.setdefault("explorer_data_window", "2y")
 
 # Set the default data_window based on interval value
 # by using session state, this is a callback function
@@ -111,13 +105,14 @@ def select_explorer_ticker(symbol):
 
 
 def set_data_window():
-    if(st.session_state.explorer_interval == '1d'):
+    interval = st.session_state.get("explorer_interval", "1wk")
+    if(interval == '1d'):
         st.session_state.explorer_data_window = '3mo'
-    elif (st.session_state.explorer_interval == '1wk'):
+    elif (interval == '1wk'):
         st.session_state.explorer_data_window = '2y'
-    elif (st.session_state.explorer_interval == '1mo'):
+    elif (interval == '1mo'):
         st.session_state.explorer_data_window = '10y'
-    elif (st.session_state.explorer_interval == '3mo'):
+    elif (interval == '3mo'):
         st.session_state.explorer_data_window = 'max'
     persist_suite_preferences()
 

@@ -12,6 +12,7 @@ session-state keys and ``exit_*`` widget keys remain the integration contract.
 """
 
 from pathlib import Path
+import pickle
 import sys
 
 import streamlit as st
@@ -28,12 +29,12 @@ if _ADDED_APP_DIRECTORY:
 try:
     from exit_strategy_core import parse_values
     from exit_strategy_simulation import run_simulation_now
+    import exit_strategy_startup
     from exit_strategy_startup import (
         STARTUP_TICKER,
         load_startup_result,
         result_has_directional_entries,
         result_ticker,
-        save_startup_result_if_missing,
         startup_result_matches_settings,
         upgrade_startup_result,
     )
@@ -41,6 +42,42 @@ try:
 finally:
     if _ADDED_APP_DIRECTORY:
         sys.path.remove(_APP_DIRECTORY)
+
+
+def save_startup_result_if_missing(output) -> bool:
+    """Compatibility fallback for a briefly mismatched startup module."""
+
+    startup_file = getattr(
+        exit_strategy_startup,
+        "STARTUP_RESULT_FILE",
+        Path(__file__).resolve().parent / "startup_result.pkl",
+    )
+
+    save_result = getattr(
+        exit_strategy_startup,
+        "save_startup_result_if_missing",
+        None,
+    )
+    if save_result is not None:
+        return save_result(output)
+
+    if startup_file.exists():
+        return False
+
+    serialized_output = pickle.dumps(
+        output,
+        protocol=pickle.HIGHEST_PROTOCOL,
+    )
+
+    try:
+        with open(
+            startup_file,
+            "xb",
+        ) as result_file:
+            result_file.write(serialized_output)
+        return True
+    except FileExistsError:
+        return False
 
 
 IN_SUITE = st.session_state.get(
