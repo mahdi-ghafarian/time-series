@@ -15,7 +15,7 @@ never runs both modes in the same execution.
 The script downloads data directly with `yfinance` and does not import or
 require Streamlit. Its editable defaults (ticker, date range, seed count,
 entry count, SMA and ATRP settings, costs, and output directory) are grouped
-near the top of `exit_strategy_sensitivity.py`; command-line options can
+near the top of `exit_strategy_monte_carlo_analysis.py`; command-line options can
 override them. ATRP is Wilder's ATR divided by the ATR candle's close and
 expressed as a percentage. With a timeframe different from the trading bars,
 only the last completed ATR candle is used. Each entry's ATRP is held fixed for
@@ -47,16 +47,16 @@ metric heatmap. The `--heatmap-min` and `--heatmap-max` options override the
 bounds for all selected heatmaps.
 
 Install the standalone dependencies with
-`python -m pip install -r exit-strategy-sensativity/requirements.txt`.
+`python -m pip install -r exit-strategy-monte-carlo/requirements.txt`.
 
 Run from the repository root:
 
 ```powershell
-python "exit-strategy-sensativity/exit_strategy_sensitivity.py"
+python "exit-strategy-monte-carlo/exit_strategy_monte_carlo_analysis.py"
 ```
 
 The program downloads trading data and ATR data, then writes two CSV files and
-four PNG heatmaps to `exit-strategy-sensativity/results`. The file names identify
+four PNG heatmaps to `exit-strategy-monte-carlo/results/analysis`. The file names identify
 ticker, trading timeframe, exit mode, and entry-MA filter; ATRP mode also
 includes ATR timeframe and period:
 
@@ -73,7 +73,7 @@ includes ATR timeframe and period:
 Options can reduce the run for a quick check or customize it:
 
 ```powershell
-python "exit-strategy-sensativity/exit_strategy_sensitivity.py" `
+python "exit-strategy-monte-carlo/exit_strategy_monte_carlo_analysis.py" `
   --seed-count 10 --seed-start 100 --entry-count 25 `
   --atr-timeframe 3mo --atr-period 14 `
   --ma-entry-enabled `
@@ -94,5 +94,41 @@ position relative to the SMA.
 Run the focused tests without downloading market data:
 
 ```powershell
-python -m unittest discover -s "exit-strategy-sensativity" -p "test_*.py"
+python -m unittest discover -s "exit-strategy-monte-carlo" -p "test_*.py"
 ```
+
+## Monte Carlo analysis
+
+`exit_strategy_monte_carlo_visualization.py` is a standalone Monte Carlo command-line
+analysis; it does not use Streamlit. It evaluates stop/target combinations
+over random-entry scenarios, creates an annotated heatmap, and writes a
+selected-statistic summary, per-scenario results, and representative-scenario
+trade and entry details. By default, scenario 0 supplies the detailed trades
+and entries, while the heatmap and ranked summary aggregate across all
+requested scenarios.
+
+Choose the aggregation across scenarios used by the heatmap and ranked summary with
+`--statistic`: `min`, `median`, `average`, `max`, `p1`, `p5`, `p25`, `p75`,
+`p95`, or `p99`. For example:
+
+```powershell
+python "exit-strategy-monte-carlo/exit_strategy_monte_carlo_visualization.py" `
+  --percent-exits --scenario-count 50 --entry-count 25 `
+  --stops 5,10,20 --targets 5,10,20 `
+  --statistic p5 --top-metric ExpectancyR --bottom-metric WinRatePct `
+  --color-metric ExpectancyR
+```
+
+By default, the script uses the same market-data, scenario, entry, and exit
+settings as the sensitivity CLI and writes its PNG and CSV files under
+`exit-strategy-monte-carlo/results/visualization`, separate from the analysis
+outputs in `exit-strategy-monte-carlo/results/analysis`. The heatmap's top, bottom, and color
+metrics can be changed with `--top-metric`, `--bottom-metric`, and
+`--color-metric`; `--rank-metric` independently controls the ranked CSV.
+Defaults for all of these settings, including stop/target grids and output
+directory, are grouped under `USER CONFIGURATION` near the top of the script;
+command-line options override those values. The color scale defaults to 0–1;
+values outside the range are clipped and can be included by overriding
+`--color-min` or `--color-max`. Output names use a compact ticker, exit mode,
+scenario count/start, entry-MA flag, and statistic prefix. The former
+`--seed-count` and `--seed-start` options remain as aliases for compatibility.

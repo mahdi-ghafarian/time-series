@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-from exit_strategy_sensitivity import (
+from exit_strategy_monte_carlo_analysis import (
     align_atrp_to_trading_data,
     build_parser,
     build_heatmap_requests,
@@ -286,7 +286,7 @@ class ExitStrategySensitivityTests(unittest.TestCase):
             columns=columns,
         )
         with patch(
-            "exit_strategy_sensitivity.yf.download",
+            "exit_strategy_monte_carlo_analysis.yf.download",
             return_value=yahoo_data,
         ) as yahoo_download:
             data = download_data(

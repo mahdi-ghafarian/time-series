@@ -45,7 +45,7 @@ MA_ENTRY_ENABLED = False
 # Independently exit a trade on an opposite SMA crossover.
 MA_EXIT_ENABLED = False
 # Directory for CSV reports and heatmap PNG.
-OUTPUT_DIR = Path(__file__).resolve().parent / "results"
+OUTPUT_DIR = Path(__file__).resolve().parent / "results" / "analysis"
 # Each heatmap config selects one summary metric and its color bounds.
 HEATMAP_CONFIGS = {
     "win_rate": {
