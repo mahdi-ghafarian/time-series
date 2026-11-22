@@ -113,16 +113,16 @@ class ExitStrategyMonteCarloTests(unittest.TestCase):
         )
         summary = pd.DataFrame(
             {
-                "EntryMAEnabled": [False, False],
-                "StopLossPct": [5.0, 5.0],
-                "TargetPct": [5.0, 10.0],
-                "ExpectancyR": [-0.2, 1.4],
-                "WinRatePct": [50.0, 75.0],
+                "EntryMAEnabled": [False, False, False, False],
+                "StopLossPct": [5.0, 5.0, -1.0, -1.0],
+                "TargetPct": [5.0, 10.0, 5.0, 10.0],
+                "ExpectancyR": [-0.2, 1.4, -0.5, 0.8],
+                "WinRatePct": [50.0, 75.0, 40.0, 60.0],
             }
         )
         figure = create_scenario_heatmap(
             results=summary,
-            stops=[5.0],
+            stops=[5.0, -1.0],
             targets=[5.0, 10.0],
             ticker="TEST",
             start_date=date(2020, 1, 1),
@@ -143,6 +143,10 @@ class ExitStrategyMonteCarloTests(unittest.TestCase):
             self.assertTrue(image.getvalue().startswith(b"\x89PNG\r\n\x1a\n"))
             self.assertEqual(figure.axes[0].images[0].norm.vmin, 0.0)
             self.assertEqual(figure.axes[0].images[0].norm.vmax, 1.0)
+            self.assertEqual(
+                [tick.get_text() for tick in figure.axes[0].get_xticklabels()],
+                ["5.0"],
+            )
             self.assertEqual(len(entries), 3)
             self.assertEqual(len(trades), 6)
             self.assertEqual(len(directional), 6)

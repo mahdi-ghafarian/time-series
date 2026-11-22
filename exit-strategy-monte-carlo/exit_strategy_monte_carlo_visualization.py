@@ -79,6 +79,10 @@ def create_scenario_heatmap(
 ):
     """Create the annotated stop/target heatmap without app dependencies."""
 
+    stops = [stop for stop in stops if stop != -1]
+    if not stops:
+        raise ValueError("The heatmap requires at least one stop other than -1.")
+
     color_values = results.pivot(
         index="TargetPct",
         columns="StopLossPct",
@@ -141,7 +145,7 @@ def create_scenario_heatmap(
         f"{top_metric} (top), {bottom_metric} (bottom)"
     )
     axis.set_xticks(np.arange(len(stops)))
-    axis.set_xticklabels(["NS" if value == -1 else str(value) for value in stops])
+    axis.set_xticklabels([str(value) for value in stops])
     axis.set_yticks(np.arange(len(targets)))
     axis.set_yticklabels(["NT" if value == -1 else str(value) for value in targets])
 
