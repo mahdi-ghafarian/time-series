@@ -21,16 +21,20 @@ START_DATE = date(2000, 1, 1)
 END_DATE = date(2026, 12, 31)
 # Candle interval used to choose entries and simulate exits.
 INTERVAL = "1d"
-# True uses entry ATRP multiples for exits; False uses fixed price percentages.
-USE_ATRP = True
-# ATR candles and Wilder ATR lookback. The ATR value is frozen at each entry.
-ATRP_TIMEFRAME = "3mo"
-ATRP_PERIOD = 12
-# Seeds are SEED_START through SEED_START + SEED_COUNT - 1.
+# Exit mode: ATRP, TRP, or Percent.
+EXIT_MODE = "ATRP"
+# Range candle timeframe for ATRP and TRP calculations.
+RANGE_TIMEFRAME = "3mo"
+# ATR Wilder period or TRP history warm-up in range timeframe bars.
+RANGE_PERIOD = 12
+# SEED_COUNT independent scenario seeds are used, from SEED_START through
+# SEED_START + SEED_COUNT - 1. The seed makes each scenario reproducible and
+# controls random entry selection and random direction for "Both".
 SEED_COUNT = 200
 SEED_START = 0
-# Requested entries per seed; filters or unavailable ATRP can reduce the count.
-ENTRY_COUNT = 25
+# Maximum random trades to select independently from each calendar year in
+# every seed. Filters or insufficient eligible bars can reduce the actual count.
+TRADES_PER_YEAR = 25
 # Entry/exit moving-average lookback, in trading bars.
 SMA_PERIOD = 200
 # Long, Short, or Both; Both randomizes direction when the entry filter is off.
@@ -81,12 +85,16 @@ DEFAULT_PERCENT_TARGETS = [
     5, 7.5, 10, 12.5, 15, 20, 25, 30, 35, 40, 45, 50, 75, 100, -1,
 ]
 # ATRP-multiple stop/target grids; -1 means no stop or target.
-DEFAULT_ATRP_STOP_MULTIPLIERS = [
+# Normalized stop-multiplier grid used by ATRP and TRP modes.
+RANGE_STOP_MULTIPLIERS = [
     0.5, 0.75, 1, 1.25, 1.5, 2, 2.5, 3, 4, 5, -1,
 ]
-DEFAULT_ATRP_TARGET_MULTIPLIERS = [
+# Normalized target-multiplier grid used by ATRP and TRP modes.
+RANGE_TARGET_MULTIPLIERS = [
     0.5, 0.75, 1, 1.25, 1.5, 2, 2.5, 3, 4, 5, -1,
 ]
+# Assumed risk for R normalization only when no stop is placed.
+NO_STOP_RISK_PCT = 100.0
 
 
 # =============================================================================
@@ -95,10 +103,13 @@ DEFAULT_ATRP_TARGET_MULTIPLIERS = [
 TRADE_METRIC_COLUMNS = [
     "NetReturnPct",
     "NetReturnATRP",
+    "NetReturnTRP",
     "NetReturnPctPerBar",
     "NetReturnATRPPerBar",
+    "NetReturnTRPPerBar",
     "RealizedR",
     "EntryATRP",
+    "EntryTRP",
     "StopDistancePct",
     "TargetDistancePct",
     "BarsHeld",
@@ -107,6 +118,7 @@ TRADE_METRIC_COLUMNS = [
 ]
 METRIC_COLUMNS = [
     "NumberOfTrades",
+    "MaxConsecutiveLosses",
     "WinRatePct",
     "AverageWinPct",
     "AverageLossPct",
@@ -120,10 +132,13 @@ METRIC_COLUMNS = [
     "ExpectancyPctPerBar",
     "ExpectancyATRP",
     "ExpectancyATRPPerBar",
+    "ExpectancyTRP",
+    "ExpectancyTRPPerBar",
     "ExpectancyR",
     "ExpectancyRPerBar",
     "ExpectancyRPer100Bars",
     "AverageEntryATRP",
+    "AverageEntryTRP",
     "AverageStopDistancePct",
     "AverageTargetDistancePct",
     "AverageBarsHeld",
@@ -141,6 +156,7 @@ HEATMAP_METRICS = [
 ] + [
     "ExpectancyR_PositivePct",
     "ExpectancyATRP_PositivePct",
+    "ExpectancyTRP_PositivePct",
     "SeedCount",
     "RunsWithTrades",
     "RobustRank",
@@ -311,6 +327,89 @@ def align_atrp_to_trading_data(
     return aligned
 
 
+def calculate_trp(data: pd.DataFrame, period: int | None = None) -> pd.Series:
+    """Calculate True Range percentage and its median through each bar."""
+
+    if data.empty:
+        raise ValueError("Trading data is required to calculate TRP.")
+
+    required_columns = {"High", "Low", "Close"}
+    missing_columns = required_columns.difference(data.columns)
+    if missing_columns:
+        raise ValueError(
+            "Missing columns for TRP calculation: "
+            + ", ".join(sorted(missing_columns))
+        )
+
+    previous_close = data["Close"].shift(1)
+    true_range = pd.concat(
+        [
+            data["High"] - data["Low"],
+            (data["High"] - previous_close).abs(),
+            (data["Low"] - previous_close).abs(),
+        ],
+        axis=1,
+    ).max(axis=1)
+    trp = true_range / data["Close"].to_numpy(dtype=float) * 100
+    trp_series = pd.Series(trp, index=data.index)
+    if period is None:
+        median_trp = trp_series.expanding().median()
+    else:
+        if period < 1:
+            raise ValueError("TRP median period must be at least 1.")
+        median_trp = trp_series.rolling(
+            window=int(period),
+            min_periods=1,
+        ).median()
+    median_trp.name = "TRP"
+    return median_trp
+
+
+def align_trp_to_trading_data(
+    trading_data: pd.DataFrame,
+    range_data: pd.DataFrame,
+    trading_timeframe: str,
+    range_timeframe: str,
+) -> pd.Series:
+    """Align expanding-median TRP values to trading bars."""
+
+    trp = calculate_trp(range_data)
+    trading_index = _naive_datetime_index(trading_data.index)
+    range_index = _naive_datetime_index(range_data.index)
+
+    if trading_timeframe == range_timeframe:
+        trp.index = range_index
+        aligned = trp.reindex(trading_index)
+    else:
+        completed_trp_values = pd.DataFrame(
+            {
+                "AvailableAt": range_index[1:],
+                "TRP": trp.to_numpy(dtype=float)[:-1],
+            }
+        )
+        trading_dates = pd.DataFrame({"TradingDate": trading_index})
+        aligned_frame = pd.merge_asof(
+            trading_dates.sort_values("TradingDate"),
+            completed_trp_values.sort_values("AvailableAt"),
+            left_on="TradingDate",
+            right_on="AvailableAt",
+            direction="backward",
+        )
+        aligned = pd.Series(
+            aligned_frame["TRP"].to_numpy(dtype=float),
+            index=trading_index,
+            name="TRP",
+        )
+
+    aligned.index = trading_data.index
+    aligned.name = "TRP"
+    if not np.isfinite(aligned.to_numpy(dtype=float)).any():
+        raise ValueError(
+            "No completed TRP values overlap the trading data."
+        )
+    return aligned
+
+
 def select_entries(
     data: pd.DataFrame,
     number_of_entries: int,
@@ -319,8 +418,16 @@ def select_entries(
     trade_direction: str,
     ma_enabled: bool,
     atrp_values: np.ndarray | None = None,
+    trp_values: np.ndarray | None = None,
+    trades_per_year: int | None = None,
 ) -> pd.DataFrame:
-    """Select reproducible entry bars and optionally apply the entry SMA filter."""
+    """Select reproducible entry bars and optionally apply the entry SMA filter.
+
+    When trades_per_year is set, sampling is grouped by calendar year. Each
+    seed has an independent random selection, and every year contributes up to
+    trades_per_year eligible bars. If trades_per_year is omitted, number_of_entries
+    retains the legacy behavior of selecting entries across the full dataset.
+    """
 
     maximum_entries = len(data) - 1
     if maximum_entries < 1:
@@ -340,6 +447,93 @@ def select_entries(
         else np.full(len(data), np.nan)
     )
     rng = np.random.default_rng(int(seed))
+
+    if trades_per_year is not None:
+        if trades_per_year < 1:
+            raise ValueError("The number of trades per year must be at least 1.")
+
+        eligible_indexes = np.arange(maximum_entries)
+        if atrp_values is not None:
+            eligible_indexes = eligible_indexes[
+                np.isfinite(atrp_values[eligible_indexes])
+            ]
+        if trp_values is not None:
+            eligible_indexes = eligible_indexes[
+                np.isfinite(trp_values[eligible_indexes])
+            ]
+        if trp_values is not None:
+            eligible_indexes = eligible_indexes[
+                np.isfinite(trp_values[eligible_indexes])
+            ]
+
+        above_sma = close_values > sma_values
+        below_sma = close_values < sma_values
+        if ma_enabled and trade_direction == "Long":
+            eligible_indexes = eligible_indexes[above_sma[eligible_indexes]]
+        elif ma_enabled and trade_direction == "Short":
+            eligible_indexes = eligible_indexes[below_sma[eligible_indexes]]
+        elif ma_enabled:
+            eligible_indexes = eligible_indexes[
+                above_sma[eligible_indexes] | below_sma[eligible_indexes]
+            ]
+
+        if not isinstance(data.index, pd.DatetimeIndex):
+            raise ValueError("Trading data must use a DatetimeIndex.")
+
+        selected_indexes = []
+        year_values = data.index.year.to_numpy()
+        for year in np.unique(year_values[eligible_indexes]):
+            year_indexes = eligible_indexes[year_values[eligible_indexes] == year]
+            count = min(int(trades_per_year), len(year_indexes))
+            if count:
+                selected_indexes.append(rng.choice(year_indexes, size=count, replace=False))
+
+        entry_indexes = (
+            np.sort(np.concatenate(selected_indexes))
+            if selected_indexes
+            else np.empty(0, dtype=int)
+        )
+
+        entry_directions = np.where(
+            above_sma[entry_indexes],
+            "Long",
+            "Short",
+        )
+        if not ma_enabled and trade_direction == "Long":
+            entry_directions = np.full(len(entry_indexes), "Long")
+        elif not ma_enabled and trade_direction == "Short":
+            entry_directions = np.full(len(entry_indexes), "Short")
+        elif not ma_enabled:
+            entry_directions = rng.choice(
+                ["Long", "Short"],
+                size=len(entry_indexes),
+            )
+
+        return pd.DataFrame(
+            {
+                "EntryIndex": entry_indexes,
+                "EntryDate": data.index[entry_indexes],
+                "EntryClose": close_values[entry_indexes],
+                "EntrySMA": sma_values[entry_indexes],
+                "Direction": entry_directions,
+                "EntryATRP": (
+                    atrp_values[entry_indexes]
+                    if atrp_values is not None
+                    else np.full(len(entry_indexes), np.nan)
+                ),
+                "EntryTRP": (
+                    trp_values[entry_indexes]
+                    if trp_values is not None
+                    else np.full(len(entry_indexes), np.nan)
+                ),
+                "EntryTRP": (
+                    trp_values[entry_indexes]
+                    if trp_values is not None
+                    else np.full(len(entry_indexes), np.nan)
+                ),
+            }
+        )
+
     actual_entries = min(int(number_of_entries), maximum_entries)
     eligible_indexes = np.arange(maximum_entries)
     if atrp_values is not None:
@@ -405,9 +599,11 @@ def simulate_trade(
     direction: str,
     sma_values: np.ndarray | None = None,
     entry_atrp: float | None = None,
+    entry_trp: float | None = None,
     use_atrp: bool = False,
+    use_trp: bool = False,
 ) -> dict:
-    """Simulate a trade with percentage or entry-ATRP-scaled exits."""
+    """Simulate a trade with percentage, ATRP, or TRP-scaled exits."""
 
     if direction not in {"Long", "Short"}:
         raise ValueError("Trade direction must be Long or Short.")
@@ -417,6 +613,14 @@ def simulate_trade(
         or entry_atrp <= 0
     ):
         raise ValueError("A positive entry ATRP is required for ATRP exits.")
+    if use_trp and (
+        entry_trp is None
+        or not np.isfinite(entry_trp)
+        or entry_trp <= 0
+    ):
+        raise ValueError("A positive entry TRP is required for TRP exits.")
+    if use_atrp and use_trp:
+        raise ValueError("Use ATRP or TRP exits, not both.")
 
     direction_sign = 1 if direction == "Long" else -1
     close_prices = data["Close"].to_numpy()
@@ -430,8 +634,10 @@ def simulate_trade(
         None
         if no_stop
         else (
-            float(stop_parameter) * float(entry_atrp)
-            if use_atrp
+            float(stop_parameter) * (
+                float(entry_atrp) if use_atrp else float(entry_trp)
+            )
+            if use_atrp or use_trp
             else float(stop_parameter)
         )
     )
@@ -439,8 +645,10 @@ def simulate_trade(
         None
         if no_target
         else (
-            float(target_parameter) * float(entry_atrp)
-            if use_atrp
+            float(target_parameter) * (
+                float(entry_atrp) if use_atrp else float(entry_trp)
+            )
+            if use_atrp or use_trp
             else float(target_parameter)
         )
     )
@@ -532,6 +740,13 @@ def simulate_trade(
         and entry_atrp > 0
         else np.nan
     )
+    net_return_trp = (
+        net_return_pct / float(entry_trp)
+        if entry_trp is not None
+        and np.isfinite(entry_trp)
+        and entry_trp > 0
+        else np.nan
+    )
     net_return_pct_per_bar = (
         net_return_pct / bars_held if bars_held else np.nan
     )
@@ -540,11 +755,17 @@ def simulate_trade(
         if bars_held and np.isfinite(net_return_atrp)
         else np.nan
     )
-    realized_r = (
-        net_return_pct / stop_distance_pct
-        if stop_distance_pct is not None
+    net_return_trp_per_bar = (
+        net_return_trp / bars_held
+        if bars_held and np.isfinite(net_return_trp)
         else np.nan
     )
+    r_risk_pct = (
+        stop_distance_pct
+        if stop_distance_pct is not None
+        else NO_STOP_RISK_PCT
+    )
+    realized_r = net_return_pct / r_risk_pct
     return {
         "EntryDate": dates[entry_index],
         "Direction": direction,
@@ -555,7 +776,7 @@ def simulate_trade(
         "EntryExecutionPrice": entry_execution,
         "ExitReferencePrice": exit_reference,
         "ExitExecutionPrice": exit_execution,
-        "ExitMode": "ATRP" if use_atrp else "Percent",
+        "ExitMode": "ATRP" if use_atrp else ("TRP" if use_trp else "Percent"),
         "StopParameter": stop_parameter,
         "TargetParameter": target_parameter,
         "StopLossPct": (
@@ -571,11 +792,14 @@ def simulate_trade(
             target_distance_pct if target_distance_pct is not None else np.nan
         ),
         "EntryATRP": entry_atrp if entry_atrp is not None else np.nan,
+        "EntryTRP": entry_trp if entry_trp is not None else np.nan,
         "GrossReturnPct": gross_return_pct,
         "NetReturnPct": net_return_pct,
         "NetReturnATRP": net_return_atrp,
+        "NetReturnTRP": net_return_trp,
         "NetReturnPctPerBar": net_return_pct_per_bar,
         "NetReturnATRPPerBar": net_return_atrp_per_bar,
+        "NetReturnTRPPerBar": net_return_trp_per_bar,
         "RealizedR": realized_r,
         "BarsHeld": bars_held,
         "ExitReason": exit_reason,
@@ -592,9 +816,23 @@ def calculate_metrics(
     """Calculate percentage, ATRP, and initial-risk metrics per combination."""
 
     returns = trades["NetReturnPct"].to_numpy(float)
-    atr_returns = trades["NetReturnATRP"].to_numpy(float)
+    atr_returns = (
+        trades["NetReturnATRP"].to_numpy(float)
+        if "NetReturnATRP" in trades
+        else np.full(len(trades), np.nan)
+    )
+    trp_returns = (
+        trades["NetReturnTRP"].to_numpy(float)
+        if "NetReturnTRP" in trades
+        else np.full(len(trades), np.nan)
+    )
     pct_bar_returns = trades["NetReturnPctPerBar"].to_numpy(float)
     atrp_bar_returns = trades["NetReturnATRPPerBar"].to_numpy(float)
+    trp_bar_returns = (
+        trades["NetReturnTRPPerBar"].to_numpy(float)
+        if "NetReturnTRPPerBar" in trades
+        else np.full(len(trades), np.nan)
+    )
     realized_r = trades["RealizedR"].to_numpy(float)
     bars_held = trades["BarsHeld"].to_numpy(float)
     number_of_trades = len(returns)
@@ -603,6 +841,8 @@ def calculate_metrics(
     valid_atr_returns = atr_returns[np.isfinite(atr_returns)]
     valid_pct_bar_returns = pct_bar_returns[np.isfinite(pct_bar_returns)]
     valid_atrp_bar_returns = atrp_bar_returns[np.isfinite(atrp_bar_returns)]
+    valid_trp_returns = trp_returns[np.isfinite(trp_returns)]
+    valid_trp_bar_returns = trp_bar_returns[np.isfinite(trp_bar_returns)]
     valid_r_per_bar_mask = (
         np.isfinite(realized_r)
         & np.isfinite(bars_held)
@@ -612,6 +852,17 @@ def calculate_metrics(
     valid_r_bars_held = bars_held[valid_r_per_bar_mask]
     winning_atr_returns = valid_atr_returns[valid_atr_returns > 0]
     losing_atr_returns = valid_atr_returns[valid_atr_returns < 0]
+    maximum_consecutive_losses = 0
+    consecutive_losses = 0
+    for trade_return in returns:
+        if trade_return < 0:
+            consecutive_losses += 1
+            maximum_consecutive_losses = max(
+                maximum_consecutive_losses,
+                consecutive_losses,
+            )
+        else:
+            consecutive_losses = 0
     win_rate = (
         float((returns > 0).mean() * 100)
         if number_of_trades
@@ -637,6 +888,16 @@ def calculate_metrics(
     expectancy_atrp_per_bar = (
         float(valid_atrp_bar_returns.mean())
         if len(valid_atrp_bar_returns)
+        else np.nan
+    )
+    expectancy_trp = (
+        float(valid_trp_returns.mean())
+        if len(valid_trp_returns)
+        else np.nan
+    )
+    expectancy_trp_per_bar = (
+        float(valid_trp_bar_returns.mean())
+        if len(valid_trp_bar_returns)
         else np.nan
     )
     expectancy_r = (
@@ -687,6 +948,7 @@ def calculate_metrics(
         "StopParameter": stop,
         "TargetParameter": target,
         "NumberOfTrades": number_of_trades,
+        "MaxConsecutiveLosses": maximum_consecutive_losses,
         "WinRatePct": win_rate,
         "AverageWinPct": average_win,
         "AverageLossPct": average_loss,
@@ -708,11 +970,20 @@ def calculate_metrics(
         "ExpectancyPctPerBar": expectancy_pct_per_bar,
         "ExpectancyATRP": expectancy_atrp,
         "ExpectancyATRPPerBar": expectancy_atrp_per_bar,
+        "ExpectancyTRP": expectancy_trp,
+        "ExpectancyTRPPerBar": expectancy_trp_per_bar,
         "ExpectancyR": expectancy_r,
         "ExpectancyRPerBar": expectancy_r_per_bar,
         "ExpectancyRPer100Bars": expectancy_r_per_100_bars,
         "AverageEntryATRP": (
-            float(trades["EntryATRP"].mean()) if number_of_trades else np.nan
+            float(trades["EntryATRP"].mean())
+            if number_of_trades and "EntryATRP" in trades
+            else np.nan
+        ),
+        "AverageEntryTRP": (
+            float(trades["EntryTRP"].mean())
+            if number_of_trades and "EntryTRP" in trades
+            else np.nan
         ),
         "AverageStopDistancePct": (
             float(trades["StopDistancePct"].mean())
@@ -757,6 +1028,7 @@ def run_sensitivity(
     data: pd.DataFrame,
     seeds: Iterable[int],
     number_of_entries: int = 25,
+    trades_per_year: int | None = None,
     stops: list[float] | None = None,
     targets: list[float] | None = None,
     sma_period: int = 200,
@@ -766,10 +1038,12 @@ def run_sensitivity(
     conservative: bool = True,
     ma_entry_enabled: bool = MA_ENTRY_ENABLED,
     ma_exit_enabled: bool = False,
-    use_atrp: bool = USE_ATRP,
+    use_atrp: bool = True,
     atrp_values: pd.Series | np.ndarray | None = None,
-    atr_timeframe: str = ATRP_TIMEFRAME,
-    atr_period: int = ATRP_PERIOD,
+    use_trp: bool = False,
+    trp_values: pd.Series | np.ndarray | None = None,
+    atr_timeframe: str = RANGE_TIMEFRAME,
+    atr_period: int = RANGE_PERIOD,
     progress_callback: Callable[[int, int, int, bool], None] | None = None,
     ticker: str = TICKER,
     trading_timeframe: str = INTERVAL,
@@ -778,11 +1052,15 @@ def run_sensitivity(
 
     seed_values = [int(seed) for seed in seeds]
     default_stops = (
-        DEFAULT_ATRP_STOP_MULTIPLIERS if use_atrp else DEFAULT_PERCENT_STOPS
+        RANGE_STOP_MULTIPLIERS if use_atrp else DEFAULT_PERCENT_STOPS
     )
+    if use_trp:
+        default_stops = RANGE_STOP_MULTIPLIERS
     default_targets = (
-        DEFAULT_ATRP_TARGET_MULTIPLIERS if use_atrp else DEFAULT_PERCENT_TARGETS
+        RANGE_TARGET_MULTIPLIERS if use_atrp else DEFAULT_PERCENT_TARGETS
     )
+    if use_trp:
+        default_targets = RANGE_TARGET_MULTIPLIERS
     stop_values = default_stops if stops is None else stops
     target_values = default_targets if targets is None else targets
 
@@ -794,14 +1072,25 @@ def run_sensitivity(
         raise ValueError("At least one stop and one target are required.")
     if use_atrp and atrp_values is None:
         raise ValueError("ATRP values are required when ATRP exits are enabled.")
+    if use_trp and trp_values is None:
+        raise ValueError("TRP values are required when TRP exits are enabled.")
+    if use_atrp and use_trp:
+        raise ValueError("Use ATRP or TRP exits, not both.")
 
     atrp_array = (
         np.asarray(atrp_values, dtype=float)
         if atrp_values is not None
         else None
     )
+    trp_array = (
+        np.asarray(trp_values, dtype=float)
+        if trp_values is not None
+        else None
+    )
     if atrp_array is not None and len(atrp_array) != len(data):
         raise ValueError("ATRP values must align one-to-one with trading bars.")
+    if trp_array is not None and len(trp_array) != len(data):
+        raise ValueError("TRP values must align one-to-one with trading bars.")
 
     sma_values = (
         data["Close"]
@@ -824,6 +1113,8 @@ def run_sensitivity(
             trade_direction=trade_direction,
             ma_enabled=ma_entry_enabled,
             atrp_values=atrp_array if use_atrp else None,
+            trp_values=trp_array if use_trp else None,
+            trades_per_year=trades_per_year,
         )
         for stop in stop_values:
             for target in target_values:
@@ -843,7 +1134,13 @@ def run_sensitivity(
                             if use_atrp
                             else None
                         ),
+                        entry_trp=(
+                            float(entry.EntryTRP)
+                            if use_trp
+                            else None
+                        ),
                         use_atrp=use_atrp,
+                        use_trp=use_trp,
                     )
                     for entry in entries.itertuples(index=False)
                 ]
@@ -859,7 +1156,7 @@ def run_sensitivity(
                     trade_frame,
                     stop,
                     target,
-                    "ATRP" if use_atrp else "Percent",
+                    "ATRP" if use_atrp else ("TRP" if use_trp else "Percent"),
                 )
                 records.append(
                     {
@@ -870,7 +1167,11 @@ def run_sensitivity(
                         "ParameterUnit": (
                             "ATRP multiples"
                             if use_atrp
-                            else "Percent of entry price"
+                            else (
+                                "TRP multiples"
+                                if use_trp
+                                else "Percent of entry price"
+                            )
                         ),
                         "ATRTimeframe": (
                             atr_timeframe if use_atrp else "N/A"
@@ -898,9 +1199,9 @@ def summarize_runs(
 ) -> pd.DataFrame:
     """Aggregate performance distributions and rank stable combinations."""
 
-    if robustness_metric not in {"ExpectancyR", "ExpectancyATRP"}:
+    if robustness_metric not in {"ExpectancyR", "ExpectancyATRP", "ExpectancyTRP"}:
         raise ValueError(
-            "Robustness metric must be ExpectancyR or ExpectancyATRP."
+            "Robustness metric must be ExpectancyR, ExpectancyATRP, or ExpectancyTRP."
         )
     required_columns = {"Seed", *SUMMARY_KEYS, *METRIC_COLUMNS}
     missing_columns = required_columns.difference(run_results.columns)
@@ -911,7 +1212,7 @@ def summarize_runs(
         )
 
     results = run_results.copy()
-    for metric in ("ExpectancyR", "ExpectancyATRP"):
+    for metric in ("ExpectancyR", "ExpectancyATRP", "ExpectancyTRP"):
         results[f"_{metric}Positive"] = results[metric].gt(0).astype(int)
         results[f"_{metric}Valid"] = results[metric].notna().astype(int)
     grouped = results.groupby(SUMMARY_KEYS, sort=False, dropna=False)
@@ -932,6 +1233,8 @@ def summarize_runs(
         ValidRExpectancyRuns=("_ExpectancyRValid", "sum"),
         PositiveATRPExpectancyRuns=("_ExpectancyATRPPositive", "sum"),
         ValidATRPExpectancyRuns=("_ExpectancyATRPValid", "sum"),
+        PositiveTRPExpectancyRuns=("_ExpectancyTRPPositive", "sum"),
+        ValidTRPExpectancyRuns=("_ExpectancyTRPValid", "sum"),
     ).reset_index()
     summary = summary.merge(
         run_counts,
@@ -949,12 +1252,19 @@ def summarize_runs(
         .div(summary["ValidATRPExpectancyRuns"].replace(0, np.nan))
         * 100
     )
+    summary["ExpectancyTRP_PositivePct"] = (
+        summary["PositiveTRPExpectancyRuns"]
+        .div(summary["ValidTRPExpectancyRuns"].replace(0, np.nan))
+        * 100
+    )
     summary = summary.drop(
         columns=[
             "PositiveRExpectancyRuns",
             "ValidRExpectancyRuns",
             "PositiveATRPExpectancyRuns",
             "ValidATRPExpectancyRuns",
+            "PositiveTRPExpectancyRuns",
+            "ValidTRPExpectancyRuns",
         ]
     )
 
@@ -1238,25 +1548,76 @@ def build_parser() -> argparse.ArgumentParser:
     )
     exit_mode = parser.add_mutually_exclusive_group()
     exit_mode.add_argument(
+        "--exit-mode",
+        choices=["ATRP", "TRP", "Percent"],
+        default=EXIT_MODE,
+    )
+    exit_mode.add_argument(
         "--use-atrp",
+        action="store_const",
+        const="ATRP",
+        dest="exit_mode",
+    )
+    exit_mode.add_argument(
+        "--use-trp",
         action="store_true",
-        dest="use_atrp",
-        default=USE_ATRP,
+        dest="use_trp",
     )
     exit_mode.add_argument(
         "--percent-exits",
         action="store_false",
         dest="use_atrp",
     )
+    parser.set_defaults(
+        use_atrp=EXIT_MODE == "ATRP",
+        use_trp=EXIT_MODE == "TRP",
+        atr_timeframe=RANGE_TIMEFRAME,
+        atr_period=RANGE_PERIOD,
+    )
     parser.add_argument(
         "--atr-timeframe",
+        "--range-timeframe",
+        dest="range_timeframe",
         choices=["1d", "1wk", "1mo", "3mo"],
-        default=ATRP_TIMEFRAME,
+        default=RANGE_TIMEFRAME,
+        help="Range candle timeframe for ATRP and TRP.",
     )
-    parser.add_argument("--atr-period", type=int, default=ATRP_PERIOD)
-    parser.add_argument("--seed-count", type=int, default=SEED_COUNT)
-    parser.add_argument("--seed-start", type=int, default=SEED_START)
-    parser.add_argument("--entry-count", type=int, default=ENTRY_COUNT)
+    parser.add_argument(
+        "--atr-period",
+        "--range-period",
+        dest="range_period",
+        type=int,
+        default=RANGE_PERIOD,
+        help="ATR Wilder period or number of pre-start TRP history bars.",
+    )
+    parser.add_argument(
+        "--seed-count",
+        type=int,
+        default=SEED_COUNT,
+        help=(
+            "Number of independent scenario runs. Uses consecutive seeds from "
+            "seed-start through seed-start + seed-count - 1."
+        ),
+    )
+    parser.add_argument(
+        "--seed-start",
+        type=int,
+        default=SEED_START,
+        help="Seed for the first scenario; later scenarios use consecutive seeds.",
+    )
+    parser.add_argument(
+        "--trades-per-year",
+        "--entry-count",
+        dest="trades_per_year",
+        type=int,
+        default=TRADES_PER_YEAR,
+        help=(
+            "Maximum eligible random trades to select independently from each "
+            "calendar year for every seed. Filters or insufficient data can "
+            "reduce the actual count "
+            "(--entry-count is a legacy alias)."
+        ),
+    )
     entry_filter = parser.add_mutually_exclusive_group()
     entry_filter.add_argument(
         "--ma-entry-enabled",
@@ -1328,14 +1689,25 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main() -> None:
     args = build_parser().parse_args()
+    args.atr_timeframe = args.range_timeframe
+    args.atr_period = args.range_period
+    if args.exit_mode != EXIT_MODE:
+        args.use_atrp = args.exit_mode == "ATRP"
+        args.use_trp = args.exit_mode == "TRP"
+    elif getattr(args, "use_trp", False):
+        args.exit_mode = "TRP"
+        args.use_atrp = False
+    elif not args.use_atrp:
+        args.exit_mode = "Percent"
+        args.use_trp = False
     if args.seed_count < 1:
         raise SystemExit("--seed-count must be at least 1.")
-    if args.entry_count < 1:
-        raise SystemExit("--entry-count must be at least 1.")
+    if args.trades_per_year < 1:
+        raise SystemExit("--trades-per-year must be at least 1.")
     if args.sma_period < 1:
         raise SystemExit("--sma-period must be at least 1.")
-    if args.use_atrp and args.atr_period < 1:
-        raise SystemExit("--atr-period must be at least 1.")
+    if (args.use_atrp or getattr(args, "use_trp", False)) and args.range_period < 1:
+        raise SystemExit("--range-period must be at least 1.")
     if args.end_date < args.start_date:
         raise SystemExit("--end-date must be on or after --start-date.")
     if (
@@ -1372,6 +1744,7 @@ def main() -> None:
         args.interval,
     )
     atrp_values = None
+    trp_values = None
     if args.use_atrp:
         atr_start_date = atr_warmup_start_date(
             args.start_date,
@@ -1395,19 +1768,41 @@ def main() -> None:
             atr_timeframe=args.atr_timeframe,
             atr_period=args.atr_period,
         )
+    elif getattr(args, "use_trp", False):
+        trp_start_date = atr_warmup_start_date(
+            args.start_date,
+            args.range_timeframe,
+            args.range_period,
+        )
+        print(
+            f"Downloading {args.range_timeframe} TRP history "
+            f"from {trp_start_date}..."
+        )
+        range_data = download_data(
+            args.ticker,
+            trp_start_date,
+            args.end_date,
+            args.range_timeframe,
+        )
+        trp_values = align_trp_to_trading_data(
+            trading_data=data,
+            range_data=range_data,
+            trading_timeframe=args.interval,
+            range_timeframe=args.range_timeframe,
+        )
 
     stops = args.stops
     targets = args.targets
     if stops is None:
         stops = (
-            DEFAULT_ATRP_STOP_MULTIPLIERS
-            if args.use_atrp
+            RANGE_STOP_MULTIPLIERS
+            if args.use_atrp or getattr(args, "use_trp", False)
             else DEFAULT_PERCENT_STOPS
         )
     if targets is None:
         targets = (
-            DEFAULT_ATRP_TARGET_MULTIPLIERS
-            if args.use_atrp
+            RANGE_TARGET_MULTIPLIERS
+            if args.use_atrp or getattr(args, "use_trp", False)
             else DEFAULT_PERCENT_TARGETS
         )
 
@@ -1428,7 +1823,8 @@ def main() -> None:
     run_results = run_sensitivity(
         data=data,
         seeds=seeds,
-        number_of_entries=args.entry_count,
+        number_of_entries=args.trades_per_year,
+        trades_per_year=args.trades_per_year,
         stops=stops,
         targets=targets,
         sma_period=args.sma_period,
@@ -1440,13 +1836,23 @@ def main() -> None:
         ma_exit_enabled=args.ma_exit,
         use_atrp=args.use_atrp,
         atrp_values=atrp_values,
+        use_trp=getattr(args, "use_trp", False),
+        trp_values=trp_values,
         atr_timeframe=args.atr_timeframe,
         atr_period=args.atr_period,
         progress_callback=report_progress,
         ticker=args.ticker,
         trading_timeframe=args.interval,
     )
-    robustness_metric = "ExpectancyATRP" if args.use_atrp else "ExpectancyR"
+    robustness_metric = (
+        "ExpectancyATRP"
+        if args.use_atrp
+        else (
+            "ExpectancyTRP"
+            if getattr(args, "use_trp", False)
+            else "ExpectancyR"
+        )
+    )
     summary = summarize_runs(run_results, robustness_metric=robustness_metric)
     for request in heatmap_requests:
         metric = request["metric"]
@@ -1467,7 +1873,7 @@ def main() -> None:
         for character in args.ticker
     ).strip("_")
     mode_slug = (
-        f"atrp_{args.atr_timeframe}_{args.atr_period}"
+        f"{args.exit_mode.lower()}_{args.range_timeframe}_{args.range_period}"
         if args.use_atrp
         else "percent"
     )

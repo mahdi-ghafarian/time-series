@@ -9,9 +9,11 @@ import matplotlib.pyplot as plt
 
 from exit_strategy_monte_carlo_analysis import (
     align_atrp_to_trading_data,
+    align_trp_to_trading_data,
     build_parser,
     build_heatmap_requests,
     calculate_atrp,
+    calculate_trp,
     calculate_metrics,
     create_heatmap,
     download_data,
@@ -103,6 +105,34 @@ class ExitStrategySensitivityTests(unittest.TestCase):
         self.assertEqual(len(filtered_runs), 2)
         self.assertEqual(set(filtered_runs["EntryMAEnabled"]), {True})
 
+    def test_select_entries_samples_requested_count_in_each_calendar_year(self):
+        dates = pd.to_datetime(
+            ["2020-12-30", "2020-12-31", "2021-01-01", "2021-01-02", "2021-01-03"]
+        )
+        close = np.array([10, 11, 12, 13, 14], dtype=float)
+        data = pd.DataFrame(
+            {
+                "Open": close,
+                "High": close + 0.5,
+                "Low": close - 0.5,
+                "Close": close,
+            },
+            index=dates,
+        )
+
+        entries = select_entries(
+            data,
+            number_of_entries=100,
+            seed=7,
+            sma_period=2,
+            trade_direction="Long",
+            ma_enabled=False,
+            trades_per_year=2,
+        )
+
+        selected_year_counts = entries["EntryDate"].dt.year.value_counts().sort_index()
+        self.assertEqual(selected_year_counts.to_dict(), {2020: 2, 2021: 2})
+
     def test_summary_ranks_consistent_positive_expectancy_first(self):
         base = {
             "Seed": [1, 2, 3, 1, 2, 3],
@@ -120,6 +150,7 @@ class ExitStrategySensitivityTests(unittest.TestCase):
             column: [1.0] * 6
             for column in (
                 "NumberOfTrades",
+                "MaxConsecutiveLosses",
                 "WinRatePct",
                 "AverageWinPct",
                 "AverageLossPct",
@@ -133,10 +164,13 @@ class ExitStrategySensitivityTests(unittest.TestCase):
                 "ExpectancyPctPerBar",
                 "ExpectancyATRP",
                 "ExpectancyATRPPerBar",
+                "ExpectancyTRP",
+                "ExpectancyTRPPerBar",
                 "ExpectancyRPerBar",
                 "ExpectancyRPer100Bars",
                 "AverageBarsHeld",
                 "AverageEntryATRP",
+                "AverageEntryTRP",
                 "AverageStopDistancePct",
                 "AverageTargetDistancePct",
                 "StopExitPct",
@@ -238,6 +272,67 @@ class ExitStrategySensitivityTests(unittest.TestCase):
             metrics["ExpectancyRPer100Bars"],
             metrics["ExpectancyRPerBar"] * 100,
         )
+
+    def test_no_stop_uses_100_percent_risk_for_r_without_placing_stop(self):
+        close = np.array([100.0, 110.0])
+        data = pd.DataFrame(
+            {
+                "Open": close,
+                "High": close,
+                "Low": close,
+                "Close": close,
+            },
+            index=pd.date_range("2020-01-01", periods=len(close), freq="D"),
+        )
+
+        trade = simulate_trade(
+            data=data,
+            entry_index=0,
+            stop_parameter=-1,
+            target_parameter=-1,
+            commission_pct=0.0,
+            slippage_pct=0.0,
+            conservative=True,
+            direction="Long",
+        )
+        metrics = calculate_metrics(
+            pd.DataFrame([trade]),
+            stop=-1,
+            target=-1,
+            exit_mode="Percent",
+        )
+
+        self.assertEqual(trade["ExitReason"], "EndOfData")
+        self.assertEqual(trade["StopLossPct"], -1)
+        self.assertTrue(np.isnan(trade["StopDistancePct"]))
+        self.assertAlmostEqual(trade["RealizedR"], 0.1)
+        self.assertAlmostEqual(metrics["ExpectancyR"], 0.1)
+
+    def test_maximum_consecutive_losses_is_counted_in_trade_order(self):
+        trades = pd.DataFrame(
+            {
+                "NetReturnPct": [-1.0, -2.0, 1.0, 0.0, -3.0, -4.0, -5.0],
+                "NetReturnATRP": [-0.5, -1.0, 0.5, 0.0, -1.5, -2.0, -2.5],
+                "NetReturnPctPerBar": [-0.5, -1.0, 0.5, 0.0, -1.5, -2.0, -2.5],
+                "NetReturnATRPPerBar": [-0.25, -0.5, 0.25, 0.0, -0.75, -1.0, -1.25],
+                "RealizedR": [-0.5, -1.0, 0.5, 0.0, -1.5, -2.0, -2.5],
+                "BarsHeld": [2, 2, 2, 2, 2, 2, 2],
+                "EntryATRP": [2.0] * 7,
+                "StopDistancePct": [2.0] * 7,
+                "TargetDistancePct": [4.0] * 7,
+                "ExitReason": ["Stop"] * 7,
+                "CommissionPct": [0.0] * 7,
+            }
+        )
+
+        metrics = calculate_metrics(
+            trades,
+            stop=2,
+            target=4,
+            exit_mode="ATRP",
+        )
+
+        self.assertEqual(metrics["MaxConsecutiveLosses"], 3)
 
     def test_r_per_bar_is_total_r_divided_by_total_bars_held(self):
         trades = pd.DataFrame(
@@ -377,6 +472,72 @@ class ExitStrategySensitivityTests(unittest.TestCase):
             self.assertEqual(auto_scale_figure.axes[0].images[0].norm.vmax, 10.0)
         finally:
             plt.close(auto_scale_figure)
+
+    def test_trp_is_expanding_median_true_range_percentage(self):
+        data = pd.DataFrame(
+            {
+                "High": [105.0, 106.0, 100.0],
+                "Low": [95.0, 94.0, 90.0],
+                "Close": [100.0, 100.0, 95.0],
+            },
+            index=pd.date_range("2020-01-01", periods=3),
+        )
+
+        trp = calculate_trp(data)
+
+        self.assertTrue(np.isfinite(trp.to_numpy()).all())
+        self.assertGreater(trp.iloc[-1], trp.iloc[0])
+
+        trade = simulate_trade(
+            data=pd.DataFrame(
+                {
+                    "Open": [100.0, 100.0, 100.0],
+                    "High": [105.0, 106.0, 100.0],
+                    "Low": [95.0, 94.0, 90.0],
+                    "Close": [100.0, 100.0, 95.0],
+                },
+                index=pd.date_range("2020-01-01", periods=3),
+            ),
+            entry_index=0,
+            stop_parameter=2,
+            target_parameter=3,
+            commission_pct=0,
+            slippage_pct=0,
+            conservative=True,
+            direction="Long",
+            entry_trp=10.0,
+            use_trp=True,
+        )
+
+        self.assertEqual(trade["ExitMode"], "TRP")
+        self.assertAlmostEqual(trade["StopDistancePct"], 20.0)
+        self.assertAlmostEqual(trade["TargetDistancePct"], 30.0)
+        self.assertAlmostEqual(trade["NetReturnTRP"], trade["NetReturnPct"] / 10.0)
+
+    def test_aligned_trp_keeps_expanding_median_instead_of_rolling_lookback(self):
+        range_dates = pd.date_range("2020-01-01", periods=25, freq="QS")
+        true_ranges = np.array([10.0] * 12 + [2.0] * 13)
+        range_data = pd.DataFrame(
+            {
+                "High": 100.0 + true_ranges / 2,
+                "Low": 100.0 - true_ranges / 2,
+                "Close": 100.0,
+            },
+            index=range_dates,
+        )
+        trading_data = pd.DataFrame(
+            index=pd.to_datetime(["2025-10-01", "2026-01-01"])
+        )
+
+        aligned = align_trp_to_trading_data(
+            trading_data=trading_data,
+            range_data=range_data,
+            trading_timeframe="1d",
+            range_timeframe="3mo",
+        )
+
+        self.assertEqual(aligned.iloc[0], 10.0)
+        self.assertEqual(aligned.iloc[1], 6.0)
 
     def test_quarterly_atrp_is_only_available_after_its_bar_completes(self):
         atr_dates = pd.to_datetime(

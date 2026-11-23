@@ -5,7 +5,7 @@ samples. Each seed is evaluated once using the entry-SMA setting selected by
 `MA_ENTRY_ENABLED`.
 
 By default it analyzes QQQ daily data from 2000-01-01 through 2026-12-31, uses
-25 requested entries per seed, tests 200 seeds (0 through 199), and uses a
+25 requested random trades per calendar year per seed, tests 200 seeds (0 through 199), and uses a
 12-period ATRP calculated on 3-month bars. Stop and target grids are ATRP
 multipliers. It defaults to long entries, a 200-bar entry SMA, conservative
 stop-first handling, no entry-MA filter, and no SMA exit. Set
@@ -22,15 +22,24 @@ only the last completed ATR candle is used. Each entry's ATRP is held fixed for
 the entire trade. ATRP exit grids are multipliers of that entry ATRP; for
 example, a stop multiplier of `2` with entry ATRP of `3%` sets a stop distance
 of `6%` from entry.
+Use `--use-trp` for exit distances normalized by the expanding median True
+Range percentage from the first downloaded range bar through each entry. TRP is
+`TrueRange / Close * 100`, then the median is taken across all bars from the
+first bar through the entry bar and held fixed for that trade. `--range-period`
+controls how many pre-start range bars are downloaded; it does not cap the
+expanding median. TRP grids use the same stop/target multipliers as ATRP mode.
 
 The CSVs report stop/target parameters and their units, average actual
 stop/target distances, returns in percent and ATRP units, and expectancy per
-initial risk (`ExpectancyR`). Raw R-per-bar expectancy is the mean of each
-seed's total realized R divided by its total bars held across trades (equal to
+initial risk (`ExpectancyR`). `MaxConsecutiveLosses` is the longest streak of
+negative-return trades in chronological entry order; a winning or break-even
+trade resets the streak. Raw R-per-bar expectancy is the seed's total realized
+R divided by its total bars held across trades (equal to
 that seed's `ExpectancyR` divided by its average bars held). The heatmap
 displays this scaled as R per 100 bars for readability; the raw R/bar value
 remains in the summary CSV.
-R-based metrics are undefined for stop settings without an initial stop.
+For a no-stop (`-1`) setting, `ExpectancyR` uses an assumed initial risk of
+100% of entry value for normalization only; the simulation still places no stop.
 Robust ranking in ATRP mode uses the fraction of
 positive-`ExpectancyATRP` runs, median expectancy in ATRP units, then its
 standard deviation. Use `--percent-exits` to retain fixed-percentage stops and
@@ -74,7 +83,7 @@ Options can reduce the run for a quick check or customize it:
 
 ```powershell
 python "exit-strategy-monte-carlo/exit_strategy_monte_carlo_analysis.py" `
-  --seed-count 10 --seed-start 100 --entry-count 25 `
+  --seed-count 10 --seed-start 100 --trades-per-year 25 `
   --atr-timeframe 3mo --atr-period 14 `
   --ma-entry-enabled `
   --stops 0.5,1,1.5,2 --targets 1,2,3 `
@@ -82,9 +91,12 @@ python "exit-strategy-monte-carlo/exit_strategy_monte_carlo_analysis.py" `
 ```
 
 Other options include `--ticker`, `--start-date`, `--end-date`, `--interval`,
-`--percent-exits`, `--atr-timeframe` (`1d`, `1wk`, `1mo`, or `3mo`),
+`--exit-mode` (`ATRP`, `TRP`, or `Percent`), `--use-atrp`, `--use-trp`,
+`--percent-exits`, `--range-timeframe` (`1d`, `1wk`, `1mo`, or `3mo`),
+and `--range-period`. The former `--atr-timeframe` and `--atr-period`
+options remain aliases.
 `--atr-period`, `--ma-entry-enabled`, `--no-ma-entry-enabled`, `--sma-period`,
-`--direction`, `--commission`, `--slippage`, `--ma-exit`,
+`--direction`, `--trades-per-year`, `--commission`, `--slippage`, `--ma-exit`,
 `--non-conservative`, `--heatmap-metrics`, `--heatmap-metric`,
 `--heatmap-min`, and `--heatmap-max`.
 For example, use `--direction Both` to randomly assign long/short directions
@@ -107,13 +119,35 @@ trade and entry details. By default, scenario 0 supplies the detailed trades
 and entries, while the heatmap and ranked summary aggregate across all
 requested scenarios.
 
+### Monte Carlo parameters
+
+- `--scenario-count` / `--seed-count`: Number of independent Monte Carlo
+  runs. Each run uses a different seed and contributes one metric value per
+  stop/target combination to the selected aggregation.
+- `--scenario-start` / `--seed-start`: Seed for the first run. The runs use
+  consecutive seeds: `scenario-start`, `scenario-start + 1`, and so on.
+- `--trades-per-year`: Maximum number of eligible random trades selected from
+  each calendar year within every run. It is independent of the scenario count.
+  SMA filtering, unavailable ATRP, and years with limited data can reduce the
+  actual count.
+- `--entry-count`: Legacy alias for `--trades-per-year`. Do not specify both
+  aliases; the last occurrence determines the value.
+
+A seed controls reproducible random sampling. Sampling does not use the seed
+to repeat the same trades for every year. Instead, a separate random selection
+is made for each year using that scenario's seed.
+
+For example, `--scenario-start 0 --scenario-count 200 --trades-per-year 25`
+creates seeds `0` through `199`. In each of these 200 scenarios, up to 25
+eligible trades are randomly selected from every represented calendar year.
+
 Choose the aggregation across scenarios used by the heatmap and ranked summary with
 `--statistic`: `min`, `median`, `average`, `max`, `p1`, `p5`, `p25`, `p75`,
 `p95`, or `p99`. For example:
 
 ```powershell
 python "exit-strategy-monte-carlo/exit_strategy_monte_carlo_visualization.py" `
-  --percent-exits --scenario-count 50 --entry-count 25 `
+  --percent-exits --scenario-count 50 --trades-per-year 25 `
   --stops 5,10,20 --targets 5,10,20 `
   --statistic p5 --top-metric ExpectancyR --bottom-metric WinRatePct `
   --color-metric ExpectancyR

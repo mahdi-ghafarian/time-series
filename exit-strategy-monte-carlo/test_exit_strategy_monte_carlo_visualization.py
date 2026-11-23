@@ -35,6 +35,7 @@ class ExitStrategyMonteCarloTests(unittest.TestCase):
                     metric: 1.0
                     for metric in (
                         "NumberOfTrades",
+                        "MaxConsecutiveLosses",
                         "WinRatePct",
                         "AverageWinPct",
                         "AverageLossPct",
@@ -48,9 +49,12 @@ class ExitStrategyMonteCarloTests(unittest.TestCase):
                         "ExpectancyPctPerBar",
                         "ExpectancyATRP",
                         "ExpectancyATRPPerBar",
+                        "ExpectancyTRP",
+                        "ExpectancyTRPPerBar",
                         "ExpectancyRPerBar",
                         "ExpectancyRPer100Bars",
                         "AverageEntryATRP",
+                        "AverageEntryTRP",
                         "AverageStopDistancePct",
                         "AverageTargetDistancePct",
                         "AverageBarsHeld",
@@ -145,7 +149,7 @@ class ExitStrategyMonteCarloTests(unittest.TestCase):
             self.assertEqual(figure.axes[0].images[0].norm.vmax, 1.0)
             self.assertEqual(
                 [tick.get_text() for tick in figure.axes[0].get_xticklabels()],
-                ["5.0"],
+                ["5.0", "NS"],
             )
             self.assertEqual(len(entries), 3)
             self.assertEqual(len(trades), 6)

@@ -17,48 +17,108 @@ import exit_strategy_monte_carlo_analysis as sensitivity
 # USER CONFIGURATION
 # Edit these defaults or override them with command-line options.
 # =============================================================================
+# Market ticker.
 TICKER = "QQQ"
+# Start of the historical data range, inclusive.
 START_DATE = date(2000, 1, 1)
+# End of the historical data range, inclusive.
 END_DATE = date(2026, 12, 31)
+# Trading candle interval.
 INTERVAL = "1d"
-USE_ATRP = True
-ATR_TIMEFRAME = "3mo"
-ATR_PERIOD = 12
+# Exit mode: Percent, ATRP, or TRP.
+EXIT_MODE = "Percent"
+# Candle timeframe used to calculate ATRP and TRP.
+RANGE_TIMEFRAME = "3mo"
+# ATR Wilder period or TRP history warm-up in range timeframe bars.
+RANGE_PERIOD = 1
+# Number of Monte Carlo scenarios. Seeds run from SCENARIO_START sequentially.
 SCENARIO_COUNT = 200
+# Seed for the first scenario.
 SCENARIO_START = 0
-ENTRY_COUNT = 25
+# Maximum random trades sampled from each calendar year per scenario.
+TRADES_PER_YEAR = 1
+# Filter entries by the moving average.
 MA_ENTRY_ENABLED = False
+# Moving-average period in trading bars.
 SMA_PERIOD = 200
+# Trade direction: Long, Short, or Both.
 TRADE_DIRECTION = "Long"
+# Commission percentage per trade side.
 COMMISSION = 0.0
+# Slippage percentage per trade side.
 SLIPPAGE = 0.0
+# If both exit levels hit in one candle, assume the stop hit first.
 CONSERVATIVE = True
+# Exit trades on an opposite SMA crossover.
 MA_EXIT_ENABLED = False
+# Optional stop override; None uses the default stop grid.
 STOPS: list[float] | None = None
+# Optional target override; None uses the default target grid.
 TARGETS: list[float] | None = None
+# Fixed-percentage stop grid; -1 disables the stop.
 DEFAULT_PERCENT_STOPS = [
-    5, 7.5, 10, 12.5, 15, 20, 25, 30, 35, 40, 45, 50, 75, 90, -1,
+    5, 10, 15, 20, 25, 30, 35, 40, 45, 50
 ]
+# Fixed-percentage target grid; -1 disables the target.
 DEFAULT_PERCENT_TARGETS = [
-    5, 7.5, 10, 12.5, 15, 20, 25, 30, 35, 40, 45, 50, 75, 100, -1,
+    5, 10, 15, 20, 25, 30, 35, 40, 45, 50,
+    60, 70, 80, 90, 100
 ]
-DEFAULT_ATRP_STOP_MULTIPLIERS = [
-    0.5, 0.75, 1, 1.25, 1.5, 2, 2.5, 3, 4, 5, -1,
+# Normalized stop-multiplier grid used by ATRP and TRP modes.
+RANGE_STOP_MULTIPLIERS = [
+    0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.25, 2.5, -1
 ]
-DEFAULT_ATRP_TARGET_MULTIPLIERS = [
-    0.5, 0.75, 1, 1.25, 1.5, 2, 2.5, 3, 4, 5, -1,
+# Normalized target-multiplier grid used by ATRP and TRP modes.
+RANGE_TARGET_MULTIPLIERS = [
+0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.25, 2.5, 3, 3.5, 4, 4.5, 5
 ]
+# Statistic aggregated across Monte Carlo scenarios.
 STATISTIC = "p5"
+# Metric printed in the top section of each heatmap cell.
 TOP_METRIC = "ExpectancyR"
+# Metric printed in the bottom section of each heatmap cell.
 BOTTOM_METRIC = "WinRatePct"
+# Metric used for heatmap colors.
 COLOR_METRIC = "ExpectancyR"
+# Metric used to rank stop/target combinations.
 RANK_METRIC = "ExpectancyR"
+# Minimum heatmap color value; None uses the observed minimum.
 COLOR_MIN: float | None = 0.0
+# Maximum heatmap color value; None uses the observed maximum.
 COLOR_MAX: float | None = 1.0
-HIGHLIGHT_WIN_RATE = 50.0
-HIGHLIGHT_EXPECTANCY_R = 0.5
+# Minimum win rate for a highlighted heatmap cell.
+HIGHLIGHT_WIN_RATE = 67.0
+# Minimum expectancy in R for a highlighted heatmap cell.
+HIGHLIGHT_EXPECTANCY_R = 1.0
+# Directory for generated reports and charts.
 OUTPUT_DIR = Path(__file__).resolve().parent / "results" / "visualization"
 
+# Available values for TOP_METRIC, BOTTOM_METRIC, COLOR_METRIC, and RANK_METRIC:
+# Trade count: NumberOfTrades, MaxConsecutiveLosses
+# Outcomes: WinRatePct, AverageWinPct, AverageLossPct, AverageWinATRP,
+# AverageLossATRP
+# Reward/risk: RealizedRRR, BreakEvenWinRatePct, PlannedRRR,
+# PlannedBreakEvenWinRatePct
+# Percentage expectancy: ExpectancyPct, ExpectancyPctPerBar
+# ATRP expectancy: ExpectancyATRP, ExpectancyATRPPerBar
+# TRP expectancy: ExpectancyTRP, ExpectancyTRPPerBar
+# R expectancy: ExpectancyR, ExpectancyRPerBar, ExpectancyRPer100Bars
+# Risk and distance: AverageEntryATRP, AverageEntryTRP, AverageStopDistancePct,
+# AverageTargetDistancePct
+# Duration: AverageBarsHeld
+# Exit distribution: StopExitPct, TargetExitPct, MovingAverageExitPct,
+# EndOfDataExitPct
+# Costs: AverageCommissionPct
+
+# Available values for STATISTIC:
+# min, median, average, max, p1, p5, p25, p75, p95, p99.
+
+# NOTES
+# 1. When using TRP, RANGE_PERIOD = 1 waits one RANGE_TIMEFRAME before 
+# starting simulation
+
+
+# =============================================================================
 
 def create_scenario_heatmap(
     results: pd.DataFrame,
@@ -79,9 +139,8 @@ def create_scenario_heatmap(
 ):
     """Create the annotated stop/target heatmap without app dependencies."""
 
-    stops = [stop for stop in stops if stop != -1]
     if not stops:
-        raise ValueError("The heatmap requires at least one stop other than -1.")
+        raise ValueError("The heatmap requires at least one stop setting.")
 
     color_values = results.pivot(
         index="TargetPct",
@@ -141,11 +200,14 @@ def create_scenario_heatmap(
     figure.colorbar(image, ax=axis).set_label(color_metric)
     axis.set_title(
         f"{ticker} | {start_date} to {end_date} | "
-        f"{number_of_entries:,} / {requested_entries:,} Random Entries\n"
+        f"{number_of_entries:,} Random Trades "
+        f"(up to {requested_entries:,} per Year)\n"
         f"{top_metric} (top), {bottom_metric} (bottom)"
     )
     axis.set_xticks(np.arange(len(stops)))
-    axis.set_xticklabels([str(value) for value in stops])
+    axis.set_xticklabels(
+        ["NS" if value == -1 else str(value) for value in stops]
+    )
     axis.set_yticks(np.arange(len(targets)))
     axis.set_yticklabels(["NT" if value == -1 else str(value) for value in targets])
 
@@ -299,7 +361,11 @@ def aggregate_scenarios(
     robustness_metric = (
         "ExpectancyATRP"
         if scenario_results["ExitMode"].eq("ATRP").all()
-        else "ExpectancyR"
+        else (
+            "ExpectancyTRP"
+            if scenario_results["ExitMode"].eq("TRP").all()
+            else "ExpectancyR"
+        )
     )
     robustness = sensitivity.summarize_runs(
         scenario_results,
@@ -311,6 +377,7 @@ def aggregate_scenarios(
             "RunsWithTrades",
             "ExpectancyR_PositivePct",
             "ExpectancyATRP_PositivePct",
+            "ExpectancyTRP_PositivePct",
             "RobustRank",
         ]
     ].rename(
@@ -354,7 +421,17 @@ def build_parser() -> argparse.ArgumentParser:
         description=(
             "Visualize Monte Carlo stop/target results across random-entry "
             "scenarios, using a selected statistic for the heatmap and ranking."
-        )
+        ),
+        epilog=(
+            "Sampling: --scenario-count is the number of independent scenario "
+            "runs. --scenario-start is the first seed, and scenarios use "
+            "consecutive seeds. --trades-per-year is the maximum number of "
+            "eligible random trades drawn from each calendar year in every "
+            "scenario. For example, --scenario-start 0 --scenario-count 200 "
+            "--trades-per-year 25 creates 200 reproducible scenarios; each "
+            "year contributes up to 25 trades to each scenario."
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument("--ticker", default=TICKER)
     parser.add_argument(
@@ -374,29 +451,60 @@ def build_parser() -> argparse.ArgumentParser:
     )
     exit_mode = parser.add_mutually_exclusive_group()
     exit_mode.add_argument(
+        "--exit-mode",
+        choices=["ATRP", "TRP", "Percent"],
+        default=EXIT_MODE,
+    )
+    exit_mode.add_argument(
         "--use-atrp",
+        action="store_const",
+        const="ATRP",
+        dest="exit_mode",
+    )
+    exit_mode.add_argument(
+        "--use-trp",
         action="store_true",
-        dest="use_atrp",
-        default=USE_ATRP,
+        dest="use_trp",
     )
     exit_mode.add_argument(
         "--percent-exits",
         action="store_false",
         dest="use_atrp",
     )
+    parser.set_defaults(
+        use_atrp=EXIT_MODE == "ATRP",
+        use_trp=EXIT_MODE == "TRP",
+        atr_timeframe=RANGE_TIMEFRAME,
+        atr_period=RANGE_PERIOD,
+    )
     parser.add_argument(
         "--atr-timeframe",
+        "--range-timeframe",
+        dest="range_timeframe",
         choices=["1d", "1wk", "1mo", "3mo"],
-        default=ATR_TIMEFRAME,
+        default=RANGE_TIMEFRAME,
+        help="Range candle timeframe for ATRP and TRP.",
     )
-    parser.add_argument("--atr-period", type=int, default=ATR_PERIOD)
+    parser.add_argument(
+        "--atr-period",
+        "--range-period",
+        dest="range_period",
+        type=int,
+        default=RANGE_PERIOD,
+        help="ATR Wilder period or number of pre-start TRP history bars.",
+    )
     parser.add_argument(
         "--scenario-count",
         "--seed-count",
         dest="scenario_count",
         type=int,
         default=SCENARIO_COUNT,
-        help="Number of scenarios to simulate (--seed-count is a legacy alias).",
+        help=(
+            "Number of independent scenario runs. The program creates "
+            "consecutive seeds from scenario-start through "
+            "scenario-start + scenario-count - 1 "
+            "(--seed-count is a legacy alias)."
+        ),
     )
     parser.add_argument(
         "--scenario-start",
@@ -404,9 +512,24 @@ def build_parser() -> argparse.ArgumentParser:
         dest="scenario_start",
         type=int,
         default=SCENARIO_START,
-        help="First scenario number (--seed-start is a legacy alias).",
+        help=(
+            "Seed for the first scenario. Each following scenario uses the "
+            "next consecutive seed (--seed-start is a legacy alias)."
+        ),
     )
-    parser.add_argument("--entry-count", type=int, default=ENTRY_COUNT)
+    parser.add_argument(
+        "--trades-per-year",
+        "--entry-count",
+        dest="trades_per_year",
+        type=int,
+        default=TRADES_PER_YEAR,
+        help=(
+            "Maximum number of eligible random trades to select independently "
+            "from each calendar year for every scenario seed. Filters or "
+            "insufficient data in a year can reduce the count "
+            "(--entry-count is a legacy alias)."
+        ),
+    )
     entry_filter = parser.add_mutually_exclusive_group()
     entry_filter.add_argument(
         "--ma-entry-enabled",
@@ -500,25 +623,43 @@ def simulate_representative_scenario(
     stops: list[float],
     targets: list[float],
     atrp_values: pd.Series | np.ndarray | None,
+    trp_values: pd.Series | np.ndarray | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """Create app-style entries, trade details, and direction statistics."""
 
+    trades_per_year = getattr(
+        args,
+        "trades_per_year",
+        getattr(args, "entry_count", None),
+    )
+    if trades_per_year is None:
+        raise ValueError("A trades-per-year setting is required.")
+
     atrp_array = None
+    trp_array = None
     if args.use_atrp:
         if atrp_values is None:
             raise ValueError("ATRP values are required when ATRP exits are enabled.")
         atrp_array = np.asarray(atrp_values, dtype=float)
         if len(atrp_array) != len(data):
             raise ValueError("ATRP values must align one-to-one with trading bars.")
+    elif getattr(args, "use_trp", False):
+        if trp_values is None:
+            raise ValueError("TRP values are required when TRP exits are enabled.")
+        trp_array = np.asarray(trp_values, dtype=float)
+        if len(trp_array) != len(data):
+            raise ValueError("TRP values must align one-to-one with trading bars.")
 
     entries = sensitivity.select_entries(
         data=data,
-        number_of_entries=args.entry_count,
+        number_of_entries=trades_per_year,
         seed=scenario,
         sma_period=args.sma_period,
         trade_direction=args.direction,
         ma_enabled=args.ma_entry_enabled,
         atrp_values=atrp_array,
+        trp_values=trp_array,
+        trades_per_year=trades_per_year,
     )
     sma_values = (
         data["Close"]
@@ -534,7 +675,11 @@ def simulate_representative_scenario(
 
     trade_records = []
     directional_records = []
-    exit_mode = "ATRP" if args.use_atrp else "Percent"
+    exit_mode = (
+        "ATRP"
+        if args.use_atrp
+        else ("TRP" if getattr(args, "use_trp", False) else "Percent")
+    )
     for stop in stops:
         for target in targets:
             combination_trades = []
@@ -552,7 +697,13 @@ def simulate_representative_scenario(
                     entry_atrp=(
                         float(entry.EntryATRP) if args.use_atrp else None
                     ),
+                    entry_trp=(
+                        float(entry.EntryTRP)
+                        if getattr(args, "use_trp", False)
+                        else None
+                    ),
                     use_atrp=args.use_atrp,
+                    use_trp=getattr(args, "use_trp", False),
                 )
                 trade_records.append(
                     {
@@ -615,12 +766,12 @@ def validate_args(args: argparse.Namespace) -> None:
         raise ValueError("--start-date must be earlier than --end-date.")
     if args.scenario_count < 1:
         raise ValueError("--scenario-count must be at least 1.")
-    if args.entry_count < 1:
-        raise ValueError("--entry-count must be at least 1.")
+    if args.trades_per_year < 1:
+        raise ValueError("--trades-per-year must be at least 1.")
     if args.sma_period < 1:
         raise ValueError("--sma-period must be at least 1.")
-    if args.use_atrp and args.atr_period < 1:
-        raise ValueError("--atr-period must be at least 1.")
+    if (args.use_atrp or getattr(args, "use_trp", False)) and args.range_period < 1:
+        raise ValueError("--range-period must be at least 1.")
     if args.commission < 0 or args.slippage < 0:
         raise ValueError("--commission and --slippage must not be negative.")
     if args.color_min is not None and args.color_max is not None:
@@ -630,16 +781,27 @@ def validate_args(args: argparse.Namespace) -> None:
 
 def main() -> None:
     args = build_parser().parse_args()
+    args.atr_timeframe = args.range_timeframe
+    args.atr_period = args.range_period
+    if args.exit_mode != EXIT_MODE:
+        args.use_atrp = args.exit_mode == "ATRP"
+        args.use_trp = args.exit_mode == "TRP"
+    elif getattr(args, "use_trp", False):
+        args.exit_mode = "TRP"
+        args.use_atrp = False
+    elif not args.use_atrp:
+        args.exit_mode = "Percent"
+        args.use_trp = False
     validate_args(args)
 
     stops = args.stops or STOPS or (
-        DEFAULT_ATRP_STOP_MULTIPLIERS
-        if args.use_atrp
+        RANGE_STOP_MULTIPLIERS
+        if args.use_atrp or getattr(args, "use_trp", False)
         else DEFAULT_PERCENT_STOPS
     )
     targets = args.targets or TARGETS or (
-        DEFAULT_ATRP_TARGET_MULTIPLIERS
-        if args.use_atrp
+        RANGE_TARGET_MULTIPLIERS
+        if args.use_atrp or getattr(args, "use_trp", False)
         else DEFAULT_PERCENT_TARGETS
     )
     start_time = time.perf_counter()
@@ -652,6 +814,7 @@ def main() -> None:
         args.interval,
     )
     atrp_values = None
+    trp_values = None
     if args.use_atrp:
         atr_start_date = sensitivity.atr_warmup_start_date(
             args.start_date,
@@ -675,6 +838,28 @@ def main() -> None:
             atr_timeframe=args.atr_timeframe,
             atr_period=args.atr_period,
         )
+    elif getattr(args, "use_trp", False):
+        trp_start_date = sensitivity.atr_warmup_start_date(
+            args.start_date,
+            args.range_timeframe,
+            args.range_period,
+        )
+        print(
+            f"Downloading {args.range_timeframe} TRP history "
+            f"from {trp_start_date}..."
+        )
+        range_data = sensitivity.download_data(
+            args.ticker,
+            trp_start_date,
+            args.end_date,
+            args.range_timeframe,
+        )
+        trp_values = sensitivity.align_trp_to_trading_data(
+            trading_data=data,
+            range_data=range_data,
+            trading_timeframe=args.interval,
+            range_timeframe=args.range_timeframe,
+        )
 
     scenarios = range(
         args.scenario_start,
@@ -685,18 +870,15 @@ def main() -> None:
         completed: int,
         total: int,
         scenario: int,
-        ma_enabled: bool,
+        _ma_enabled: bool,
     ) -> None:
-        filter_state = "enabled" if ma_enabled else "disabled"
-        print(
-            f"Completed {completed}/{total} scenarios "
-            f"(scenario {scenario}, entry MA filter {filter_state})."
-        )
+        print(f"Completed {completed}/{total} scenarios.")
 
     scenario_results = sensitivity.run_sensitivity(
         data=data,
         seeds=scenarios,
-        number_of_entries=args.entry_count,
+        number_of_entries=args.trades_per_year,
+        trades_per_year=args.trades_per_year,
         stops=stops,
         targets=targets,
         sma_period=args.sma_period,
@@ -708,6 +890,8 @@ def main() -> None:
         ma_exit_enabled=args.ma_exit,
         use_atrp=args.use_atrp,
         atrp_values=atrp_values,
+        use_trp=getattr(args, "use_trp", False),
+        trp_values=trp_values,
         atr_timeframe=args.atr_timeframe,
         atr_period=args.atr_period,
         progress_callback=report_progress,
@@ -726,6 +910,7 @@ def main() -> None:
         stops=stops,
         targets=targets,
         atrp_values=atrp_values,
+        trp_values=trp_values,
     )
 
     summary = summary.rename(
@@ -754,7 +939,7 @@ def main() -> None:
         start_date=args.start_date,
         end_date=args.end_date,
         number_of_entries=len(entries),
-        requested_entries=args.entry_count,
+        requested_entries=args.trades_per_year,
         top_metric=args.top_metric,
         bottom_metric=args.bottom_metric,
         color_metric=args.color_metric,
@@ -777,7 +962,7 @@ def main() -> None:
         for character in ticker
     ).strip("_")
     mode_slug = (
-        f"atrp{args.atr_timeframe}{args.atr_period}"
+        f"{args.exit_mode.lower()}{args.range_timeframe}{args.range_period}"
         if args.use_atrp
         else "pct"
     )
@@ -828,7 +1013,7 @@ def main() -> None:
     )
     print(
         f"Bars: {len(data):,} | entries in scenario {detail_scenario}: "
-        f"{len(entries):,}/{args.entry_count:,} | "
+        f"{len(entries):,} (up to {args.trades_per_year:,}/year) | "
         f"combinations: {len(summary):,} | run time: {elapsed:.1f}s"
     )
     for label, path in files.items():
