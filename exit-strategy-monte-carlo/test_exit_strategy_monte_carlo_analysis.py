@@ -17,6 +17,7 @@ from exit_strategy_monte_carlo_analysis import (
     calculate_metrics,
     create_heatmap,
     download_data,
+    HEATMAP_METRICS,
     limit_concurrent_trades,
     run_sensitivity,
     select_entries,
@@ -36,6 +37,11 @@ class ExitStrategySensitivityTests(unittest.TestCase):
         self.assertEqual(defaults.interval, "1d")
         self.assertEqual(defaults.atr_timeframe, "3mo")
         self.assertEqual(defaults.atr_period, 12)
+        self.assertEqual(defaults.max_open_trades, 1)
+        self.assertEqual(
+            build_parser().parse_args(["--max-open-trades", "2"]).max_open_trades,
+            2,
+        )
         self.assertFalse(percent_mode.use_atrp)
         self.assertTrue(enabled_entry_filter.ma_entry_enabled)
 
@@ -207,12 +213,16 @@ class ExitStrategySensitivityTests(unittest.TestCase):
                 "PlannedBreakEvenWinRatePct",
                 "ExpectancyPct",
                 "ExpectancyPctPerBar",
+                "CumulativeReturnPct",
                 "ExpectancyATRP",
                 "ExpectancyATRPPerBar",
                 "ExpectancyTRP",
                 "ExpectancyTRPPerBar",
                 "ExpectancyRPerBar",
                 "ExpectancyRPer100Bars",
+                "TotalRealizedR",
+                "MaxDrawdownR",
+                "MaxDrawdownPct",
                 "AverageBarsHeld",
                 "AverageEntryATRP",
                 "AverageEntryTRP",
@@ -244,6 +254,13 @@ class ExitStrategySensitivityTests(unittest.TestCase):
         self.assertIn("ExpectancyATRPPerBar_Median", summary.columns)
         self.assertIn("ExpectancyRPerBar_Median", summary.columns)
         self.assertIn("ExpectancyRPer100Bars_Median", summary.columns)
+        no_ma_summary = summary.loc[~summary["EntryMAEnabled"]].iloc[0]
+        self.assertAlmostEqual(no_ma_summary["ExpectancyR_P5"], -0.08)
+        self.assertAlmostEqual(no_ma_summary["ExpectancyR_P25"], 0.0)
+        self.assertAlmostEqual(no_ma_summary["ExpectancyR_P75"], 0.15)
+        self.assertAlmostEqual(no_ma_summary["ExpectancyR_P95"], 0.19)
+        for percentile in (5, 25, 75, 95):
+            self.assertIn(f"ExpectancyR_P{percentile}", HEATMAP_METRICS)
 
     def test_heatmap_requests_select_four_requested_metrics(self):
         atrp_requests = build_heatmap_requests(use_atrp=True)
@@ -352,6 +369,8 @@ class ExitStrategySensitivityTests(unittest.TestCase):
         self.assertTrue(np.isnan(trade["StopDistancePct"]))
         self.assertAlmostEqual(trade["RealizedR"], 0.1)
         self.assertAlmostEqual(metrics["ExpectancyR"], 0.1)
+        self.assertAlmostEqual(metrics["TotalRealizedR"], 0.1)
+        self.assertAlmostEqual(metrics["CumulativeReturnPct"], 10.0)
 
     def test_maximum_consecutive_losses_is_counted_in_trade_order(self):
         trades = pd.DataFrame(
@@ -404,6 +423,8 @@ class ExitStrategySensitivityTests(unittest.TestCase):
         )
 
         self.assertAlmostEqual(metrics["ExpectancyR"], 0.75)
+        self.assertAlmostEqual(metrics["TotalRealizedR"], 1.5)
+        self.assertAlmostEqual(metrics["CumulativeReturnPct"], 1.49)
         self.assertAlmostEqual(metrics["AverageBarsHeld"], 5.5)
         self.assertAlmostEqual(metrics["ExpectancyRPerBar"], 1.5 / 11)
         self.assertGreater(metrics["ExpectancyRPerBar"], 0)
@@ -411,6 +432,44 @@ class ExitStrategySensitivityTests(unittest.TestCase):
             metrics["ExpectancyRPer100Bars"],
             metrics["ExpectancyRPerBar"] * 100,
         )
+
+    def test_maximum_drawdown_uses_r_and_compounded_account_equity(self):
+        trades = pd.DataFrame(
+            {
+                "NetReturnPct": [10.0, -20.0, 5.0],
+                "NetReturnATRP": [np.nan] * 3,
+                "NetReturnPctPerBar": [10.0, -20.0, 5.0],
+                "NetReturnATRPPerBar": [np.nan] * 3,
+                "RealizedR": [1.0, -2.0, 0.5],
+                "BarsHeld": [1.0] * 3,
+                "EntryATRP": [np.nan] * 3,
+                "StopDistancePct": [1.0] * 3,
+                "TargetDistancePct": [np.nan] * 3,
+                "ExitReason": ["Target", "Stop", "Target"],
+                "CommissionPct": [0.0] * 3,
+            }
+        )
+
+        metrics = calculate_metrics(
+            trades,
+            stop=1.0,
+            target=1.0,
+            exit_mode="Percent",
+        )
+
+        self.assertAlmostEqual(metrics["MaxDrawdownR"], 2.0)
+        self.assertAlmostEqual(metrics["MaxDrawdownPct"], 20.0)
+
+        ruined_trades = trades.iloc[:2].copy()
+        ruined_trades["NetReturnPct"] = [-110.0, 50.0]
+        ruined_metrics = calculate_metrics(
+            ruined_trades,
+            stop=1.0,
+            target=1.0,
+            exit_mode="Percent",
+        )
+        self.assertEqual(ruined_metrics["CumulativeReturnPct"], -100.0)
+        self.assertEqual(ruined_metrics["MaxDrawdownPct"], 100.0)
 
     def test_downloads_and_normalizes_yahoo_ohlc_data(self):
         index = pd.date_range("2020-01-01", periods=2, freq="D")

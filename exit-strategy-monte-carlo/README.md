@@ -5,11 +5,11 @@ samples. Each seed is evaluated once using the entry-SMA setting selected by
 `MA_ENTRY_ENABLED`.
 
 By default it analyzes QQQ daily data from 2000-01-01 through 2026-12-31, uses
-25 requested random trades per calendar year per seed, tests 200 seeds (0 through 199), and uses a
-12-period ATRP calculated on 3-month bars. Stop and target grids are ATRP
-multipliers. It defaults to long entries, a 200-bar entry SMA, conservative
-stop-first handling, no entry-MA filter, and no SMA exit. Set
-`MA_ENTRY_ENABLED = True` to run with the entry-MA filter instead; the program
+25 requested random trades per calendar year per seed, tests 200 seeds
+(0 through 199), and uses a 12-period ATRP calculated on 3-month bars. Stop and target grids are ATRP
+multipliers. It defaults to long entries, a 200-bar entry SMA, one open trade
+at a time, conservative stop-first handling, no entry-MA filter, and no SMA
+exit. Set `MA_ENTRY_ENABLED = True` to run with the entry-MA filter instead; the program
 never runs both modes in the same execution.
 
 The script downloads data directly with `yfinance` and does not import or
@@ -40,6 +40,12 @@ displays this scaled as R per 100 bars for readability; the raw R/bar value
 remains in the summary CSV.
 For a no-stop (`-1`) setting, `ExpectancyR` uses an assumed initial risk of
 100% of entry value for normalization only; the simulation still places no stop.
+`MaxDrawdownR` is the largest peak-to-trough drop in cumulative realized R.
+`MaxDrawdownPct` uses sequential, full-equity compounding of closed-trade
+`NetReturnPct` values; it excludes unrealized losses while a trade is open.
+An individual return at or below -100% is treated as account ruin (100%
+drawdown). This percentage model is not a realistic account-equity model for
+short trades or concurrent positions.
 Robust ranking in ATRP mode uses the fraction of
 positive-`ExpectancyATRP` runs, median expectancy in ATRP units, then its
 standard deviation. Use `--percent-exits` to retain fixed-percentage stops and
@@ -72,8 +78,9 @@ includes ATR timeframe and period:
 - `qqq_1d_atrp_3mo_12_entry-ma-disabled_sensitivity_runs.csv`: one row for
   each seed and stop/target combination.
 - `qqq_1d_atrp_3mo_12_entry-ma-disabled_sensitivity_summary.csv`: mean, median, standard
-  deviation, min, max, and count across seeds for each metric and combination.
-  `ExpectancyATRP_PositivePct` shows how often ATRP expectancy was positive.
+  deviation, min, max, count, and the 5th, 25th, 75th, and 95th percentiles
+  across seeds for each metric and combination. `ExpectancyATRP_PositivePct`
+  shows how often ATRP expectancy was positive.
 - `qqq_1d_atrp_3mo_12_entry-ma-disabled_sensitivity_heatmap_win_rate.png`:
   median win rate per stop/target cell.
 - Similar `_heatmap_expectancy_r.png`, `_heatmap_expectancy_r_per_bar.png`, and
@@ -96,9 +103,9 @@ Other options include `--ticker`, `--start-date`, `--end-date`, `--interval`,
 and `--range-period`. The former `--atr-timeframe` and `--atr-period`
 options remain aliases.
 `--atr-period`, `--ma-entry-enabled`, `--no-ma-entry-enabled`, `--sma-period`,
-`--direction`, `--trades-per-year`, `--commission`, `--slippage`, `--ma-exit`,
-`--non-conservative`, `--heatmap-metrics`, `--heatmap-metric`,
-`--heatmap-min`, and `--heatmap-max`.
+`--direction`, `--trades-per-year`, `--max-open-trades`, `--commission`,
+`--slippage`, `--ma-exit`, `--non-conservative`, `--heatmap-metrics`,
+`--heatmap-metric`, `--heatmap-min`, and `--heatmap-max`.
 For example, use `--direction Both` to randomly assign long/short directions
 when the entry filter is disabled; when enabled, direction follows the close's
 position relative to the SMA.
@@ -108,6 +115,22 @@ Run the focused tests without downloading market data:
 ```powershell
 python -m unittest discover -s "exit-strategy-monte-carlo" -p "test_*.py"
 ```
+
+## Which script should I use?
+
+Both scripts run Monte Carlo exit-strategy analyses, but they serve different
+reporting needs. Both default to one simultaneous open trade.
+
+| Script | Use it when you want to... | Summary output |
+| --- | --- | --- |
+| `exit_strategy_monte_carlo_analysis.py` | Compare stop/target combinations systematically and assess the distribution and robustness of results across seeds. | One summary containing mean, median, standard deviation, min, max, count, and P5/P25/P75/P95 for every metric. |
+| `exit_strategy_monte_carlo_visualization.py` | Explore an annotated heatmap and inspect the trades and entries from a representative scenario. | A summary using one selected statistic across scenarios (for example, median or P25), plus scenario and representative-trade detail CSVs. |
+
+Use the analysis script for a broad comparison with multiple distribution
+statistics in one report. Use the visualization script when you want to focus
+on one statistic at a time and examine scenario-level trade details. They share
+trade simulation and metric calculations, but run separate workflows and save
+outputs in separate directories.
 
 ## Monte Carlo analysis
 
@@ -132,11 +155,12 @@ requested scenarios.
   actual count.
 - `--entry-count`: Legacy alias for `--trades-per-year`. Do not specify both
   aliases; the last occurrence determines the value.
-- `--max-open-trades`: Optional positive integer limit on simultaneous
-  positions. When set, each stop/target pair accepts entries chronologically
-  and skips candidates while the configured number of trades is still open.
-  Since exit times vary by stop/target pair, the accepted trades can differ
-  between pairs. Omit this option for the original unlimited behavior.
+- `--max-open-trades`: Positive integer limit on simultaneous positions
+  (defaults to `1`). Each stop/target pair accepts entries chronologically and
+  skips candidates while the configured number of trades is still open.
+  Values above one allow concurrent trades; accepted trades can differ between
+  pairs because exit times vary. Drawdown metrics are closed-trade measures
+  and do not mark overlapping positions to market.
 
 A seed controls reproducible random sampling. Sampling does not use the seed
 to repeat the same trades for every year. Instead, a separate random selection

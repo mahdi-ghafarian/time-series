@@ -74,24 +74,39 @@ RANGE_STOP_MULTIPLIERS = [
 RANGE_TARGET_MULTIPLIERS = [
 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.25, 2.5, 3, 3.5, 4, 4.5, 5
 ]
+
 # Statistic aggregated across Monte Carlo scenarios.
-STATISTIC = "median"
-# Metric printed in the top section of each heatmap cell.
-TOP_METRIC = "ExpectancyR"
-# Metric printed in the bottom section of each heatmap cell.
-BOTTOM_METRIC = "WinRatePct"
-# Metric used for heatmap colors.
-COLOR_METRIC = "ExpectancyR"
+STATISTIC = "p5"
+
 # Metric used to rank stop/target combinations.
-RANK_METRIC = "ExpectancyR"
+RANK_METRIC = "CalmarRatio"
+# Which RANK_METRIC values rank first: "higher" or "lower" (e.g. drawdown).
+RANK_DIRECTION = "higher"
+
+# Metric used for heatmap colors.
+COLOR_METRIC = "CalmarRatio"
+# Which COLOR_METRIC values are better: "higher" (green = high) or "lower"
+# (green = low, e.g. drawdown).
+COLOR_DIRECTION = "higher"
 # Minimum heatmap color value; None uses the observed minimum.
-COLOR_MIN: float | None = 0.0
+COLOR_MIN: float | None = None #  None = 0.0 
 # Maximum heatmap color value; None uses the observed maximum.
-COLOR_MAX: float | None = 1.0
-# Minimum win rate for a highlighted heatmap cell.
-HIGHLIGHT_WIN_RATE = 67.0
-# Minimum expectancy in R for a highlighted heatmap cell.
-HIGHLIGHT_EXPECTANCY_R = 1.5
+COLOR_MAX: float | None = None #  None = 1.0
+
+# Metric printed in the top section of each heatmap cell.
+TOP_METRIC = "CumulativeReturnPct"
+# TOP_METRIC threshold for a highlighted heatmap cell.
+HIGHLIGHT_TOP_THRESHOLD = 0
+# "above" highlights TOP_METRIC > threshold; "below" highlights < threshold.
+HIGHLIGHT_TOP_DIRECTION = "above"
+
+# Metric printed in the bottom section of each heatmap cell.
+BOTTOM_METRIC = "MaxDrawdownPct"
+# BOTTOM_METRIC threshold for a highlighted heatmap cell.
+HIGHLIGHT_BOTTOM_THRESHOLD = 50
+# "above" highlights BOTTOM_METRIC > threshold; "below" highlights < threshold.
+HIGHLIGHT_BOTTOM_DIRECTION = "below"
+
 # Directory for generated reports and charts.
 OUTPUT_DIR = Path(__file__).resolve().parent / "results" / "visualization"
 
@@ -101,10 +116,23 @@ OUTPUT_DIR = Path(__file__).resolve().parent / "results" / "visualization"
 # AverageLossATRP
 # Reward/risk: RealizedRRR, BreakEvenWinRatePct, PlannedRRR,
 # PlannedBreakEvenWinRatePct
+# CumulativeReturnPct compounds each trade as if full capital were reinvested
+# sequentially; it is not a portfolio equity curve when trades overlap.
 # Percentage expectancy: ExpectancyPct, ExpectancyPctPerBar
 # ATRP expectancy: ExpectancyATRP, ExpectancyATRPPerBar
 # TRP expectancy: ExpectancyTRP, ExpectancyTRPPerBar
-# R expectancy: ExpectancyR, ExpectancyRPerBar, ExpectancyRPer100Bars
+# R expectancy: ExpectancyR, ExpectancyRPerBar, ExpectancyRPer100Bars,
+# TotalRealizedR
+# Drawdown: MaxDrawdownR, MaxDrawdownPct
+# Return/drawdown (higher is better, calculated per scenario):
+# ReturnToDrawdownPct (CumulativeReturnPct / |MaxDrawdownPct|),
+# ReturnToDrawdownR (TotalRealizedR / |MaxDrawdownR|)
+# Annual (calculated per scenario from the length of the downloaded data):
+# AnnualizedReturnPct (CAGR of CumulativeReturnPct), CalmarRatio (CAGR /
+# |MaxDrawdownPct|), TradesPerYear, RPerYear (TotalRealizedR / years),
+# TimeInMarketPct (AverageBarsHeld x NumberOfTrades / total bars; can exceed
+# 100 with several open trades), AnnualizedReturnPerBarHeldPct
+# (ExpectancyPctPerBar x bars per year: 252 daily, 52 weekly, 12 monthly)
 # Risk and distance: AverageEntryATRP, AverageEntryTRP, AverageStopDistancePct,
 # AverageTargetDistancePct
 # Duration: AverageBarsHeld
@@ -136,8 +164,11 @@ def create_scenario_heatmap(
     color_metric: str,
     vmin: float | None,
     vmax: float | None,
-    win_rate_minimum: float,
-    expectancy_r_minimum: float,
+    top_threshold: float,
+    top_direction: str,
+    bottom_threshold: float,
+    bottom_direction: str,
+    color_direction: str = "higher",
 ):
     """Create the annotated stop/target heatmap without app dependencies."""
 
@@ -159,16 +190,19 @@ def create_scenario_heatmap(
         columns="StopLossPct",
         values=bottom_metric,
     ).reindex(index=targets, columns=stops)
-    highlighted = results.assign(
-        _Highlighted=(
-            (results["WinRatePct"] > win_rate_minimum)
-            & (results["ExpectancyR"] > expectancy_r_minimum)
-        )
-    ).pivot(
-        index="TargetPct",
-        columns="StopLossPct",
-        values="_Highlighted",
-    ).reindex(index=targets, columns=stops)
+    top_passes = (
+        top_values > top_threshold
+        if top_direction == "above"
+        else top_values < top_threshold
+    )
+    bottom_passes = (
+        bottom_values > bottom_threshold
+        if bottom_direction == "above"
+        else bottom_values < bottom_threshold
+    )
+    highlighted = top_passes & bottom_passes
+    top_symbol = ">" if top_direction == "above" else "<"
+    bottom_symbol = ">" if bottom_direction == "above" else "<"
 
     matrix = color_values.to_numpy(dtype=float)
     finite_values = matrix[np.isfinite(matrix)]
@@ -192,7 +226,7 @@ def create_scenario_heatmap(
     )
     image = axis.imshow(
         matrix,
-        cmap="RdYlGn",
+        cmap="RdYlGn" if color_direction == "higher" else "RdYlGn_r",
         aspect="auto",
         interpolation="nearest",
         origin="lower",
@@ -302,12 +336,99 @@ def create_scenario_heatmap(
     axis.set_xlabel(
         f"Stop-Loss ({parameter_unit})\n"
         "Borders: blue = stop equals target; "
-        "black = meets highlight thresholds",
+        f"black = {top_metric} {top_symbol} {top_threshold:g} and "
+        f"{bottom_metric} {bottom_symbol} {bottom_threshold:g}",
         fontsize=10,
     )
     axis.set_ylabel(f"Target ({parameter_unit})")
     figure.tight_layout()
     return figure
+
+
+# Derived return-to-drawdown metrics, calculated per scenario before the
+# statistic is applied: name -> (return column, drawdown column).
+# Drawdown is used as an absolute value, and zero drawdown gives NaN.
+DERIVED_METRICS = {
+    "ReturnToDrawdownPct": ("CumulativeReturnPct", "MaxDrawdownPct"),
+    "ReturnToDrawdownR": ("TotalRealizedR", "MaxDrawdownR"),
+}
+# Derived annual metrics. They need the length of the sampled history.
+ANNUAL_METRICS = [
+    "AnnualizedReturnPct",
+    "CalmarRatio",
+    "TradesPerYear",
+    "RPerYear",
+    "TimeInMarketPct",
+    "AnnualizedReturnPerBarHeldPct",
+]
+ALL_METRICS = [
+    *sensitivity.METRIC_COLUMNS,
+    *DERIVED_METRICS,
+    *ANNUAL_METRICS,
+]
+# Trading bars per year for each supported interval.
+BARS_PER_YEAR = {"1d": 252, "1wk": 52, "1mo": 12}
+ANNUAL_SOURCE_COLUMNS = {
+    "CumulativeReturnPct",
+    "MaxDrawdownPct",
+    "NumberOfTrades",
+    "TotalRealizedR",
+    "AverageBarsHeld",
+    "ExpectancyPctPerBar",
+}
+
+
+def sample_span(data: pd.DataFrame, interval: str) -> tuple[float, int]:
+    """Return the years covered by the data and the bars per year."""
+
+    bars_per_year = BARS_PER_YEAR[interval]
+    if isinstance(data.index, pd.DatetimeIndex) and len(data) > 1:
+        years = (data.index[-1] - data.index[0]).days / 365.25
+    else:
+        years = len(data) / bars_per_year
+    if years <= 0:
+        raise ValueError("The downloaded data does not span any time.")
+    return years, bars_per_year
+
+
+def add_derived_metrics(
+    scenario_results: pd.DataFrame,
+    years: float,
+    bars_per_year: int,
+    total_bars: int,
+) -> pd.DataFrame:
+    """Return a copy of the scenario results with the derived columns."""
+
+    result = scenario_results.copy()
+    required = ANNUAL_SOURCE_COLUMNS.union(
+        column for pair in DERIVED_METRICS.values() for column in pair
+    )
+    missing = required.difference(result.columns)
+    if missing:
+        raise ValueError(
+            "Cannot calculate derived metrics; missing columns: "
+            + ", ".join(sorted(missing))
+        )
+
+    for name, (return_column, drawdown_column) in DERIVED_METRICS.items():
+        drawdown = result[drawdown_column].abs().replace(0, np.nan)
+        result[name] = result[return_column] / drawdown
+
+    growth = 1 + result["CumulativeReturnPct"] / 100
+    annualized = (growth.where(growth > 0) ** (1 / years) - 1) * 100
+    result["AnnualizedReturnPct"] = annualized
+    result["CalmarRatio"] = annualized / (
+        result["MaxDrawdownPct"].abs().replace(0, np.nan)
+    )
+    result["TradesPerYear"] = result["NumberOfTrades"] / years
+    result["RPerYear"] = result["TotalRealizedR"] / years
+    result["TimeInMarketPct"] = (
+        result["AverageBarsHeld"] * result["NumberOfTrades"] / total_bars * 100
+    )
+    result["AnnualizedReturnPerBarHeldPct"] = (
+        result["ExpectancyPctPerBar"] * bars_per_year
+    )
+    return result
 
 
 STATISTICS = {
@@ -327,6 +448,9 @@ STATISTICS = {
 def aggregate_scenarios(
     scenario_results: pd.DataFrame,
     statistic: str,
+    years: float,
+    bars_per_year: int,
+    total_bars: int,
 ) -> pd.DataFrame:
     """Aggregate metrics per stop/target pair across random scenarios."""
 
@@ -348,13 +472,18 @@ def aggregate_scenarios(
             + ", ".join(sorted(missing_columns))
         )
 
-    group = scenario_results.groupby(
+    group = add_derived_metrics(
+        scenario_results,
+        years=years,
+        bars_per_year=bars_per_year,
+        total_bars=total_bars,
+    ).groupby(
         sensitivity.SUMMARY_KEYS,
         sort=False,
         dropna=False,
     )
     aggregation = STATISTICS[statistic][1]
-    metrics = group[sensitivity.METRIC_COLUMNS]
+    metrics = group[ALL_METRICS]
     if isinstance(aggregation, float):
         summary = metrics.quantile(aggregation).reset_index()
     else:
@@ -540,7 +669,7 @@ def build_parser() -> argparse.ArgumentParser:
         default=MAX_OPEN_TRADES,
         help=(
             "Maximum number of simultaneous open trades for each "
-            "stop/target pair; omit for no limit."
+            "stop/target pair (default: 1)."
         ),
     )
     entry_filter = parser.add_mutually_exclusive_group()
@@ -587,39 +716,68 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--top-metric",
-        choices=sensitivity.METRIC_COLUMNS,
+        choices=ALL_METRICS,
         default=TOP_METRIC,
         help="Metric printed at the top of each heatmap cell.",
     )
     parser.add_argument(
         "--bottom-metric",
-        choices=sensitivity.METRIC_COLUMNS,
+        choices=ALL_METRICS,
         default=BOTTOM_METRIC,
         help="Metric printed at the bottom of each heatmap cell.",
     )
     parser.add_argument(
         "--color-metric",
-        choices=sensitivity.METRIC_COLUMNS,
+        choices=ALL_METRICS,
         default=COLOR_METRIC,
         help="Metric used for heatmap colors.",
     )
     parser.add_argument(
+        "--color-direction",
+        choices=["higher", "lower"],
+        default=COLOR_DIRECTION,
+        help="Which color-metric values are better (green).",
+    )
+    parser.add_argument(
         "--rank-metric",
-        choices=sensitivity.METRIC_COLUMNS,
+        choices=ALL_METRICS,
         default=RANK_METRIC,
         help="Metric used to rank stop/target combinations.",
+    )
+    parser.add_argument(
+        "--rank-direction",
+        choices=["higher", "lower"],
+        default=RANK_DIRECTION,
+        help="Which rank-metric values rank first.",
     )
     parser.add_argument("--color-min", type=float, default=COLOR_MIN)
     parser.add_argument("--color-max", type=float, default=COLOR_MAX)
     parser.add_argument(
-        "--highlight-win-rate",
+        "--highlight-top-threshold",
         type=float,
-        default=HIGHLIGHT_WIN_RATE,
+        default=HIGHLIGHT_TOP_THRESHOLD,
+        help="Threshold applied to the top metric for highlighting.",
     )
     parser.add_argument(
-        "--highlight-expectancy-r",
+        "--highlight-top-direction",
+        choices=["above", "below"],
+        default=HIGHLIGHT_TOP_DIRECTION,
+        help="Highlight when the top metric is above or below its threshold.",
+    )
+    parser.add_argument(
+        "--highlight-bottom-threshold",
         type=float,
-        default=HIGHLIGHT_EXPECTANCY_R,
+        default=HIGHLIGHT_BOTTOM_THRESHOLD,
+        help="Threshold applied to the bottom metric for highlighting.",
+    )
+    parser.add_argument(
+        "--highlight-bottom-direction",
+        choices=["above", "below"],
+        default=HIGHLIGHT_BOTTOM_DIRECTION,
+        help=(
+            "Highlight when the bottom metric is above or below its "
+            "threshold."
+        ),
     )
     parser.add_argument(
         "--output-dir",
@@ -796,6 +954,16 @@ def validate_args(args: argparse.Namespace) -> None:
         raise ValueError("--range-period must be at least 1.")
     if args.commission < 0 or args.slippage < 0:
         raise ValueError("--commission and --slippage must not be negative.")
+    for name, allowed in (
+        ("highlight_top_direction", ("above", "below")),
+        ("highlight_bottom_direction", ("above", "below")),
+        ("color_direction", ("higher", "lower")),
+        ("rank_direction", ("higher", "lower")),
+    ):
+        if getattr(args, name) not in allowed:
+            raise ValueError(
+                f"{name} must be one of: {', '.join(allowed)}."
+            )
     if args.color_min is not None and args.color_max is not None:
         if args.color_min >= args.color_max:
             raise ValueError("--color-min must be less than --color-max.")
@@ -921,7 +1089,14 @@ def main() -> None:
         trading_timeframe=args.interval,
         max_open_trades=args.max_open_trades,
     )
-    summary = aggregate_scenarios(scenario_results, args.statistic)
+    years, bars_per_year = sample_span(data, args.interval)
+    summary = aggregate_scenarios(
+        scenario_results,
+        args.statistic,
+        years=years,
+        bars_per_year=bars_per_year,
+        total_bars=len(data),
+    )
     if args.ma_entry_enabled:
         summary = summary.loc[summary["EntryMAEnabled"]].copy()
 
@@ -945,7 +1120,7 @@ def main() -> None:
     ranked = (
         summary.sort_values(
             args.rank_metric,
-            ascending=False,
+            ascending=args.rank_direction == "lower",
             na_position="last",
         )
         .reset_index(drop=True)
@@ -968,8 +1143,11 @@ def main() -> None:
         color_metric=args.color_metric,
         vmin=args.color_min,
         vmax=args.color_max,
-        win_rate_minimum=args.highlight_win_rate,
-        expectancy_r_minimum=args.highlight_expectancy_r,
+        top_threshold=args.highlight_top_threshold,
+        top_direction=args.highlight_top_direction,
+        bottom_threshold=args.highlight_bottom_threshold,
+        bottom_direction=args.highlight_bottom_direction,
+        color_direction=args.color_direction,
     )
     heatmap.axes[0].set_title(
         heatmap.axes[0].get_title()

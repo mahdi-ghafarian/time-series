@@ -9,12 +9,16 @@ import pandas as pd
 
 from exit_strategy_monte_carlo_visualization import (
     aggregate_scenarios,
+    build_parser,
     create_scenario_heatmap,
     simulate_representative_scenario,
 )
 
 
 class ExitStrategyMonteCarloTests(unittest.TestCase):
+    def test_default_max_open_trades_is_one(self):
+        self.assertEqual(build_parser().parse_args([]).max_open_trades, 1)
+
     def test_aggregate_scenarios_support_percentiles_and_mean_alias(self):
         records = []
         for scenario, expectancy in enumerate([1.0, 3.0, 5.0, 7.0]):
@@ -47,12 +51,16 @@ class ExitStrategyMonteCarloTests(unittest.TestCase):
                         "PlannedBreakEvenWinRatePct",
                         "ExpectancyPct",
                         "ExpectancyPctPerBar",
+                        "CumulativeReturnPct",
                         "ExpectancyATRP",
                         "ExpectancyATRPPerBar",
                         "ExpectancyTRP",
                         "ExpectancyTRPPerBar",
                         "ExpectancyRPerBar",
                         "ExpectancyRPer100Bars",
+                        "TotalRealizedR",
+                        "MaxDrawdownR",
+                        "MaxDrawdownPct",
                         "AverageEntryATRP",
                         "AverageEntryTRP",
                         "AverageStopDistancePct",
@@ -67,6 +75,8 @@ class ExitStrategyMonteCarloTests(unittest.TestCase):
                 }
             )
             record["ExpectancyR"] = expectancy
+            record["TotalRealizedR"] = expectancy
+            record["CumulativeReturnPct"] = expectancy * 10
             records.append(record)
 
         runs = pd.DataFrame(records)
@@ -74,6 +84,8 @@ class ExitStrategyMonteCarloTests(unittest.TestCase):
         average = aggregate_scenarios(runs, "average")
 
         self.assertEqual(p25.loc[0, "ExpectancyR"], 2.5)
+        self.assertEqual(p25.loc[0, "TotalRealizedR"], 2.5)
+        self.assertEqual(p25.loc[0, "CumulativeReturnPct"], 25.0)
         self.assertEqual(average.loc[0, "ExpectancyR"], 4.0)
         self.assertEqual(p25.loc[0, "ScenarioCount"], 4)
         self.assertEqual(p25.loc[0, "ScenariosWithTrades"], 4)

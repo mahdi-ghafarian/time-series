@@ -36,8 +36,8 @@ SEED_START = 0
 # Maximum random trades to select independently from each calendar year in
 # every seed. Filters or insufficient eligible bars can reduce the actual count.
 TRADES_PER_YEAR = 25
-# Maximum number of simultaneous trades; None means no concurrency limit.
-MAX_OPEN_TRADES: int | None = None
+# Maximum number of simultaneous trades.
+MAX_OPEN_TRADES: int = 1
 # Entry/exit moving-average lookback, in trading bars.
 SMA_PERIOD = 200
 # Long, Short, or Both; Both randomizes direction when the entry filter is off.
@@ -133,6 +133,7 @@ METRIC_COLUMNS = [
     "PlannedBreakEvenWinRatePct",
     "ExpectancyPct",
     "ExpectancyPctPerBar",
+    "CumulativeReturnPct",
     "ExpectancyATRP",
     "ExpectancyATRPPerBar",
     "ExpectancyTRP",
@@ -140,6 +141,9 @@ METRIC_COLUMNS = [
     "ExpectancyR",
     "ExpectancyRPerBar",
     "ExpectancyRPer100Bars",
+    "TotalRealizedR",
+    "MaxDrawdownR",
+    "MaxDrawdownPct",
     "AverageEntryATRP",
     "AverageEntryTRP",
     "AverageStopDistancePct",
@@ -151,7 +155,18 @@ METRIC_COLUMNS = [
     "EndOfDataExitPct",
     "AverageCommissionPct",
 ]
-HEATMAP_AGGREGATIONS = ("Mean", "Median", "Std", "Min", "Max", "Count")
+HEATMAP_AGGREGATIONS = (
+    "Mean",
+    "Median",
+    "Std",
+    "Min",
+    "Max",
+    "Count",
+    "P5",
+    "P25",
+    "P75",
+    "P95",
+)
 HEATMAP_METRICS = [
     f"{metric}_{aggregation}"
     for metric in METRIC_COLUMNS
@@ -835,6 +850,32 @@ def limit_concurrent_trades(
     return accepted
 
 
+def calculate_compounded_return_metrics(
+    returns_pct: np.ndarray,
+) -> tuple[float, float]:
+    """Return compounded profit and max drawdown for sequential full-capital trades."""
+
+    if not len(returns_pct):
+        return np.nan, 0.0
+    if not np.isfinite(returns_pct).all():
+        return np.nan, np.nan
+
+    equity = 1.0
+    high_water_mark = equity
+    max_drawdown_pct = 0.0
+    for return_pct in returns_pct:
+        equity *= 1 + return_pct / 100
+        if equity <= 0:
+            return -100.0, 100.0
+        if not np.isfinite(equity):
+            return np.nan, np.nan
+        high_water_mark = max(high_water_mark, equity)
+        drawdown_pct = (high_water_mark - equity) / high_water_mark * 100
+        max_drawdown_pct = max(max_drawdown_pct, drawdown_pct)
+
+    return (equity - 1) * 100, max_drawdown_pct
+
+
 def calculate_metrics(
     trades: pd.DataFrame,
     stop: float,
@@ -878,6 +919,7 @@ def calculate_metrics(
     )
     valid_realized_r = realized_r[valid_r_per_bar_mask]
     valid_r_bars_held = bars_held[valid_r_per_bar_mask]
+    finite_realized_r = realized_r[np.isfinite(realized_r)]
     winning_atr_returns = valid_atr_returns[valid_atr_returns > 0]
     losing_atr_returns = valid_atr_returns[valid_atr_returns < 0]
     maximum_consecutive_losses = 0
@@ -903,6 +945,22 @@ def calculate_metrics(
         float(losing_returns.mean()) if len(losing_returns) else np.nan
     )
     expectancy = float(returns.mean()) if number_of_trades else np.nan
+    cumulative_return_pct, max_drawdown_pct = (
+        calculate_compounded_return_metrics(returns)
+    )
+    cumulative_realized_r = np.concatenate(
+        ([0.0], np.cumsum(realized_r))
+    )
+    max_drawdown_r = (
+        float(
+            np.max(
+                np.maximum.accumulate(cumulative_realized_r)
+                - cumulative_realized_r
+            )
+        )
+        if np.isfinite(realized_r).all()
+        else np.nan
+    )
     expectancy_pct_per_bar = (
         float(valid_pct_bar_returns.mean())
         if len(valid_pct_bar_returns)
@@ -996,6 +1054,7 @@ def calculate_metrics(
         "PlannedBreakEvenWinRatePct": planned_break_even,
         "ExpectancyPct": expectancy,
         "ExpectancyPctPerBar": expectancy_pct_per_bar,
+        "CumulativeReturnPct": cumulative_return_pct,
         "ExpectancyATRP": expectancy_atrp,
         "ExpectancyATRPPerBar": expectancy_atrp_per_bar,
         "ExpectancyTRP": expectancy_trp,
@@ -1003,6 +1062,11 @@ def calculate_metrics(
         "ExpectancyR": expectancy_r,
         "ExpectancyRPerBar": expectancy_r_per_bar,
         "ExpectancyRPer100Bars": expectancy_r_per_100_bars,
+        "TotalRealizedR": (
+            float(finite_realized_r.sum()) if len(finite_realized_r) else np.nan
+        ),
+        "MaxDrawdownR": max_drawdown_r,
+        "MaxDrawdownPct": max_drawdown_pct,
         "AverageEntryATRP": (
             float(trades["EntryATRP"].mean())
             if number_of_trades and "EntryATRP" in trades
@@ -1259,7 +1323,16 @@ def summarize_runs(
         f"{metric}_{statistic.title()}"
         for metric, statistic in summary.columns
     ]
-    summary = summary.reset_index()
+    percentile_summaries = pd.concat(
+        [
+            grouped[METRIC_COLUMNS]
+            .quantile(percentile / 100)
+            .rename(columns=lambda metric: f"{metric}_P{percentile}")
+            for percentile in (5, 25, 75, 95)
+        ],
+        axis=1,
+    )
+    summary = summary.join(percentile_summaries).reset_index()
 
     run_counts = grouped.agg(
         SeedCount=("Seed", "nunique"),
@@ -1653,6 +1726,15 @@ def build_parser() -> argparse.ArgumentParser:
             "(--entry-count is a legacy alias)."
         ),
     )
+    parser.add_argument(
+        "--max-open-trades",
+        type=int,
+        default=MAX_OPEN_TRADES,
+        help=(
+            "Maximum number of simultaneous open trades per stop/target pair "
+            "(default: 1)."
+        ),
+    )
     entry_filter = parser.add_mutually_exclusive_group()
     entry_filter.add_argument(
         "--ma-entry-enabled",
@@ -1739,6 +1821,8 @@ def main() -> None:
         raise SystemExit("--seed-count must be at least 1.")
     if args.trades_per_year < 1:
         raise SystemExit("--trades-per-year must be at least 1.")
+    if args.max_open_trades < 1:
+        raise SystemExit("--max-open-trades must be at least 1.")
     if args.sma_period < 1:
         raise SystemExit("--sma-period must be at least 1.")
     if (args.use_atrp or getattr(args, "use_trp", False)) and args.range_period < 1:
@@ -1878,6 +1962,7 @@ def main() -> None:
         progress_callback=report_progress,
         ticker=args.ticker,
         trading_timeframe=args.interval,
+        max_open_trades=args.max_open_trades,
     )
     robustness_metric = (
         "ExpectancyATRP"
