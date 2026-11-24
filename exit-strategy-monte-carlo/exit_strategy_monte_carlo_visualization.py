@@ -32,7 +32,7 @@ RANGE_TIMEFRAME = "3mo"
 # ATR Wilder period or TRP history warm-up in range timeframe bars.
 RANGE_PERIOD = 1
 # Number of Monte Carlo scenarios. Seeds run from SCENARIO_START sequentially.
-SCENARIO_COUNT = 200
+SCENARIO_COUNT = 1000
 # Seed for the first scenario.
 SCENARIO_START = 0
 # Maximum random trades sampled from each calendar year per scenario.
