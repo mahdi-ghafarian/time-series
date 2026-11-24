@@ -17,6 +17,7 @@ from exit_strategy_monte_carlo_analysis import (
     calculate_metrics,
     create_heatmap,
     download_data,
+    limit_concurrent_trades,
     run_sensitivity,
     select_entries,
     simulate_trade,
@@ -132,6 +133,50 @@ class ExitStrategySensitivityTests(unittest.TestCase):
 
         selected_year_counts = entries["EntryDate"].dt.year.value_counts().sort_index()
         self.assertEqual(selected_year_counts.to_dict(), {2020: 2, 2021: 2})
+
+    def test_limit_concurrent_trades_releases_slots_at_exit_bar(self):
+        trades = [
+            {"EntryIndex": 0, "ExitIndex": 3},
+            {"EntryIndex": 1, "ExitIndex": 2},
+            {"EntryIndex": 2, "ExitIndex": 4},
+            {"EntryIndex": 3, "ExitIndex": 5},
+        ]
+
+        selected = limit_concurrent_trades(trades, max_open_trades=1)
+
+        self.assertEqual(
+            [(trade["EntryIndex"], trade["ExitIndex"]) for trade in selected],
+            [(0, 3), (3, 5)],
+        )
+        self.assertEqual(limit_concurrent_trades(trades, None), trades)
+
+    def test_run_sensitivity_applies_max_open_trades(self):
+        close = np.array([10, 11, 12, 13, 14, 15, 16], dtype=float)
+        data = pd.DataFrame(
+            {
+                "Open": close,
+                "High": close + 0.5,
+                "Low": close - 0.5,
+                "Close": close,
+            },
+            index=pd.date_range("2020-01-01", periods=len(close), freq="D"),
+        )
+
+        runs = run_sensitivity(
+            data=data,
+            seeds=[3],
+            number_of_entries=3,
+            trades_per_year=3,
+            stops=[-1],
+            targets=[-1],
+            sma_period=2,
+            trade_direction="Long",
+            use_atrp=False,
+            max_open_trades=1,
+        )
+
+        self.assertEqual(runs.loc[0, "SelectedEntries"], 1)
+        self.assertEqual(runs.loc[0, "NumberOfTrades"], 1)
 
     def test_summary_ranks_consistent_positive_expectancy_first(self):
         base = {

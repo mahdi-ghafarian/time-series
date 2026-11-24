@@ -132,6 +132,11 @@ requested scenarios.
   actual count.
 - `--entry-count`: Legacy alias for `--trades-per-year`. Do not specify both
   aliases; the last occurrence determines the value.
+- `--max-open-trades`: Optional positive integer limit on simultaneous
+  positions. When set, each stop/target pair accepts entries chronologically
+  and skips candidates while the configured number of trades is still open.
+  Since exit times vary by stop/target pair, the accepted trades can differ
+  between pairs. Omit this option for the original unlimited behavior.
 
 A seed controls reproducible random sampling. Sampling does not use the seed
 to repeat the same trades for every year. Instead, a separate random selection
@@ -148,6 +153,7 @@ Choose the aggregation across scenarios used by the heatmap and ranked summary w
 ```powershell
 python "exit-strategy-monte-carlo/exit_strategy_monte_carlo_visualization.py" `
   --percent-exits --scenario-count 50 --trades-per-year 25 `
+  --max-open-trades 1 `
   --stops 5,10,20 --targets 5,10,20 `
   --statistic p5 --top-metric ExpectancyR --bottom-metric WinRatePct `
   --color-metric ExpectancyR

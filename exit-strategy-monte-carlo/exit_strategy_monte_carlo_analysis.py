@@ -2,6 +2,7 @@
 
 import argparse
 from datetime import date, timedelta
+import heapq
 from pathlib import Path
 from typing import Callable, Iterable
 
@@ -35,6 +36,8 @@ SEED_START = 0
 # Maximum random trades to select independently from each calendar year in
 # every seed. Filters or insufficient eligible bars can reduce the actual count.
 TRADES_PER_YEAR = 25
+# Maximum number of simultaneous trades; None means no concurrency limit.
+MAX_OPEN_TRADES: int | None = None
 # Entry/exit moving-average lookback, in trading bars.
 SMA_PERIOD = 200
 # Long, Short, or Both; Both randomizes direction when the entry filter is off.
@@ -807,6 +810,31 @@ def simulate_trade(
     }
 
 
+def limit_concurrent_trades(
+    trades: Iterable[dict],
+    max_open_trades: int | None,
+) -> list[dict]:
+    """Keep chronological trades without exceeding the open-trade limit."""
+
+    trade_list = list(trades)
+    if max_open_trades is None:
+        return trade_list
+    if max_open_trades < 1:
+        raise ValueError("The maximum number of open trades must be at least 1.")
+
+    accepted = []
+    open_trade_exits = []
+    for trade in sorted(trade_list, key=lambda item: item["EntryIndex"]):
+        entry_index = int(trade["EntryIndex"])
+        while open_trade_exits and open_trade_exits[0] <= entry_index:
+            heapq.heappop(open_trade_exits)
+        if len(open_trade_exits) >= max_open_trades:
+            continue
+        accepted.append(trade)
+        heapq.heappush(open_trade_exits, int(trade["ExitIndex"]))
+    return accepted
+
+
 def calculate_metrics(
     trades: pd.DataFrame,
     stop: float,
@@ -1047,6 +1075,7 @@ def run_sensitivity(
     progress_callback: Callable[[int, int, int, bool], None] | None = None,
     ticker: str = TICKER,
     trading_timeframe: str = INTERVAL,
+    max_open_trades: int | None = MAX_OPEN_TRADES,
 ) -> pd.DataFrame:
     """Return one metrics row per seed and stop/target pair."""
 
@@ -1068,6 +1097,8 @@ def run_sensitivity(
         raise ValueError("At least one random seed is required.")
     if number_of_entries < 1:
         raise ValueError("The number of entries must be at least 1.")
+    if max_open_trades is not None and max_open_trades < 1:
+        raise ValueError("--max-open-trades must be at least 1.")
     if not stop_values or not target_values:
         raise ValueError("At least one stop and one target are required.")
     if use_atrp and atrp_values is None:
@@ -1118,7 +1149,7 @@ def run_sensitivity(
         )
         for stop in stop_values:
             for target in target_values:
-                trades = [
+                candidate_trades = [
                     simulate_trade(
                         data=data,
                         entry_index=int(entry.EntryIndex),
@@ -1144,6 +1175,10 @@ def run_sensitivity(
                     )
                     for entry in entries.itertuples(index=False)
                 ]
+                trades = limit_concurrent_trades(
+                    candidate_trades,
+                    max_open_trades,
+                )
                 trade_frame = pd.DataFrame(
                     trades,
                     columns=(
@@ -1177,7 +1212,7 @@ def run_sensitivity(
                             atr_timeframe if use_atrp else "N/A"
                         ),
                         "ATRPeriod": atr_period if use_atrp else np.nan,
-                        "SelectedEntries": len(entries),
+                        "SelectedEntries": len(trades),
                         **metrics,
                     }
                 )

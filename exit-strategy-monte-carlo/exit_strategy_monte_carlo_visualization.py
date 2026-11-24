@@ -32,11 +32,13 @@ RANGE_TIMEFRAME = "3mo"
 # ATR Wilder period or TRP history warm-up in range timeframe bars.
 RANGE_PERIOD = 1
 # Number of Monte Carlo scenarios. Seeds run from SCENARIO_START sequentially.
-SCENARIO_COUNT = 1000
+SCENARIO_COUNT = 200
 # Seed for the first scenario.
 SCENARIO_START = 0
 # Maximum random trades sampled from each calendar year per scenario.
-TRADES_PER_YEAR = 1
+MAX_TRADES_PER_YEAR = 12
+# Maximum simultaneous open trades; None disables the concurrency limit.
+MAX_OPEN_TRADES: int | None = 1
 # Filter entries by the moving average.
 MA_ENTRY_ENABLED = False
 # Moving-average period in trading bars.
@@ -73,7 +75,7 @@ RANGE_TARGET_MULTIPLIERS = [
 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.25, 2.5, 3, 3.5, 4, 4.5, 5
 ]
 # Statistic aggregated across Monte Carlo scenarios.
-STATISTIC = "p5"
+STATISTIC = "median"
 # Metric printed in the top section of each heatmap cell.
 TOP_METRIC = "ExpectancyR"
 # Metric printed in the bottom section of each heatmap cell.
@@ -89,7 +91,7 @@ COLOR_MAX: float | None = 1.0
 # Minimum win rate for a highlighted heatmap cell.
 HIGHLIGHT_WIN_RATE = 67.0
 # Minimum expectancy in R for a highlighted heatmap cell.
-HIGHLIGHT_EXPECTANCY_R = 1.0
+HIGHLIGHT_EXPECTANCY_R = 1.5
 # Directory for generated reports and charts.
 OUTPUT_DIR = Path(__file__).resolve().parent / "results" / "visualization"
 
@@ -429,7 +431,9 @@ def build_parser() -> argparse.ArgumentParser:
             "eligible random trades drawn from each calendar year in every "
             "scenario. For example, --scenario-start 0 --scenario-count 200 "
             "--trades-per-year 25 creates 200 reproducible scenarios; each "
-            "year contributes up to 25 trades to each scenario."
+            "year contributes up to 25 trades to each scenario. "
+            "--max-open-trades can cap simultaneous positions separately for "
+            "each stop/target pair."
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
@@ -522,12 +526,21 @@ def build_parser() -> argparse.ArgumentParser:
         "--entry-count",
         dest="trades_per_year",
         type=int,
-        default=TRADES_PER_YEAR,
+        default=MAX_TRADES_PER_YEAR,
         help=(
             "Maximum number of eligible random trades to select independently "
             "from each calendar year for every scenario seed. Filters or "
             "insufficient data in a year can reduce the count "
             "(--entry-count is a legacy alias)."
+        ),
+    )
+    parser.add_argument(
+        "--max-open-trades",
+        type=int,
+        default=MAX_OPEN_TRADES,
+        help=(
+            "Maximum number of simultaneous open trades for each "
+            "stop/target pair; omit for no limit."
         ),
     )
     entry_filter = parser.add_mutually_exclusive_group()
@@ -682,7 +695,7 @@ def simulate_representative_scenario(
     )
     for stop in stops:
         for target in targets:
-            combination_trades = []
+            candidate_trades = []
             for entry in entries.itertuples(index=False):
                 trade = sensitivity.simulate_trade(
                     data=data,
@@ -705,18 +718,22 @@ def simulate_representative_scenario(
                     use_atrp=args.use_atrp,
                     use_trp=getattr(args, "use_trp", False),
                 )
+                candidate_trades.append(
+                    {
+                        "Direction": str(entry.Direction),
+                        **trade,
+                    }
+                )
+            combination_trades = sensitivity.limit_concurrent_trades(
+                candidate_trades,
+                getattr(args, "max_open_trades", MAX_OPEN_TRADES),
+            )
+            for trade in combination_trades:
                 trade_records.append(
                     {
                         "Scenario": scenario,
                         "StopParameter": stop,
                         "TargetParameter": target,
-                        "Direction": str(entry.Direction),
-                        **trade,
-                    }
-                )
-                combination_trades.append(
-                    {
-                        "Direction": str(entry.Direction),
                         **trade,
                     }
                 )
@@ -768,6 +785,11 @@ def validate_args(args: argparse.Namespace) -> None:
         raise ValueError("--scenario-count must be at least 1.")
     if args.trades_per_year < 1:
         raise ValueError("--trades-per-year must be at least 1.")
+    if (
+        args.max_open_trades is not None
+        and args.max_open_trades < 1
+    ):
+        raise ValueError("--max-open-trades must be at least 1.")
     if args.sma_period < 1:
         raise ValueError("--sma-period must be at least 1.")
     if (args.use_atrp or getattr(args, "use_trp", False)) and args.range_period < 1:
@@ -897,6 +919,7 @@ def main() -> None:
         progress_callback=report_progress,
         ticker=args.ticker.strip().upper(),
         trading_timeframe=args.interval,
+        max_open_trades=args.max_open_trades,
     )
     summary = aggregate_scenarios(scenario_results, args.statistic)
     if args.ma_entry_enabled:
@@ -966,6 +989,11 @@ def main() -> None:
         if args.use_atrp
         else "pct"
     )
+    open_trades_slug = (
+        f"_open{args.max_open_trades}"
+        if args.max_open_trades is not None
+        else ""
+    )
     filter_slug = "ma1" if args.ma_entry_enabled else "ma0"
     statistic_slug = {
         "median": "med",
@@ -974,7 +1002,7 @@ def main() -> None:
     output_slug = (
         f"{ticker_slug}_{args.interval}_{mode_slug}_"
         f"n{args.scenario_count}_s{args.scenario_start}_"
-        f"{filter_slug}_{statistic_slug}"
+        f"{filter_slug}{open_trades_slug}_{statistic_slug}"
     )
     representative_scenario = f"scenario{detail_scenario}"
     files = {

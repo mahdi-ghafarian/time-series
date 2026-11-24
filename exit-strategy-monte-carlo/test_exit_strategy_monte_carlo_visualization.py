@@ -158,6 +158,44 @@ class ExitStrategyMonteCarloTests(unittest.TestCase):
         finally:
             plt.close(figure)
 
+    def test_representative_scenario_limits_simultaneous_trades(self):
+        closes = np.arange(10, 18, dtype=float)
+        data = pd.DataFrame(
+            {
+                "Open": closes,
+                "High": closes + 0.5,
+                "Low": closes - 0.5,
+                "Close": closes,
+            },
+            index=pd.date_range("2020-01-01", periods=len(closes)),
+        )
+        settings = Namespace(
+            trades_per_year=4,
+            sma_period=2,
+            direction="Long",
+            ma_entry_enabled=False,
+            ma_exit=False,
+            use_atrp=False,
+            use_trp=False,
+            commission=0.0,
+            slippage=0.0,
+            conservative=True,
+            max_open_trades=1,
+        )
+
+        entries, trades, directional = simulate_representative_scenario(
+            data=data,
+            scenario=3,
+            args=settings,
+            stops=[-1],
+            targets=[-1],
+            atrp_values=None,
+        )
+
+        self.assertEqual(len(entries), 4)
+        self.assertEqual(len(trades), 1)
+        self.assertEqual(len(directional), 3)
+
 
 if __name__ == "__main__":
     unittest.main()
