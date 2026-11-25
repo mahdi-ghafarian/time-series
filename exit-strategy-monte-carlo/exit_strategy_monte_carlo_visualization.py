@@ -32,7 +32,7 @@ INTERVAL = "1d"
 
 # region MONTE CARLO
 # Statistic aggregated across Monte Carlo scenarios.
-STATISTIC = "p5"
+STATISTIC = "p75"
 # Seed for the first scenario.
 SCENARIO_START = 0
 # Number of Monte Carlo scenarios. Seeds run from SCENARIO_START sequentially.
@@ -50,10 +50,6 @@ RANGE_PERIOD = 1
 MAX_TRADES_PER_YEAR = 12
 # Maximum simultaneous open trades; None disables the concurrency limit.
 MAX_OPEN_TRADES: int | None = 1
-# Filter entries by the moving average.
-MA_ENTRY_ENABLED = False
-# Moving-average period in trading bars.
-SMA_PERIOD = 200
 # Trade direction: Long, Short, or Both.
 TRADE_DIRECTION = "Long"
 # Commission percentage per trade side.
@@ -62,8 +58,12 @@ COMMISSION = 0.0
 SLIPPAGE = 0.02
 # If both exit levels hit in one candle, assume the stop hit first.
 CONSERVATIVE = True
+# Filter entries by the moving average.
+MA_ENTRY_ENABLED = True
 # Exit trades on an opposite SMA crossover.
 MA_EXIT_ENABLED = False
+# Moving-average period in trading bars.
+SMA_PERIOD = 200
 # Optional stop override; None uses the default stop grid.
 STOPS: list[float] | None = None
 # Optional target override; None uses the default target grid.
@@ -108,9 +108,9 @@ COLOR_MAX: float | None = None #  None = 1.0
 
 # TOP METRIC
 # Metric printed in the top section of each heatmap cell.
-TOP_METRIC = "CumulativeReturnPct"
+TOP_METRIC = "AnnualizedReturnPct"
 # TOP_METRIC threshold for a highlighted heatmap cell.
-HIGHLIGHT_TOP_THRESHOLD = 0
+HIGHLIGHT_TOP_THRESHOLD = 8 # QQQ CAGR
 # "above" highlights TOP_METRIC > threshold; "below" highlights < threshold.
 HIGHLIGHT_TOP_DIRECTION = "above"
 
@@ -118,7 +118,7 @@ HIGHLIGHT_TOP_DIRECTION = "above"
 # Metric printed in the bottom section of each heatmap cell.
 BOTTOM_METRIC = "MaxDrawdownPct"
 # BOTTOM_METRIC threshold for a highlighted heatmap cell.
-HIGHLIGHT_BOTTOM_THRESHOLD = 50
+HIGHLIGHT_BOTTOM_THRESHOLD = 25
 # "above" highlights BOTTOM_METRIC > threshold; "below" highlights < threshold.
 HIGHLIGHT_BOTTOM_DIRECTION = "below"
 #endregion
@@ -147,6 +147,7 @@ OUTPUT_DIR = Path(__file__).resolve().parent / "results" / "visualization"
 # sequentially; it is not a portfolio equity curve when trades overlap.
 # TotalRealizedR: Sum of realized R
 
+# Expectancy:
 # Percentage expectancy: ExpectancyPct, ExpectancyPctPerBar
 # ATRP expectancy: ExpectancyATRP, ExpectancyATRPPerBar
 # TRP expectancy: ExpectancyTRP, ExpectancyTRPPerBar
@@ -282,6 +283,7 @@ def create_scenario_heatmap(
     bottom_threshold: float,
     bottom_direction: str,
     color_direction: str = "higher",
+    ma_enabled: bool = False,
 ):
     """Create the annotated stop/target heatmap without app dependencies."""
 
@@ -350,7 +352,8 @@ def create_scenario_heatmap(
     axis.set_title(
         f"{ticker} | {start_date} to {end_date} | "
         f"{number_of_entries:,} Random Trades "
-        f"(up to {requested_entries:,} per Year)\n"
+        f"(up to {requested_entries:,} per Year) | "
+        f"{'MA Enabled' if ma_enabled else 'MA Disabled'}\n"
         f"{top_metric} (top), {bottom_metric} (bottom)"
     )
     axis.set_xticks(np.arange(len(stops)))
@@ -432,7 +435,7 @@ def create_scenario_heatmap(
                         1,
                         fill=False,
                         edgecolor="black",
-                        linewidth=3,
+                        linewidth=2,
                         zorder=4,
                     )
                 )
@@ -1255,6 +1258,7 @@ def main() -> None:
         bottom_threshold=args.highlight_bottom_threshold,
         bottom_direction=args.highlight_bottom_direction,
         color_direction=args.color_direction,
+        ma_enabled=args.ma_entry_enabled,
     )
     heatmap.axes[0].set_title(
         heatmap.axes[0].get_title()
