@@ -21,7 +21,7 @@ import exit_strategy_fast_engine as engine
 
 # region DATA
 # Market ticker.
-TICKER = "QQQ"
+TICKER = "^HSI"
 # Start of the historical data range, inclusive.
 START_DATE = date(2000, 1, 1)
 # End of the historical data range, inclusive.
@@ -32,7 +32,7 @@ INTERVAL = "1d"
 
 # region MONTE CARLO
 # Statistic aggregated across Monte Carlo scenarios.
-STATISTIC = "median"
+STATISTIC = "p5"
 # Seed for the first scenario.
 SCENARIO_START = 0
 # Number of Monte Carlo scenarios. Seeds run from SCENARIO_START sequentially.
@@ -55,11 +55,11 @@ TRADE_DIRECTION = "Long"
 # Commission percentage per trade side.
 COMMISSION = 0.0
 # Slippage percentage per trade side.
-SLIPPAGE = 0.02
+SLIPPAGE = 0.0  # 0.02
 # If both exit levels hit in one candle, assume the stop hit first.
 CONSERVATIVE = True
 # Filter entries by the moving average.
-MA_ENTRY_ENABLED = False
+MA_ENTRY_ENABLED = True
 # Exit trades on an opposite SMA crossover.
 MA_EXIT_ENABLED = False
 # Moving-average period in trading bars.
@@ -70,12 +70,12 @@ STOPS: list[float] | None = None
 TARGETS: list[float] | None = None
 # Fixed-percentage stop grid; -1 disables the stop.
 DEFAULT_PERCENT_STOPS = [
-    10, 15, 20, 25, 30, 35, 40, 45, 50
+    5, 10, 15, 20, 25, 30, 35,40, 45, 50
 ]
 # Fixed-percentage target grid; -1 disables the target.
 DEFAULT_PERCENT_TARGETS = [
     10, 15, 20, 25, 30, 35, 40, 45, 50,
-    60, 70, 80, 90, 100, -1
+    60, 70, 80, 90, 100, #-1
 ]
 # Normalized stop-multiplier grid used by ATRP and TRP modes.
 RANGE_STOP_MULTIPLIERS = [
