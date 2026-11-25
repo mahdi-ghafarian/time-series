@@ -32,7 +32,7 @@ INTERVAL = "1d"
 
 # region MONTE CARLO
 # Statistic aggregated across Monte Carlo scenarios.
-STATISTIC = "p75"
+STATISTIC = "median"
 # Seed for the first scenario.
 SCENARIO_START = 0
 # Number of Monte Carlo scenarios. Seeds run from SCENARIO_START sequentially.
@@ -59,7 +59,7 @@ SLIPPAGE = 0.02
 # If both exit levels hit in one candle, assume the stop hit first.
 CONSERVATIVE = True
 # Filter entries by the moving average.
-MA_ENTRY_ENABLED = True
+MA_ENTRY_ENABLED = False
 # Exit trades on an opposite SMA crossover.
 MA_EXIT_ENABLED = False
 # Moving-average period in trading bars.
