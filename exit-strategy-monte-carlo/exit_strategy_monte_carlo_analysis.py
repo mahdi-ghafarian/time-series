@@ -11,9 +11,8 @@ import numpy as np
 import pandas as pd
 import yfinance as yf
 
-
+# region USER CONFIGURATION
 # =============================================================================
-# USER CONFIGURATION
 # Edit this section to change the default analysis; CLI arguments can override it.
 # =============================================================================
 # Yahoo Finance symbol and inclusive simulation date range.
@@ -98,11 +97,9 @@ RANGE_TARGET_MULTIPLIERS = [
 ]
 # Assumed risk for R normalization only when no stop is placed.
 NO_STOP_RISK_PCT = 100.0
+#endregion
 
-
-# =============================================================================
-# INTERNAL REPORT SCHEMAS
-# =============================================================================
+# region INTERNAL REPORT SCHEMAS
 TRADE_METRIC_COLUMNS = [
     "NetReturnPct",
     "NetReturnATRP",
@@ -190,7 +187,7 @@ SUMMARY_KEYS = [
     "StopParameter",
     "TargetParameter",
 ]
-
+# endregion
 
 def download_data(
     ticker: str,

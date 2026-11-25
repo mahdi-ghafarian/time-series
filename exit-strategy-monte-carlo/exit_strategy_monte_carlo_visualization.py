@@ -11,12 +11,15 @@ import pandas as pd
 from matplotlib.patches import Rectangle
 
 import exit_strategy_monte_carlo_analysis as sensitivity
+import exit_strategy_fast_engine as engine
 
 
+# region USER CONFIGURATION
 # =============================================================================
-# USER CONFIGURATION
 # Edit these defaults or override them with command-line options.
 # =============================================================================
+
+# region DATA
 # Market ticker.
 TICKER = "QQQ"
 # Start of the historical data range, inclusive.
@@ -25,16 +28,24 @@ START_DATE = date(2000, 1, 1)
 END_DATE = date(2026, 12, 31)
 # Trading candle interval.
 INTERVAL = "1d"
+# endregion
+
+# region MONTE CARLO
+# Statistic aggregated across Monte Carlo scenarios.
+STATISTIC = "p5"
+# Seed for the first scenario.
+SCENARIO_START = 0
+# Number of Monte Carlo scenarios. Seeds run from SCENARIO_START sequentially.
+SCENARIO_COUNT = 1000
+# endregion
+
+#region TRADING
 # Exit mode: Percent, ATRP, or TRP.
 EXIT_MODE = "Percent"
 # Candle timeframe used to calculate ATRP and TRP.
 RANGE_TIMEFRAME = "3mo"
 # ATR Wilder period or TRP history warm-up in range timeframe bars.
 RANGE_PERIOD = 1
-# Number of Monte Carlo scenarios. Seeds run from SCENARIO_START sequentially.
-SCENARIO_COUNT = 200
-# Seed for the first scenario.
-SCENARIO_START = 0
 # Maximum random trades sampled from each calendar year per scenario.
 MAX_TRADES_PER_YEAR = 12
 # Maximum simultaneous open trades; None disables the concurrency limit.
@@ -48,7 +59,7 @@ TRADE_DIRECTION = "Long"
 # Commission percentage per trade side.
 COMMISSION = 0.0
 # Slippage percentage per trade side.
-SLIPPAGE = 0.0
+SLIPPAGE = 0.02
 # If both exit levels hit in one candle, assume the stop hit first.
 CONSERVATIVE = True
 # Exit trades on an opposite SMA crossover.
@@ -59,12 +70,12 @@ STOPS: list[float] | None = None
 TARGETS: list[float] | None = None
 # Fixed-percentage stop grid; -1 disables the stop.
 DEFAULT_PERCENT_STOPS = [
-    5, 10, 15, 20, 25, 30, 35, 40, 45, 50
+    10, 15, 20, 25, 30, 35, 40, 45, 50
 ]
 # Fixed-percentage target grid; -1 disables the target.
 DEFAULT_PERCENT_TARGETS = [
-    5, 10, 15, 20, 25, 30, 35, 40, 45, 50,
-    60, 70, 80, 90, 100
+    10, 15, 20, 25, 30, 35, 40, 45, 50,
+    60, 70, 80, 90, 100, -1
 ]
 # Normalized stop-multiplier grid used by ATRP and TRP modes.
 RANGE_STOP_MULTIPLIERS = [
@@ -74,15 +85,17 @@ RANGE_STOP_MULTIPLIERS = [
 RANGE_TARGET_MULTIPLIERS = [
 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.25, 2.5, 3, 3.5, 4, 4.5, 5
 ]
+# endregion
 
-# Statistic aggregated across Monte Carlo scenarios.
-STATISTIC = "p5"
-
+# region RANKING IN REPORT
 # Metric used to rank stop/target combinations.
 RANK_METRIC = "CalmarRatio"
 # Which RANK_METRIC values rank first: "higher" or "lower" (e.g. drawdown).
 RANK_DIRECTION = "higher"
+#endregion
 
+# region HEATMAP
+# HEATMAP COLOR
 # Metric used for heatmap colors.
 COLOR_METRIC = "CalmarRatio"
 # Which COLOR_METRIC values are better: "higher" (green = high) or "lower"
@@ -93,6 +106,7 @@ COLOR_MIN: float | None = None #  None = 0.0
 # Maximum heatmap color value; None uses the observed maximum.
 COLOR_MAX: float | None = None #  None = 1.0
 
+# TOP METRIC
 # Metric printed in the top section of each heatmap cell.
 TOP_METRIC = "CumulativeReturnPct"
 # TOP_METRIC threshold for a highlighted heatmap cell.
@@ -100,55 +114,154 @@ HIGHLIGHT_TOP_THRESHOLD = 0
 # "above" highlights TOP_METRIC > threshold; "below" highlights < threshold.
 HIGHLIGHT_TOP_DIRECTION = "above"
 
+# BOTTOM METRIC
 # Metric printed in the bottom section of each heatmap cell.
 BOTTOM_METRIC = "MaxDrawdownPct"
 # BOTTOM_METRIC threshold for a highlighted heatmap cell.
 HIGHLIGHT_BOTTOM_THRESHOLD = 50
 # "above" highlights BOTTOM_METRIC > threshold; "below" highlights < threshold.
 HIGHLIGHT_BOTTOM_DIRECTION = "below"
+#endregion
 
+# region OTHER
 # Directory for generated reports and charts.
 OUTPUT_DIR = Path(__file__).resolve().parent / "results" / "visualization"
+# endregion
 
+# region DOCS
+# ------------------------------------------------------------------------------
+# METRICS
+# ------------------------------------------------------------------------------
 # Available values for TOP_METRIC, BOTTOM_METRIC, COLOR_METRIC, and RANK_METRIC:
+#
 # Trade count: NumberOfTrades, MaxConsecutiveLosses
+#
 # Outcomes: WinRatePct, AverageWinPct, AverageLossPct, AverageWinATRP,
 # AverageLossATRP
+#
 # Reward/risk: RealizedRRR, BreakEvenWinRatePct, PlannedRRR,
 # PlannedBreakEvenWinRatePct
+#
+# Total return:
 # CumulativeReturnPct compounds each trade as if full capital were reinvested
 # sequentially; it is not a portfolio equity curve when trades overlap.
+# TotalRealizedR: Sum of realized R
+
 # Percentage expectancy: ExpectancyPct, ExpectancyPctPerBar
 # ATRP expectancy: ExpectancyATRP, ExpectancyATRPPerBar
 # TRP expectancy: ExpectancyTRP, ExpectancyTRPPerBar
-# R expectancy: ExpectancyR, ExpectancyRPerBar, ExpectancyRPer100Bars,
-# TotalRealizedR
+# R expectancy: ExpectancyR, ExpectancyRPerBar, ExpectancyRPer100Bars
+#
 # Drawdown: MaxDrawdownR, MaxDrawdownPct
+#
 # Return/drawdown (higher is better, calculated per scenario):
 # ReturnToDrawdownPct (CumulativeReturnPct / |MaxDrawdownPct|),
 # ReturnToDrawdownR (TotalRealizedR / |MaxDrawdownR|)
+#
 # Annual (calculated per scenario from the length of the downloaded data):
 # AnnualizedReturnPct (CAGR of CumulativeReturnPct), CalmarRatio (CAGR /
 # |MaxDrawdownPct|), TradesPerYear, RPerYear (TotalRealizedR / years),
 # TimeInMarketPct (AverageBarsHeld x NumberOfTrades / total bars; can exceed
 # 100 with several open trades), AnnualizedReturnPerBarHeldPct
 # (ExpectancyPctPerBar x bars per year: 252 daily, 52 weekly, 12 monthly)
+#
 # Risk and distance: AverageEntryATRP, AverageEntryTRP, AverageStopDistancePct,
 # AverageTargetDistancePct
+#
 # Duration: AverageBarsHeld
+#
 # Exit distribution: StopExitPct, TargetExitPct, MovingAverageExitPct,
 # EndOfDataExitPct
+#
 # Costs: AverageCommissionPct
 
+# ------------------------------------------------------------------------------
+# STATISTICS
+# ------------------------------------------------------------------------------
 # Available values for STATISTIC:
 # min, median, average, max, p1, p5, p25, p75, p95, p99.
 
+# ------------------------------------------------------------------------------
 # NOTES
+# ------------------------------------------------------------------------------
 # 1. When using TRP, RANGE_PERIOD = 1 waits one RANGE_TIMEFRAME before 
 # starting simulation
-
+# endregion
 
 # =============================================================================
+# endregion
+
+
+# region INTERNAL REPORT SCHEMAS
+# Derived return-to-drawdown metrics, calculated per scenario before the
+# statistic is applied: name -> (return column, drawdown column).
+# Drawdown is used as an absolute value, and zero drawdown gives NaN.
+DERIVED_METRICS = {
+    "ReturnToDrawdownPct": ("CumulativeReturnPct", "MaxDrawdownPct"),
+    "ReturnToDrawdownR": ("TotalRealizedR", "MaxDrawdownR"),
+}
+# Derived annual metrics. They need the length of the sampled history.
+ANNUAL_METRICS = [
+    "AnnualizedReturnPct",
+    "CalmarRatio",
+    "TradesPerYear",
+    "RPerYear",
+    "TimeInMarketPct",
+    "AnnualizedReturnPerBarHeldPct",
+]
+ALL_METRICS = [
+    *sensitivity.METRIC_COLUMNS,
+    *DERIVED_METRICS,
+    *ANNUAL_METRICS,
+]
+# Trading bars per year for each supported interval.
+BARS_PER_YEAR = {"1d": 252, "1wk": 52, "1mo": 12}
+ANNUAL_SOURCE_COLUMNS = {
+    "CumulativeReturnPct",
+    "MaxDrawdownPct",
+    "NumberOfTrades",
+    "TotalRealizedR",
+    "AverageBarsHeld",
+    "ExpectancyPctPerBar",
+}
+STATISTICS = {
+    "min": ("Minimum", "min"),
+    "median": ("Median", "median"),
+    "average": ("Average", "mean"),
+    "max": ("Maximum", "max"),
+    "p1": ("1st percentile", 0.01),
+    "p5": ("5th percentile", 0.05),
+    "p25": ("25th percentile", 0.25),
+    "p75": ("75th percentile", 0.75),
+    "p95": ("95th percentile", 0.95),
+    "p99": ("99th percentile", 0.99),
+}
+# Metrics where a bigger number is worse. For these the statistic is taken from
+# the opposite tail, so "p5"/"min" always mean the pessimistic end of every
+# metric (e.g. highest drawdown) and "p95"/"max" the optimistic end.
+# AverageLossPct and AverageLossATRP are stored as negative numbers, so a
+# bigger loss is already a lower value and they need no flipping.
+LOWER_IS_BETTER = {
+    "MaxDrawdownPct",
+    "MaxDrawdownR",
+    "MaxConsecutiveLosses",
+    "AverageCommissionPct",
+}
+# Metrics that are meaningless (not zero) when a scenario made no trades.
+NO_TRADE_NAN_METRICS = ["MaxDrawdownPct", "MaxDrawdownR", "MaxConsecutiveLosses"]
+# Tail described by each statistic: "pessimistic", "optimistic" or None.
+STATISTIC_TAIL = {
+    "min": "pessimistic",
+    "p1": "pessimistic",
+    "p5": "pessimistic",
+    "p25": "pessimistic",
+    "p75": "optimistic",
+    "p95": "optimistic",
+    "p99": "optimistic",
+    "max": "optimistic",
+}
+#endregion
+
 
 def create_scenario_heatmap(
     results: pd.DataFrame,
@@ -345,39 +458,6 @@ def create_scenario_heatmap(
     return figure
 
 
-# Derived return-to-drawdown metrics, calculated per scenario before the
-# statistic is applied: name -> (return column, drawdown column).
-# Drawdown is used as an absolute value, and zero drawdown gives NaN.
-DERIVED_METRICS = {
-    "ReturnToDrawdownPct": ("CumulativeReturnPct", "MaxDrawdownPct"),
-    "ReturnToDrawdownR": ("TotalRealizedR", "MaxDrawdownR"),
-}
-# Derived annual metrics. They need the length of the sampled history.
-ANNUAL_METRICS = [
-    "AnnualizedReturnPct",
-    "CalmarRatio",
-    "TradesPerYear",
-    "RPerYear",
-    "TimeInMarketPct",
-    "AnnualizedReturnPerBarHeldPct",
-]
-ALL_METRICS = [
-    *sensitivity.METRIC_COLUMNS,
-    *DERIVED_METRICS,
-    *ANNUAL_METRICS,
-]
-# Trading bars per year for each supported interval.
-BARS_PER_YEAR = {"1d": 252, "1wk": 52, "1mo": 12}
-ANNUAL_SOURCE_COLUMNS = {
-    "CumulativeReturnPct",
-    "MaxDrawdownPct",
-    "NumberOfTrades",
-    "TotalRealizedR",
-    "AverageBarsHeld",
-    "ExpectancyPctPerBar",
-}
-
-
 def sample_span(data: pd.DataFrame, interval: str) -> tuple[float, int]:
     """Return the years covered by the data and the bars per year."""
 
@@ -410,6 +490,12 @@ def add_derived_metrics(
             + ", ".join(sorted(missing))
         )
 
+    # A scenario without trades has no drawdown; keep it out of the statistic
+    # (like its NaN return) instead of counting it as a perfect zero.
+    no_trades = result["NumberOfTrades"] == 0
+    for column in NO_TRADE_NAN_METRICS:
+        result[column] = result[column].astype("float64").mask(no_trades)
+
     for name, (return_column, drawdown_column) in DERIVED_METRICS.items():
         drawdown = result[drawdown_column].abs().replace(0, np.nan)
         result[name] = result[return_column] / drawdown
@@ -431,18 +517,20 @@ def add_derived_metrics(
     return result
 
 
-STATISTICS = {
-    "min": ("Minimum", "min"),
-    "median": ("Median", "median"),
-    "average": ("Average", "mean"),
-    "max": ("Maximum", "max"),
-    "p1": ("1st percentile", 0.01),
-    "p5": ("5th percentile", 0.05),
-    "p25": ("25th percentile", 0.25),
-    "p75": ("75th percentile", 0.75),
-    "p95": ("95th percentile", 0.95),
-    "p99": ("99th percentile", 0.99),
-}
+def statistic_label(statistic: str) -> str:
+    """Return the display name, marking pessimistic/optimistic tails."""
+
+    label = STATISTICS[statistic][0]
+    tail = STATISTIC_TAIL.get(statistic)
+    return f"{label} ({tail} end)" if tail else label
+
+
+def flipped_aggregation(aggregation):
+    """Return the opposite-tail aggregation for lower-is-better metrics."""
+
+    if isinstance(aggregation, float):
+        return 1 - aggregation
+    return {"min": "max", "max": "min"}.get(aggregation, aggregation)
 
 
 def aggregate_scenarios(
@@ -483,11 +571,22 @@ def aggregate_scenarios(
         dropna=False,
     )
     aggregation = STATISTICS[statistic][1]
-    metrics = group[ALL_METRICS]
-    if isinstance(aggregation, float):
-        summary = metrics.quantile(aggregation).reset_index()
-    else:
-        summary = metrics.agg(aggregation).reset_index()
+
+    def aggregate(columns: list[str], how) -> pd.DataFrame:
+        metrics = group[columns]
+        if isinstance(how, float):
+            return metrics.quantile(how)
+        return metrics.agg(how)
+
+    normal_columns = [m for m in ALL_METRICS if m not in LOWER_IS_BETTER]
+    flipped_columns = [m for m in ALL_METRICS if m in LOWER_IS_BETTER]
+    summary = pd.concat(
+        [
+            aggregate(normal_columns, aggregation),
+            aggregate(flipped_columns, flipped_aggregation(aggregation)),
+        ],
+        axis=1,
+    )[ALL_METRICS].reset_index()
 
     robustness_metric = (
         "ExpectancyATRP"
@@ -780,6 +879,12 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--workers",
+        type=int,
+        default=1,
+        help="Processes for scenario simulation (1 = single process, 0 = all CPU cores).",
+    )
+    parser.add_argument(
         "--output-dir",
         type=Path,
         default=OUTPUT_DIR,
@@ -855,7 +960,7 @@ def simulate_representative_scenario(
         for target in targets:
             candidate_trades = []
             for entry in entries.itertuples(index=False):
-                trade = sensitivity.simulate_trade(
+                trade = engine.simulate_trade(
                     data=data,
                     entry_index=int(entry.EntryIndex),
                     stop_parameter=stop,
@@ -916,7 +1021,7 @@ def simulate_representative_scenario(
                     {
                         "Scenario": scenario,
                         "Direction": direction,
-                        **sensitivity.calculate_metrics(
+                        **engine.calculate_metrics(
                             selected_trades.drop(columns="Direction"),
                             stop,
                             target,
@@ -1064,7 +1169,7 @@ def main() -> None:
     ) -> None:
         print(f"Completed {completed}/{total} scenarios.")
 
-    scenario_results = sensitivity.run_sensitivity(
+    scenario_results = engine.run_sensitivity(
         data=data,
         seeds=scenarios,
         number_of_entries=args.trades_per_year,
@@ -1088,6 +1193,7 @@ def main() -> None:
         ticker=args.ticker.strip().upper(),
         trading_timeframe=args.interval,
         max_open_trades=args.max_open_trades,
+        workers=args.workers,
     )
     years, bars_per_year = sample_span(data, args.interval)
     summary = aggregate_scenarios(
@@ -1127,7 +1233,8 @@ def main() -> None:
     )
     ranked.insert(0, "Rank", np.arange(1, len(ranked) + 1))
 
-    selected_statistic = STATISTICS[args.statistic][0]
+    selected_statistic = statistic_label(args.statistic)
+    heatmap_statistic = STATISTICS[args.statistic][0]
     ticker = args.ticker.strip().upper()
     heatmap = create_scenario_heatmap(
         results=summary,
@@ -1151,10 +1258,10 @@ def main() -> None:
     )
     heatmap.axes[0].set_title(
         heatmap.axes[0].get_title()
-        + f"\nAcross {args.scenario_count} scenarios: {selected_statistic}"
+        + f"\nAcross {args.scenario_count} scenarios: {heatmap_statistic}"
     )
     heatmap.axes[1].set_ylabel(
-        f"{args.color_metric} ({selected_statistic})"
+        f"{args.color_metric} ({heatmap_statistic})"
     )
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
