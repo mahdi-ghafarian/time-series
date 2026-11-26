@@ -24,8 +24,8 @@ MAX_BIN_PCT = None
 MIN_EPISODE_DRAWDOWN_PCT = 0.0
 
 ANALYZE_ENTRY_MAE = True
-ENTRY_FREQUENCY = "monthly"          # daily, weekly, monthly
-MAX_HOLDING_BARS = 504               # ~2 trading years
+ENTRY_FREQUENCY = "daily"            # daily, weekly, monthly
+MAX_HOLDING_BARS = 252               # in days
 RECOVERY_THRESHOLD_PCT = 0.0         # MAE recovery level vs entry
 PROFIT_TARGET_PCT = None
 EXCLUDE_INCOMPLETE_ENTRY_WINDOWS = True
@@ -44,6 +44,10 @@ SAVE_CHART = True
 SHOW_CHART = True
 CHART_DPI = 160
 FIGURE_SIZE = (18, 13)
+
+# NOTES
+# MAX_HOLDING_BARS = 1M: 21, 3M: 63, 6M: 126, 12M: 252, 24M: 504
+
 # =============================================================================
 
 from dataclasses import dataclass

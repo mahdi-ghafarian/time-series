@@ -3,13 +3,17 @@
   "csv": null,
   "start": "1999-03-10",
   "end": null,
-  "output_dir": "C:\\Github (local)\\time-series\\drawdown-dynamics\\results",
+  "output_dir": "C:\\Users\\mghafari\\GitHub (Local)\\time-series\\drawdown-analysis-extensive\\results",
   "method": [
-    "historical"
+    "historical",
+    "stationary",
+    "circular",
+    "fhs"
   ],
   "analysis": [
     "recovery",
-    "compare"
+    "compare",
+    "walkforward"
   ],
   "entries_per_month": 5,
   "eligibility": "per-window",
@@ -36,7 +40,7 @@
     0.45,
     0.5
   ],
-  "horizon": 63,
+  "horizon": 252,
   "slippage": 0.0005,
   "cash_rate": 0.0,
   "objective": "mean_log",
@@ -47,8 +51,17 @@
   "data_first": "1999-03-10",
   "data_last": "2026-11-25",
   "rows": 6973,
-  "block_lengths_used": {},
+  "block_lengths_used": {
+    "stationary_L21": 21.0,
+    "stationary_L63": 63.0,
+    "stationary_L126": 126.0,
+    "stationary_L252": 252.0,
+    "circular_L21": 21.0,
+    "circular_L63": 63.0,
+    "circular_L126": 126.0,
+    "circular_L252": 252.0
+  },
   "numpy": "2.5.4",
   "pandas": "3.0.6",
-  "python": "3.14.8"
+  "python": "3.14.6"
 }

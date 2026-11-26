@@ -203,7 +203,7 @@ return. In `stop_vs_hold.csv`, compare the Hold rows (`StopPct` = 0) across
 scenarios. All methods are based on past returns, so they largely inherit the
 past upward or downward drift. None of them forecasts it.
 
-### How each method works, in plain English
+### How each method works
 
 All four methods create **price paths**: a sequence of daily Open, High, Low
 and Close values after an entry. The stop and recovery rules are then applied

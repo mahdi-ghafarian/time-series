@@ -1,2 +1,0 @@
-Ticker,Scenario,Seed,Objective,MinES,BestStopPct,Result
-QQQ,historical,42,mean_log,,0.000000,Hold (no stop)

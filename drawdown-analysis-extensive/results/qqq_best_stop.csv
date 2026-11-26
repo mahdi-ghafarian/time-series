@@ -1,0 +1,11 @@
+Ticker,Scenario,Seed,Objective,MinES,BestStopPct,Result
+QQQ,historical,42,mean_log,,0.250000,25.0% stop
+QQQ,stationary_L21,42,mean_log,,0.000000,Hold (no stop)
+QQQ,stationary_L63,42,mean_log,,0.000000,Hold (no stop)
+QQQ,stationary_L126,42,mean_log,,0.000000,Hold (no stop)
+QQQ,stationary_L252,42,mean_log,,0.250000,25.0% stop
+QQQ,circular_L21,42,mean_log,,0.000000,Hold (no stop)
+QQQ,circular_L63,42,mean_log,,0.000000,Hold (no stop)
+QQQ,circular_L126,42,mean_log,,0.000000,Hold (no stop)
+QQQ,circular_L252,42,mean_log,,0.250000,25.0% stop
+QQQ,fhs,42,mean_log,,0.200000,20.0% stop
