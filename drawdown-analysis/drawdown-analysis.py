@@ -13,7 +13,7 @@ from __future__ import annotations
 # =============================================================================
 # USER CONFIGURATION
 # =============================================================================
-SYMBOL = "QQQ"
+SYMBOL = "ZC=F"
 START_DATE = "1999-03-10"
 END_DATE = None
 INTERVAL = "1d"
