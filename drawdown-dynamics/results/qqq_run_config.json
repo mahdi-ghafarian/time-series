@@ -1,0 +1,54 @@
+{
+  "ticker": "QQQ",
+  "csv": null,
+  "start": "1999-03-10",
+  "end": null,
+  "output_dir": "C:\\Github (local)\\time-series\\drawdown-dynamics\\results",
+  "method": [
+    "historical"
+  ],
+  "analysis": [
+    "recovery",
+    "compare"
+  ],
+  "entries_per_month": 5,
+  "eligibility": "per-window",
+  "paths": 5000,
+  "block_lengths": [
+    "21",
+    "63",
+    "126",
+    "252"
+  ],
+  "auto_series": "squared",
+  "fhs_start": "random",
+  "seed": 42,
+  "n_seeds": 1,
+  "stops": [
+    0.05,
+    0.1,
+    0.15,
+    0.2,
+    0.25,
+    0.3,
+    0.35,
+    0.4,
+    0.45,
+    0.5
+  ],
+  "horizon": 63,
+  "slippage": 0.0005,
+  "cash_rate": 0.0,
+  "objective": "mean_log",
+  "min_es": null,
+  "es_alpha": 0.05,
+  "periods": 3,
+  "min_train_years": 8,
+  "data_first": "1999-03-10",
+  "data_last": "2026-11-25",
+  "rows": 6973,
+  "block_lengths_used": {},
+  "numpy": "2.5.4",
+  "pandas": "3.0.6",
+  "python": "3.14.8"
+}
