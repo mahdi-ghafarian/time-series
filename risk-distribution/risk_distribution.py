@@ -21,7 +21,8 @@ from openpyxl.utils import get_column_letter
 from stop_lab import add_stop_lab, entry_allowed, filter_text
 
 # ---------------- SETTINGS (edit these) ----------------
-TICKER = "QQQ"
+TICKER = "SPY"
+
 STOP_MONTHS = 12                 # holding period used for the stop analysis
 STOP_LEVELS = [0.05, 0.075, 0.10, 0.125, 0.15, 0.20, 0.25, 0.30, 0.35, 0.40, 0.45, 0.50]
 HIST_BINS = 30                   # approximate number of histogram bars
