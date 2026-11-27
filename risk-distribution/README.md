@@ -64,6 +64,9 @@ Open a terminal in the folder that contains the script.
 | Set your loss limit | `python risk_distribution.py --ticker SPY --max-cvar 0.12` |
 | Faster trial run | `python risk_distribution.py --ticker SPY --bootstrap 100` |
 | Skip the bootstrap | `python risk_distribution.py --ticker SPY --bootstrap 0` |
+| Entries above the 200-day MA | `python risk_distribution.py --ticker SPY --ma-filter above --ma-period 200` |
+| Entries at or below the 100-day MA | `python risk_distribution.py --ticker SPY --ma-filter below --ma-period 100` |
+| Any entry day | `python risk_distribution.py --ticker SPY --ma-filter all` |
 | Choose the output name | `python risk_distribution.py --ticker SPY --out spy_risk.xlsx` |
 
 Keep the quotes around symbols that contain `^`, and around labels that contain spaces.
@@ -83,7 +86,7 @@ your-folder/
 
 Without `--out`, the file is named `risk_distribution_<label>.xlsx`, for example `risk_distribution_SPY.xlsx`. With `--out`, a file name alone (`spy_risk.xlsx`) also goes into `results`. A name that includes another folder (`reports/spy_risk.xlsx`) is saved there instead, relative to the folder you run the command from. A `--csv` path is also relative to that folder.
 
- Symbols other than letters, numbers, `-` and `_` are removed from the name. A file with the same name is **overwritten**, so rename any copy you have edited.
+ Symbols other than letters, numbers, `-` and `_` are removed from the name. Filtered runs add the filter to the default name, for example `risk_distribution_SPY_above200MA.xlsx` or `risk_distribution_SPY_atbelow200MA.xlsx`. A custom `--out` name is used as given. A file with the same name is **overwritten**, so rename any copy you have edited.
 
 ### CSV format
 
@@ -189,6 +192,28 @@ By default, this applies to 1-year windows. Each window is calculated with and w
 | Default distances | 5%, 7.5%, 10%, 12.5%, 15%, 20%, 25%, 30% |
 
 Costs, taxes, extra slippage and intraday triggers are not included.
+
+### 3.9 Moving-average entry filter
+
+Controls which windows are tested, based on the price **on the day the window starts**.
+
+| Mode | A window is tested if |
+|---|---|
+| `all` | Any start day (no filter) |
+| `above` | Start-day close is **above** its moving average |
+| `below` | Start-day close is **at or below** its moving average |
+
+- The average is a **simple** moving average of the last `MA_PERIOD` **trading days**, including the start day's close. It uses no later prices. The test assumes you can still enter at that same close. In practice, a signal confirmed at the close may only be traded later.
+- The condition is checked **only at entry**. The price may cross the average during the window. Crossing does not end a window or trigger a stop.
+- The first `MA_PERIOD - 1` days have no full average, so they are excluded in `above` and `below`. These two modes together cover every window that starts after that point.
+- The filter applies to all holding periods and to Risk Summary, Distribution, Worst Periods, Stop Analysis and the stop testing lab. "Full history" and "all windows" then mean all **qualifying** windows.
+- A holding period needs at least 60 qualifying windows. The stop lab needs at least 750 after its volatility warm-up. Otherwise they are left out. With fewer windows, some decades may not be eligible, and the walk-forward test may have fewer years or not run.
+- **Approx. non-overlapping periods** becomes a count of qualifying windows that do not overlap, because dividing the date span by the holding period would overstate the evidence.
+- **Bootstrap:** the average is recalculated on each resampled history and only matching start days are tested. A history with fewer than 20 matching starts is redrawn, and the number of redraws is printed. This favors histories with enough matching days. If redraws become too frequent, the bootstrap is skipped. Because it joins blocks of returns, it can break trends, so be especially cautious with filtered bootstrap results.
+- **Crisis tests** still identify declines from the full price history.
+- The **Data** tab keeps all prices. Non-qualifying windows are blank. Two columns at the far right show the average (a formula) and whether each day qualifies. Which windows are included is fixed when the script runs, so re-run after changing prices or the period.
+
+Differences between `above` and `below` are historical, can come from only a few episodes, and do not show that the average caused them. Trying many periods and keeping the best one can fit chance patterns. Choose the period before looking at results, or check that nearby periods agree.
 
 ---
 
@@ -342,6 +367,8 @@ Edit these near the top of `risk_distribution.py`, save, and run again.
 | `HOLDING_MONTHS` | `[1, 3, 6, 12, 36, 60, 120]` | Holding periods, as positive whole months |
 | `STOP_MONTHS` | `12` | Holding period for stop analysis; must also be in `HOLDING_MONTHS` |
 | `STOP_LEVELS` | `[0.05, ... 0.30]` | Stop distances as decimals (`0.10` = 10%) |
+| `MA_FILTER` | `"all"` | Entry filter: `"all"`, `"above"` or `"below"` ([section 3.9](#39-moving-average-entry-filter)) |
+| `MA_PERIOD` | `200` | Moving average length in trading days; used by `above` and `below` |
 | `HIST_BINS` | `30` | Approximate number of histogram bins |
 | `RUN_STOP_LAB` | `True` | Switch for the stop testing lab ([section 11](#11-stop-testing-lab)) |
 | `MAX_CVAR` | `0.15` | Loss limit for the scorecard and walk-forward. A placeholder: set your own |
@@ -408,6 +435,7 @@ Blue text marks stored values, such as prices, bin settings and script-calculate
 - Altering later prices did not change the sampled walk-forward training choices.
 - The bootstrap was checked for plausibility against newly simulated and shuffled histories, not matched value by value. Non-overlap schedule columns and walk-forward test returns were not independently recalculated.
 - Formula recalculation in LibreOffice reported no errors. These checks do not cover every value or possible input.
+- **MA filter:** with the filter set to `all`, a run with the stop lab on and 5 resamples matched the previous code in every cell. For 200-day `above` and `below` and 50-day `above`, selected Risk Summary measures and the entry flags matched a separate calculation, as did sampled 10% stop results. Sampled bootstrap draws tested only qualifying entries. Other filtered outputs were not independently recalculated.
 - A run with 1,000 resamples on about 8,800 simulated prices took about 2.5 minutes in the 2-CPU test environment.
 - Selected layouts and charts were checked visually in LibreOffice. The workbook has **not** been tested in Microsoft Excel.
 - Very long histories, such as `^GSPC`, have not been tested for speed or file size.

@@ -42,6 +42,22 @@ def label(c):
 
 
 # ---------------- calculation engine ----------------
+def entry_allowed(p, mode, period):
+    """True where a window may START: close above, or at/below, its simple moving average.
+    The average includes the entry day's close. Days without a full average are excluded."""
+    if mode == "all":
+        return np.ones(len(p), dtype=bool)
+    ma = pd.Series(p).rolling(period).mean().values
+    return p > ma if mode == "above" else p <= ma      # comparisons with NaN are False
+
+
+def filter_text(mode, period):
+    if mode == "all":
+        return "all entry days"
+    side = "ABOVE" if mode == "above" else "AT OR BELOW"
+    return f"only entries with the close {side} its {period}-day simple moving average"
+
+
 def window_matrix(p, s, e):
     """One row per window. Short rows repeat the end price, which cannot add a new trigger."""
     width = int((e - s).max()) + 1
@@ -126,20 +142,22 @@ def episodes(idx, s, e):
     return len(sizes), max(sizes) / len(order)
 
 
-def bootstrap(p, months, reps, rng):
+def bootstrap(p, months, reps, rng, ma_filter="all", ma_period=200):
     """Stationary block bootstrap: rebuild the daily history, re-test every candidate.
-    Every candidate sees the same resampled histories."""
+    Every candidate sees the same resampled histories. With an MA filter, the average is
+    recalculated on each resampled history and only matching entry days are tested."""
     daily = p[1:] / p[:-1] - 1
     n, length = len(daily), int(round(months * 21))
-    if n < length + VOL_DAYS + 100:
+    warmup = VOL_DAYS if ma_filter == "all" else max(VOL_DAYS, ma_period - 1)
+    if n < length + warmup + 100:
         return {}
-    starts = np.arange(VOL_DAYS, n - length + 1, BOOT_STEP)
-    ends = starts + length
+    all_starts = np.arange(warmup, n - length + 1, BOOT_STEP)
     out = {}
     for block in BLOCK_DAYS:
         mean = np.empty((reps, len(CANDIDATES)))
         cvar = np.empty_like(mean)
-        for b in range(reps):
+        b = redraws = 0
+        while b < reps:
             jump = rng.random(n) < 1 / block
             jump[0] = True
             run = np.cumsum(jump) - 1
@@ -147,11 +165,21 @@ def bootstrap(p, months, reps, rng):
             origin = rng.integers(0, n, len(first))
             idx = (origin[run] + np.arange(n) - first[run]) % n
             path = np.concatenate([[1.0], np.cumprod(1 + daily[idx])])
+            starts = all_starts[entry_allowed(path, ma_filter, ma_period)[all_starts]]
+            if len(starts) < 20:      # too few matching entries in this history: draw another
+                redraws += 1
+                if redraws > reps:
+                    print("  bootstrap skipped: resampled histories rarely meet the MA condition.")
+                    return {}
+                continue
+            ends = starts + length
             R, _, _ = run_stops(window_matrix(path, starts, ends), ends - starts,
                                 entry_vol(path, starts, months))
             mean[b], cvar[b] = R.mean(axis=1), tail_loss(R)
+            b += 1
         out[block] = (mean, cvar)
-        print(f"  bootstrap: {block}-day blocks done ({reps} resamples)")
+        extra = f", {redraws} redrawn for too few matching entries" if redraws else ""
+        print(f"  bootstrap: {block}-day blocks done ({reps} resamples{extra})")
     return out
 
 
@@ -211,7 +239,7 @@ def widths(ws, values):
         ws.column_dimensions[get_column_letter(i)].width = w
 
 
-def add_stop_lab(wb, dates, p, starts, months, limit, reps):
+def add_stop_lab(wb, dates, p, starts, months, limit, reps, ma_filter="all", ma_period=200):
     print("Running stop tests...")
     e = np.flatnonzero(starts >= 0)
     s = starts[e]
@@ -264,7 +292,8 @@ def add_stop_lab(wb, dates, p, starts, months, limit, reps):
     sched_diff = (np.array([R[:, i].mean(axis=1) - R[0, i].mean() for i in schedules])
                   if schedules else np.full((1, n_c), np.nan))
 
-    boot = bootstrap(p, months, reps, np.random.default_rng(SEED)) if reps > 0 else {}
+    boot = (bootstrap(p, months, reps, np.random.default_rng(SEED), ma_filter, ma_period)
+            if reps > 0 else {})
     folds, wf_ret, wf_base = walk_forward(dates, s, e, R, limit)
 
     at = wb.sheetnames.index("Stop Analysis") + 1 if "Stop Analysis" in wb.sheetnames else 1
@@ -487,6 +516,8 @@ def add_stop_lab(wb, dates, p, starts, months, limit, reps):
     cell(card, 7, 4, "Green = linked from test tabs. Those results are fixed until the script is re-run.")
     cell(card, 8, 4, "Changing yellow cells updates this tab only, not Walk Forward or 'picked as best'.")
     r = end + 2
+    if ma_filter != "all":
+        cell(card, 9, 1, "Entry filter: " + filter_text(ma_filter, ma_period) + ".", bold=True)
     notes = [
         f"Windows tested: {len(s):,}, ending {dates[e[0]]:%Y-%m-%d} to {dates[e[-1]]:%Y-%m-%d}. The first "
         f"{VOL_DAYS} days are used only to size volatility stops, so figures can differ slightly from Stop Analysis.",

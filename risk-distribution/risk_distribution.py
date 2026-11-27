@@ -18,17 +18,23 @@ from openpyxl.chart import BarChart, Reference
 from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
 
-from stop_lab import add_stop_lab
+from stop_lab import add_stop_lab, entry_allowed, filter_text
 
 # ---------------- SETTINGS (edit these) ----------------
-TICKER = "^STOXX"
-HOLDING_MONTHS = [1, 3, 6, 12, 24, 36, 60, 120]   # how long each investment is held, in months
+TICKER = "QQQ"
 STOP_MONTHS = 12                 # holding period used for the stop analysis
 STOP_LEVELS = [0.05, 0.075, 0.10, 0.125, 0.15, 0.20, 0.25, 0.30, 0.35, 0.40, 0.45, 0.50]
+HIST_BINS = 30                   # approximate number of histogram bars
+HOLDING_MONTHS = [1, 3, 6, 12, 24, 36, 60, 120]   # how long each investment is held, in months
+
+MA_FILTER = "above"              # test entries: "all" (any day), "above" the MA, or "below" (at/below)
+MA_PERIOD = 200                  # simple moving average length in TRADING days (used by above/below)
+
 RUN_STOP_LAB = False              # switch for the stop testing lab: True = run, False = skip
 MAX_CVAR = 0.50                  # your loss limit for the stop scorecard. CHANGE to suit you
 BOOTSTRAP_RESAMPLES = 1000       # per block length; 0 switches the bootstrap off
-HIST_BINS = 30                   # approximate number of histogram bars
+
+
 # -------------------------------------------------------
 
 RESULTS_DIR = Path(__file__).resolve().parent / "results"   # next to this script
@@ -146,7 +152,16 @@ def stopped_returns(p, starts, level, trailing):
     return ret, hit
 
 
-def add_stop_analysis(wb, dates, p, sp, ret_letter, low_letter):
+def count_separate(sp):
+    """Greedy count of windows that do not overlap (a window may start where one ends)."""
+    count, reach = 0, -1
+    for end, start in enumerate(sp):
+        if start >= 0 and start >= reach:
+            count, reach = count + 1, end
+    return count
+
+
+def add_stop_analysis(wb, dates, p, sp, ret_letter, low_letter, subtitle="full history"):
     name = tag(STOP_MONTHS)
     ws = wb.create_sheet("Stop Analysis", 1)
     sd = wb.create_sheet("Stop Data", wb.sheetnames.index("Data") + 1)
@@ -175,7 +190,7 @@ def add_stop_analysis(wb, dates, p, sp, ret_letter, low_letter):
     def tail(R):
         return f'-AVERAGEIF({R},"<="&(SMALL({R},ROUNDUP(COUNT({R})*0.05,0))+1E-12),{R})'
 
-    put(ws, 1, 1, f"Stop-loss comparison: {name} holding window, full history").font = Font(
+    put(ws, 1, 1, f"Stop-loss comparison: {name} holding window, {subtitle}").font = Font(
         name="Arial", bold=True, size=14)
     put(ws, 2, 1, "Trigger and fill at the daily CLOSE. After a stop: stay in cash at 0% until "
         "the window ends. No re-entry, costs or slippage.")
@@ -238,18 +253,27 @@ def add_stop_analysis(wb, dates, p, sp, ret_letter, low_letter):
 
 
 def build(prices, name, source, out, max_cvar=MAX_CVAR, reps=BOOTSTRAP_RESAMPLES,
-          run_lab=RUN_STOP_LAB):
+          run_lab=RUN_STOP_LAB, ma_filter=MA_FILTER, ma_period=MA_PERIOD):
     dates, p = prices.index, prices.values
     n = len(p)
     last = n + 1
+    filtered = ma_filter != "all"
+    if filtered and ma_period >= n:
+        raise SystemExit(f"MA period {ma_period} is too long for {n} prices.")
+    allowed = entry_allowed(p, ma_filter, ma_period)
+    side = "above" if ma_filter == "above" else "at or below"
+    subtitle = f"entries {side} {ma_period}-day MA" if filtered else "full history"
     holds, starts = [], {}
     for h in HOLDING_MONTHS:
         sp = start_positions(dates, h)
+        if filtered:     # drop windows whose ENTRY day does not meet the condition
+            sp = np.where((sp >= 0) & allowed[np.maximum(sp, 0)], sp, -1)
         if (sp >= 0).sum() >= 60:
             holds.append(h)
             starts[h] = sp
         else:
-            print(f"Skipping {tag(h)} holding period: not enough history.")
+            print(f"Skipping {tag(h)} holding period: fewer than 60 windows"
+                  + (" after the MA filter." if filtered else "."))
     if not holds:
         raise SystemExit("History is too short for every holding period.")
 
@@ -288,6 +312,15 @@ def build(prices, name, source, out, max_cvar=MAX_CVAR, reps=BOOTSTRAP_RESAMPLES
             put(data, r, c + 3, float(dd[h][i]), PCT, color="0000FF")
     data.freeze_panes = "B2"
     widths(data, [13, 13] + [17] * (4 * len(holds)))
+    if filtered:   # extra columns at the far right so the existing column positions do not move
+        c = 3 + 4 * len(holds)
+        header(data, 1, [f"{ma_period}-day SMA", "Qualifies as entry day?"], col=c)
+        for i in range(ma_period - 1, n):
+            r = i + 2
+            put(data, r, c, f"=AVERAGE(B{r - ma_period + 1}:B{r})", "#,##0.00")
+            put(data, r, c + 1, "Yes" if allowed[i] else "No", color="0000FF")
+        for k in (c, c + 1):
+            data.column_dimensions[get_column_letter(k)].width = 24
 
     def rng(h, m):
         first = int(np.argmax(starts[h] >= 0)) + 2
@@ -334,10 +367,13 @@ def build(prices, name, source, out, max_cvar=MAX_CVAR, reps=BOOTSTRAP_RESAMPLES
             + [(f"Chance of a drawdown of {x}% or more", prob("D", f"<=-{x / 100}"), PCT)
                for x in (10, 20, 30, 50)]),
     ]
-    put(summ, 1, 1, f"{name}: holding-period risk, full history").font = Font(
+    put(summ, 1, 1, f"{name}: holding-period risk, {subtitle}").font = Font(
         name="Arial", bold=True, size=14)
     put(summ, 2, 1, f"Prices {dates[0]:%Y-%m-%d} to {dates[-1]:%Y-%m-%d}. Each trading day (once history allows) "
         "ends one window. Historical frequencies, not forecasts.")
+    if filtered:
+        put(summ, 3, 1, "ENTRY FILTER: " + filter_text(ma_filter, ma_period) + ".", bold=True,
+            color="C00000")
     header(summ, 4, ["Measure"] + [f"Hold {tag(h)}" for h in holds])
     row = 5
     for title, items in sections:
@@ -351,6 +387,10 @@ def build(prices, name, source, out, max_cvar=MAX_CVAR, reps=BOOTSTRAP_RESAMPLES
                 first = int(np.argmax(starts[h] >= 0)) + 2
                 if title == "Annualized returns" and h < 12:
                     put(summ, row, c, "n/a").alignment = Alignment(horizontal="right")
+                    continue
+                if filtered and label == "Approx. non-overlapping periods":
+                    # the date-span formula would overstate the evidence when windows are filtered out
+                    put(summ, row, c, count_separate(starts[h]), "0", color="0000FF")
                     continue
                 put(summ, row, c, f.format(R=rng(h, 0), A=rng(h, 1), L=rng(h, 2), D=rng(h, 3),
                                            H=h, FIRSTDATE=f"Data!$A${first}",
@@ -397,7 +437,10 @@ def build(prices, name, source, out, max_cvar=MAX_CVAR, reps=BOOTSTRAP_RESAMPLES
         ch.set_categories(Reference(hist, min_col=3, min_row=t, max_row=end))
         ch.gapWidth = 10
         ch.series[0].graphicalProperties.solidFill = "2F5597"
-        style_chart(ch, f"{name}: distribution of {tag(h)} returns", "Share of windows",
+        chart_name = f"{name}: distribution of {tag(h)} returns"
+        if filtered:
+            chart_name += f" ({subtitle})"
+        style_chart(ch, chart_name, "Share of windows",
                     "Holding-period return (bin lower edge)")
         hist.add_chart(ch, f"H{row}")
         row = max(end + 3, row + 22)
@@ -440,6 +483,12 @@ def build(prices, name, source, out, max_cvar=MAX_CVAR, reps=BOOTSTRAP_RESAMPLES
         ("Colors / editing", "Blue = values. Black = formulas. After changing prices or dates, "
                              "re-run the script (drawdowns and worst-period lists are not live)."),
     ]
+    if filtered:
+        info.append(("Entry filter", filter_text(ma_filter, ma_period).capitalize() + ". Checked on the "
+                     "window's start date only; the holding period and stops then run as usual. "
+                     "'Full history' and 'all windows' elsewhere mean all QUALIFYING windows. "
+                     "'Approx. non-overlapping periods' is a count of qualifying windows that do not overlap. "
+                     "Changing prices needs a re-run."))
     header(notes, 1, ["Item", "Detail"])
     for i, (a, b) in enumerate(info, 2):
         put(notes, i, 1, a, bold=True)
@@ -448,9 +497,10 @@ def build(prices, name, source, out, max_cvar=MAX_CVAR, reps=BOOTSTRAP_RESAMPLES
 
     if STOP_MONTHS in holds:
         add_stop_analysis(wb, dates, p, starts[STOP_MONTHS], cols[STOP_MONTHS][0],
-                          cols[STOP_MONTHS][2])
+                          cols[STOP_MONTHS][2], subtitle)
         if run_lab:
-            add_stop_lab(wb, dates, p, starts[STOP_MONTHS], STOP_MONTHS, max_cvar, reps)
+            add_stop_lab(wb, dates, p, starts[STOP_MONTHS], STOP_MONTHS, max_cvar, reps,
+                         ma_filter, ma_period)
         else:
             print("Stop testing lab: OFF (use --stop-lab to run it)")
 
@@ -473,14 +523,24 @@ if __name__ == "__main__":
                     help="bootstrap resamples per block length (0 = off)")
     ap.add_argument("--stop-lab", action=argparse.BooleanOptionalAction, default=RUN_STOP_LAB,
                     help="run (--stop-lab) or skip (--no-stop-lab) the stop testing lab")
+    ap.add_argument("--ma-filter", choices=["all", "above", "below"], type=str.lower, default=MA_FILTER,
+                    help="which entry days to test: all, above the MA, or below (at/below) it")
+    ap.add_argument("--ma-period", type=int, default=MA_PERIOD,
+                    help="simple moving average length in trading days")
     a = ap.parse_args()
+    if a.ma_filter not in ("all", "above", "below"):
+        ap.error('MA_FILTER must be "all", "above" or "below"')
+    if a.ma_period < 2:
+        ap.error("the MA period must be at least 2")
     if not 0 < a.max_cvar < 1:
         ap.error("--max-cvar must be a decimal between 0 and 1 (0.12 = 12%)")
     label = a.ticker if not a.csv else (a.ticker if a.ticker != TICKER else "CSV data")
     series, src = load_prices(a.ticker, a.csv)
     safe = "".join(ch for ch in label if ch.isalnum() or ch in "-_") or "output"
+    if a.ma_filter != "all":        # separate default file name, so runs do not overwrite each other
+        safe += f"_{'above' if a.ma_filter == 'above' else 'atbelow'}{a.ma_period}MA"
     out = Path(a.out or f"risk_distribution_{safe}.xlsx")
     if out.parent == Path("."):          # bare file name -> results folder
         out = RESULTS_DIR / out
     out.parent.mkdir(parents=True, exist_ok=True)
-    build(series, label, src, out, a.max_cvar, a.bootstrap, a.stop_lab)
+    build(series, label, src, out, a.max_cvar, a.bootstrap, a.stop_lab, a.ma_filter, a.ma_period)
