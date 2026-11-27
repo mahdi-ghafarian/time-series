@@ -21,17 +21,17 @@ from openpyxl.utils import get_column_letter
 from stop_lab import add_stop_lab, entry_allowed, filter_text
 
 # ---------------- SETTINGS (edit these) ----------------
-TICKER = "SPY"
+TICKER = "BTC-USD"
 
 STOP_MONTHS = 12                 # holding period used for the stop analysis
 STOP_LEVELS = [0.05, 0.075, 0.10, 0.125, 0.15, 0.20, 0.25, 0.30, 0.35, 0.40, 0.45, 0.50]
 HIST_BINS = 30                   # approximate number of histogram bars
 HOLDING_MONTHS = [1, 3, 6, 12, 24, 36, 60, 120]   # how long each investment is held, in months
 
-MA_FILTER = "above"              # test entries: "all" (any day), "above" the MA, or "below" (at/below)
+MA_FILTER = "all"                # test entries: "all" (any day), "above" the MA, or "below" (at/below)
 MA_PERIOD = 200                  # simple moving average length in TRADING days (used by above/below)
 
-RUN_STOP_LAB = False              # switch for the stop testing lab: True = run, False = skip
+RUN_STOP_LAB = False             # switch for the stop testing lab: True = run, False = skip
 MAX_CVAR = 0.50                  # your loss limit for the stop scorecard. CHANGE to suit you
 BOOTSTRAP_RESAMPLES = 1000       # per block length; 0 switches the bootstrap off
 
