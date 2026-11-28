@@ -171,6 +171,11 @@ def check_levels(values):
     return levels
 
 
+def at_or_below(level):
+    """Excel criterion value for 'fell by level or more', with the same tolerance as the stop test."""
+    return f"{-level + 1e-12:.12f}"
+
+
 DEPTH_SHEETS = {
     "mae": dict(
         sheet="MAE Analysis", position=1, column=2, name="MAE",
@@ -179,7 +184,7 @@ DEPTH_SHEETS = {
                    "0% = never closed below entry.",
         never="Never closed below entry", row="Fell {:g}% or more",
         chance="Chance of falling this far below entry at some point",
-        after="After falling this far, share of windows that still ENDED UP"),
+        by_outcome="share that fell this far below entry"),
     "drawdown": dict(
         sheet="Drawdown Analysis", position=2, column=3, name="max drawdown",
         title="Maximum drawdown",
@@ -187,7 +192,7 @@ DEPTH_SHEETS = {
                    "close. 0% = never closed below an earlier high.",
         never="Never closed below an earlier high", row="Drawdown of {:g}% or more",
         chance="Chance of a drawdown this large at some point",
-        after="After a drawdown this large, share of windows that still ENDED UP"),
+        by_outcome="share that had a drawdown this large"),
 }
 
 
@@ -239,7 +244,8 @@ def add_depth_analysis(wb, holds, rng, levels, kind, subtitle="full history"):
 
     section(k["chance"])
     for lv in levels:
-        line(k["row"].format(lv * 100), lambda L, R, lv=lv: f'=COUNTIF({L},"<="&{-lv})/COUNT({L})')
+        line(k["row"].format(lv * 100),
+             lambda L, R, lv=lv: f'=COUNTIF({L},"<="&{at_or_below(lv)})/COUNT({L})')
 
     # ISNUMBER keeps blank rows (dropped by the MA filter) out of both groups
     for title, op in ((f"{name} of windows that ENDED UP", ">0"),
@@ -263,20 +269,138 @@ def add_depth_analysis(wb, holds, rng, levels, kind, subtitle="full history"):
             L_c = get_column_letter(c)
             x.value = ArrayFormula(x.coordinate, f'=IF({L_c}{count_row}=0,"-",{x.value.text[1:]})')
 
-    section(k["after"])
-    for lv in levels:
-        line(k["row"].format(lv * 100), lambda L, R, lv=lv:
-             f'=IFERROR(COUNTIFS({L},"<="&{-lv},{R},">0")/COUNTIF({L},"<="&{-lv}),"-")')
-    section("Number of windows behind each share above")
-    for lv in levels:
-        line(k["row"].format(lv * 100), lambda L, R, lv=lv: f'=COUNTIF({L},"<="&{-lv})', "#,##0")
+    for group, op in (("ENDED UP", ">0"), ("ENDED FLAT OR DOWN", "<=0")):
+        section(f"Of windows that {group}: {k['by_outcome']}")
+        for lv in levels:
+            line(k["row"].format(lv * 100), lambda L, R, lv=lv, op=op:
+                 f'=IFERROR(COUNTIFS({L},"<="&{at_or_below(lv)},{R},"{op}")/COUNTIF({R},"{op}"),"-")')
     widths(ws, [46] + [14] * len(holds))
     ws.freeze_panes = "B5"
 
 
-def add_stop_analysis(wb, dates, p, sp, ret_letter, low_letter, levels, subtitle="full history"):
+def add_after_hit(wb, holds, rng, levels, sp, hits, subtitle="full history"):
+    """What happened AFTER a window reached a level. R = return from ENTRY to the end of the window.
+    Part 1 (STOP_MONTHS) compares holding with exiting, using Stop Data. sp and hits (from
+    add_stop_analysis) are None if that holding period is unavailable.
+    Part 2 describes holding only, for every holding period, using Data."""
+    ws = wb.create_sheet("After the Hit", wb.sheetnames.index("Drawdown Analysis") + 1)
+    put(ws, 1, 1, f"After the hit: what happened once a level was reached? ({subtitle})").font = Font(
+        name="Arial", bold=True, size=14)
+    put(ws, 2, 1, "R = return from ENTRY to the END of the window, also for drawdown levels. Levels are "
+        "checked on daily closes. Historical results of overlapping windows, not forecasts.")
+
+    def title(r, text, last_col):
+        put(ws, r, 1, text, bold=True)
+        for c in range(1, last_col + 1):
+            ws.cell(r, c).fill = PatternFill("solid", fgColor="D9E1F2")
+
+    def number(r, c, value, fmt=PCT, array=False, color="000000"):
+        if array:      # needed for IF() over a whole range
+            value = ArrayFormula(f"{get_column_letter(c)}{r}", value)
+        put(ws, r, c, value, fmt, color=color).alignment = Alignment(horizontal="right")
+
+    labels = ["Level", "Windows hit", "% of windows hit", "Separate hit episodes",
+              "Mean R", "Median R", "P(R > 0)", "Average gain (R > 0)",
+              "Average return when flat or down", "5th percentile R", "95th percentile R",
+              "Average exit return", "Average price return after exit",
+              "Stop benefit when hit (exit - held)", "% of hits where stop helped",
+              "Benefit: 1st half", "Benefit: 2nd half"]
+    groups = [(2, 4, "EVIDENCE"), (5, 11, "IF HELD"), (12, 13, "IF EXITED"),
+              (14, 17, "DIFFERENCE (positive = stop did better)")]
+    row = 8
+    title(7, f"1. Holding compared with exiting: {tag(STOP_MONTHS)} windows", len(labels))
+    if sp is None:
+        put(ws, 8, 1, f"Not available: the {tag(STOP_MONTHS)} holding period is not in this report.")
+        row = 10
+    else:
+        put(ws, 3, 1, "A stop raised the MEAN only if average exit return > mean R if held (benefit above 0). "
+            "A mean R below zero is not enough. Check risk (CVaR, worst) on Stop Analysis.")
+        put(ws, 4, 1, "Price return after exit = end price / exit price - 1, per window; below 0 = price "
+            "ended lower than the exit. Exit = first close at or past the level; cash then earns 0%. "
+            "No costs, slippage or re-entry.")
+        put(ws, 5, 1, "Link to Stop Analysis: mean change vs no stop = % of windows hit x stop benefit when "
+            "hit. Separate episodes = hit windows that do not overlap (a rough guide to the evidence).")
+        count = int((sp >= 0).sum())
+        first, last, half = 2, count + 1, count // 2
+
+        def col(c, a=first, b=last):
+            L = get_column_letter(c)
+            return f"'Stop Data'!${L}${a}:${L}${b}"
+
+        combos = [(t, lv) for t in (False, True) for lv in levels]      # Stop Data column order
+        for trailing, text in ((False, "FIXED stop: price fell this far below ENTRY"),
+                               (True, "TRAILING stop: price fell this far below the HIGHEST close since entry")):
+            put(ws, row, 1, text, bold=True)
+            for a, b, name in groups:
+                header(ws, row + 1, [name] + [""] * (b - a), col=a)
+                ws.merge_cells(start_row=row + 1, start_column=a, end_row=row + 1, end_column=b)
+            header(ws, row + 2, labels)
+            ws.row_dimensions[row + 2].height = 45
+            r = row + 3
+            for j, (t, lv) in enumerate(combos):
+                if t != trailing:
+                    continue
+                c = 3 + 2 * j
+                X, H, B = col(c), col(c + 1), col(2)      # exit return, hit flag, held return
+                put(ws, r, 1, lv, "0.0%")
+                number(r, 2, f"=SUM({H})", "#,##0")
+                number(r, 3, f"=AVERAGE({H})")
+                number(r, 4, count_separate(np.where(hits[j] == 1, sp, -1)), "0", color="0000FF")
+
+                def when_hit(c_out, formula, array=False):
+                    number(r, c_out, f'=IF($B{r}=0,"-",{formula})', array=array)
+
+                when_hit(5, f"AVERAGEIF({H},1,{B})")
+                when_hit(6, f"MEDIAN(IF({H}=1,{B}))", True)
+                when_hit(7, f'COUNTIFS({H},1,{B},">0")/$B{r}')
+                number(r, 8, f'=IFERROR(AVERAGEIFS({B},{H},1,{B},">0"),"-")')
+                number(r, 9, f'=IFERROR(AVERAGEIFS({B},{H},1,{B},"<=0"),"-")')
+                when_hit(10, f"PERCENTILE(IF({H}=1,{B}),0.05)", True)
+                when_hit(11, f"PERCENTILE(IF({H}=1,{B}),0.95)", True)
+                when_hit(12, f"AVERAGEIF({H},1,{X})")
+                when_hit(13, f"AVERAGE(IF({H}=1,(1+{B})/(1+{X})-1))", True)
+                when_hit(14, f"L{r}-E{r}")
+                when_hit(15, f"SUMPRODUCT({H},--({X}>{B}+1E-9))/$B{r}")
+                for c_out, (a, b) in ((16, (first, first + half - 1)), (17, (first + half, last))):
+                    h, x, y = col(c + 1, a, b), col(c, a, b), col(2, a, b)
+                    number(r, c_out, f'=IFERROR(AVERAGEIF({h},1,{x})-AVERAGEIF({h},1,{y}),"-")')
+                r += 1
+            row = r + 1
+        put(ws, row, 1, "1st / 2nd half = the same split of windows by end date as on Stop Analysis.")
+        row += 2
+
+    width = len(holds) + 1
+    title(row, "2. If held: every holding period (no stop applied)", width)
+    row += 2
+    for column, kind in ((2, "Fell this far below ENTRY (MAE)"),
+                         (3, "Had a DRAWDOWN this large from the highest close since entry")):
+        for stat, text in (("count", "Windows hit"), ("mean", "Mean R"), ("median", "Median R"),
+                           ("up", "P(R > 0)")):
+            put(ws, row, 1, f"{kind}: {text}", bold=True)
+            header(ws, row + 1, ["Level"] + [f"Hold {tag(h)}" for h in holds])
+            row += 2
+            for lv in levels:
+                put(ws, row, 1, lv, "0.0%")
+                for c, h in enumerate(holds, 2):
+                    D, R, x = rng(h, column), rng(h, 0), at_or_below(lv)
+                    if stat == "count":
+                        number(row, c, f'=COUNTIF({D},"<="&{x})', "#,##0")
+                    elif stat == "mean":
+                        number(row, c, f'=IFERROR(AVERAGEIF({D},"<="&{x},{R}),"-")')
+                    elif stat == "median":      # ISNUMBER drops blank rows (MA filter)
+                        number(row, c, f'=IF(COUNTIF({D},"<="&{x})=0,"-",'
+                                       f'MEDIAN(IF(ISNUMBER({D}),IF({D}<={x},{R}))))', array=True)
+                    else:
+                        number(row, c, f'=IFERROR(COUNTIFS({D},"<="&{x},{R},">0")/COUNTIF({D},"<="&{x}),"-")')
+                row += 1
+            row += 1
+    widths(ws, [14] + [15] * max(16, len(holds)))
+    ws.freeze_panes = "B7"
+
+
+def add_stop_analysis(wb, dates, p, sp, ret_letter, levels, subtitle="full history"):
     name = tag(STOP_MONTHS)
-    ws = wb.create_sheet("Stop Analysis", 1)
+    ws = wb.create_sheet("Stop Analysis", wb.sheetnames.index("Drawdown Analysis") + 1)
     sd = wb.create_sheet("Stop Data", wb.sheetnames.index("Data") + 1)
     valid = np.flatnonzero(sp >= 0)
     first, last = 2, len(valid) + 1
@@ -306,13 +430,13 @@ def add_stop_analysis(wb, dates, p, sp, ret_letter, low_letter, levels, subtitle
     put(ws, 1, 1, f"Stop-loss comparison: {name} holding window, {subtitle}").font = Font(
         name="Arial", bold=True, size=14)
     put(ws, 2, 1, "Trigger and fill at the daily CLOSE. After a stop: stay in cash at 0% until "
-        "the window ends. No re-entry, costs or slippage.")
-    labels = ["Stop distance", "% windows stopped", "% of stopped that would have ended up",
-              "Mean return", "Median return", "% ending with a loss", "5th percentile",
-              "95% CVaR (loss; negative = gain)", "Worst", "Mean change vs no stop",
-              "% of stopped where stop helped", "Mean / CVaR",
-              "Mean / CVaR: 1st half", "Mean / CVaR: 2nd half"]
-    fmts = [PCT] * 11 + ["0.00"] * 3
+        "the window ends. No re-entry, costs or slippage. What happened in the stopped windows: "
+        "see After the Hit.")
+    labels = ["Stop distance", "% windows stopped", "Mean return", "Median return",
+              "% ending with a loss", "5th percentile", "95% CVaR (loss; negative = gain)", "Worst",
+              "Mean change vs no stop", "Mean / CVaR", "Mean / CVaR: 1st half",
+              "Mean / CVaR: 2nd half"]
+    fmts = [PCT] * 9 + ["0.00"] * 3
     row = 4
     for trailing, title in ((False, "FIXED stop: distance below entry price"),
                             (True, "TRAILING stop: distance below highest close since entry")):
@@ -324,45 +448,31 @@ def add_stop_analysis(wb, dates, p, sp, ret_letter, low_letter, levels, subtitle
         for k, j in enumerate(entries):
             r = base_row + k
             c = 2 if j is None else 3 + 2 * j
-            R, H, B = col(c), None if j is None else col(c + 1), col(2)
+            R = col(c)
             put(ws, r, 1, "No stop" if j is None else combos[j][1],
                 None if j is None else "0.0%")
-            f = {4: f"=AVERAGE({R})", 5: f"=MEDIAN({R})", 6: f'=COUNTIF({R},"<0")/COUNT({R})',
-                 7: f"=PERCENTILE({R},0.05)", 8: f"={tail(R)}", 9: f"=MIN({R})",
-                 10: f"=D{r}-$D${base_row}"}
+            f = {3: f"=AVERAGE({R})", 4: f"=MEDIAN({R})", 5: f'=COUNTIF({R},"<0")/COUNT({R})',
+                 6: f"=PERCENTILE({R},0.05)", 7: f"={tail(R)}", 8: f"=MIN({R})",
+                 9: f"=C{r}-$C${base_row}"}
             if j is None:
-                for q in (2, 3, 11):
-                    put(ws, r, q, "-").alignment = Alignment(horizontal="right")
+                put(ws, r, 2, "-").alignment = Alignment(horizontal="right")
             else:
-                f[2] = f"=AVERAGE({H})"
-                f[3] = f'=IF(SUM({H})=0,"-",COUNTIFS({H},1,{B},">0")/SUM({H}))'
-                f[11] = f'=IF(SUM({H})=0,"-",SUMPRODUCT({H},--({R}>{B}+1E-9))/SUM({H}))'
-            f[12] = f'=IF(H{r}>0,D{r}/H{r},"n/a")'
-            for q, (a, b) in ((13, (first, first + half - 1)), (14, (first + half, last))):
+                f[2] = f"=AVERAGE({col(c + 1)})"
+            f[10] = f'=IF(G{r}>0,C{r}/G{r},"n/a")'
+            for q, (a, b) in ((11, (first, first + half - 1)), (12, (first + half, last))):
                 x = col(c, a, b)
                 f[q] = f'=IF({tail(x)}>0,AVERAGE({x})/({tail(x)}),"n/a")'
             for q, formula in f.items():
                 put(ws, r, q, formula, fmts[q - 1])
         row = base_row + len(entries) + 2
 
-    # How far did eventual winners and losers fall below entry?
-    put(ws, row, 1, "How far below entry did windows go? Split by how they ENDED without a stop",
-        bold=True)
-    header(ws, row + 1, ["Lowest point vs entry", "Ended up", "Ended flat or down"])
-    low = f"Data!${low_letter}${valid[0] + 2}:${low_letter}${len(p) + 1}"
-    end = f"Data!${ret_letter}${valid[0] + 2}:${ret_letter}${len(p) + 1}"
-    r = row + 2
-    for lv in levels:
-        put(ws, r, 1, f"Share that fell {lv:.1%} or more")
-        for c, cond in ((2, '">0"'), (3, '"<=0"')):
-            put(ws, r, c, f'=IFERROR(COUNTIFS({low},"<="&{-lv},{end},{cond})/COUNTIF({end},{cond}),0)', PCT)
-        r += 1
-    put(ws, r + 1, 1, f"1st half = windows ending {dates[valid[0]]:%Y-%m-%d} to "
+    put(ws, row, 1, f"1st half = windows ending {dates[valid[0]]:%Y-%m-%d} to "
         f"{dates[valid[half - 1]]:%Y-%m-%d}; 2nd half = the rest. Halves share some price history.")
-    put(ws, r + 2, 1, "Stopped returns are values calculated by the script (blue in Stop Data). "
+    put(ws, row + 1, 1, "Stopped returns are values calculated by the script (blue in Stop Data). "
         "Re-run after changing prices or stop levels.")
-    widths(ws, [34] + [15] * 13)
+    widths(ws, [34] + [15] * 11)
     ws.freeze_panes = "B4"
+    return [hit for _, hit in results]     # same order as the Stop Data columns
 
 
 def build(prices, name, source, out, max_cvar=MAX_CVAR, reps=BOOTSTRAP_RESAMPLES,
@@ -612,9 +722,12 @@ def build(prices, name, source, out, max_cvar=MAX_CVAR, reps=BOOTSTRAP_RESAMPLES
         put(notes, i, 2, b).alignment = Alignment(wrap_text=True, vertical="top")
     widths(notes, [18, 100])
 
+    hits = None
     if STOP_MONTHS in holds:
-        add_stop_analysis(wb, dates, p, starts[STOP_MONTHS], cols[STOP_MONTHS][0],
-                          cols[STOP_MONTHS][2], levels, subtitle)
+        hits = add_stop_analysis(wb, dates, p, starts[STOP_MONTHS], cols[STOP_MONTHS][0], levels,
+                                 subtitle)
+    add_after_hit(wb, holds, rng, levels, starts.get(STOP_MONTHS), hits, subtitle)
+    if STOP_MONTHS in holds:
         if run_lab:
             add_stop_lab(wb, dates, p, starts[STOP_MONTHS], STOP_MONTHS, max_cvar, reps,
                          levels, levels, ma_filter, ma_period)
