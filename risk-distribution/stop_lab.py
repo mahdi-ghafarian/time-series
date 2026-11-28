@@ -11,8 +11,7 @@ from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.datavalidation import DataValidation
 
 # ---------------- SETTINGS (edit these) ----------------
-# Fixed and trailing levels come from risk_distribution.py: full STOP_LADDER in auto mode,
-# or your manual list
+# Fixed and trailing stop levels: STOP_LEVELS in risk_distribution.py
 VOL_MULTIPLES = [0.50, 0.75, 1.00, 1.25, 1.50, 1.75, 2.00]
 VOL_DAYS = 63                 # past daily returns used to size volatility stops
 SLIPPAGE = [0.01, 0.02]       # extra loss on the exit price (first one can be a required test)
