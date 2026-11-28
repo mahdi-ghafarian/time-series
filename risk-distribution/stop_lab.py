@@ -11,8 +11,8 @@ from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.datavalidation import DataValidation
 
 # ---------------- SETTINGS (edit these) ----------------
-FIXED_LEVELS = [x / 100 for x in range(5, 31)]           # 5% to 30% in 1% steps
-TRAIL_LEVELS = [x / 100 for x in range(5, 31)]
+# Fixed and trailing levels come from risk_distribution.py: full STOP_LADDER in auto mode,
+# or your manual list
 VOL_MULTIPLES = [0.50, 0.75, 1.00, 1.25, 1.50, 1.75, 2.00]
 VOL_DAYS = 63                 # past daily returns used to size volatility stops
 SLIPPAGE = [0.01, 0.02]       # extra loss on the exit price (first one can be a required test)
@@ -30,15 +30,17 @@ PCT = '0.0%;-0.0%;0.0%'
 NAVY = PatternFill("solid", fgColor="1F3864")
 INPUT = PatternFill("solid", fgColor="FFF2CC")
 
-CANDIDATES = ([("None", 0.0)] + [("Fixed", x) for x in FIXED_LEVELS]
-              + [("Trailing", x) for x in TRAIL_LEVELS] + [("Volatility", k) for k in VOL_MULTIPLES])
+def candidate_list(fixed_levels, trail_levels):
+    """Every rule the lab tests. 'No stop' must stay first."""
+    return ([("None", 0.0)] + [("Fixed", x) for x in fixed_levels]
+            + [("Trailing", x) for x in trail_levels] + [("Volatility", k) for k in VOL_MULTIPLES])
 
 
 def label(c):
     kind, x = c
     if kind == "None":
         return "No stop"
-    return f"Volatility {x:.2f}x" if kind == "Volatility" else f"{kind} {x:.0%}"
+    return f"Volatility {x:.2f}x" if kind == "Volatility" else f"{kind} {x * 100:g}%"
 
 
 # ---------------- calculation engine ----------------
@@ -72,7 +74,7 @@ def entry_vol(p, s, months):
     return v[s] * math.sqrt(252 * months / 12)
 
 
-def run_stops(W, last, vol, delay=0):
+def run_stops(W, last, vol, candidates, delay=0):
     """Returns (return, hit, exit offset) arrays shaped [candidates, windows].
 
     last = offset of each window's end; delay = trading days between signal and exit."""
@@ -81,10 +83,10 @@ def run_stops(W, last, vol, delay=0):
     from_peak = W / np.maximum.accumulate(W, axis=1) - 1
     n = len(W)
     rows = np.arange(n)
-    R = np.empty((len(CANDIDATES), n))
-    H = np.zeros((len(CANDIDATES), n), dtype=bool)
-    X = np.empty((len(CANDIDATES), n), dtype=np.int32)
-    for c, (kind, x) in enumerate(CANDIDATES):
+    R = np.empty((len(candidates), n))
+    H = np.zeros((len(candidates), n), dtype=bool)
+    X = np.empty((len(candidates), n), dtype=np.int32)
+    for c, (kind, x) in enumerate(candidates):
         if kind == "None":
             hit = np.zeros(n, dtype=bool)
             exit_at = last
@@ -142,7 +144,7 @@ def episodes(idx, s, e):
     return len(sizes), max(sizes) / len(order)
 
 
-def bootstrap(p, months, reps, rng, ma_filter="all", ma_period=200):
+def bootstrap(p, months, reps, rng, candidates, ma_filter="all", ma_period=200):
     """Stationary block bootstrap: rebuild the daily history, re-test every candidate.
     Every candidate sees the same resampled histories. With an MA filter, the average is
     recalculated on each resampled history and only matching entry days are tested."""
@@ -154,7 +156,7 @@ def bootstrap(p, months, reps, rng, ma_filter="all", ma_period=200):
     all_starts = np.arange(warmup, n - length + 1, BOOT_STEP)
     out = {}
     for block in BLOCK_DAYS:
-        mean = np.empty((reps, len(CANDIDATES)))
+        mean = np.empty((reps, len(candidates)))
         cvar = np.empty_like(mean)
         b = redraws = 0
         while b < reps:
@@ -174,7 +176,7 @@ def bootstrap(p, months, reps, rng, ma_filter="all", ma_period=200):
                 continue
             ends = starts + length
             R, _, _ = run_stops(window_matrix(path, starts, ends), ends - starts,
-                                entry_vol(path, starts, months))
+                                entry_vol(path, starts, months), candidates)
             mean[b], cvar[b] = R.mean(axis=1), tail_loss(R)
             b += 1
         out[block] = (mean, cvar)
@@ -239,8 +241,10 @@ def widths(ws, values):
         ws.column_dimensions[get_column_letter(i)].width = w
 
 
-def add_stop_lab(wb, dates, p, starts, months, limit, reps, ma_filter="all", ma_period=200):
+def add_stop_lab(wb, dates, p, starts, months, limit, reps, fixed_levels, trail_levels,
+                 ma_filter="all", ma_period=200):
     print("Running stop tests...")
+    candidates = candidate_list(fixed_levels, trail_levels)
     e = np.flatnonzero(starts >= 0)
     s = starts[e]
     keep = s >= VOL_DAYS          # every candidate is judged on the same windows
@@ -249,10 +253,10 @@ def add_stop_lab(wb, dates, p, starts, months, limit, reps, ma_filter="all", ma_
         print("Stop lab skipped: not enough history.")
         return
     W, last, vol = window_matrix(p, s, e), e - s, entry_vol(p, s, months)
-    R, H, X = run_stops(W, last, vol)
-    R1, _, _ = run_stops(W, last, vol, delay=1)
+    R, H, X = run_stops(W, last, vol, candidates)
+    R1, _, _ = run_stops(W, last, vol, candidates, delay=1)
     rows = np.arange(len(s))
-    n_c = len(CANDIDATES)
+    n_c = len(candidates)
     mean, cvar = R.mean(axis=1), tail_loss(R)
 
     # execution stress
@@ -292,7 +296,7 @@ def add_stop_lab(wb, dates, p, starts, months, limit, reps, ma_filter="all", ma_
     sched_diff = (np.array([R[:, i].mean(axis=1) - R[0, i].mean() for i in schedules])
                   if schedules else np.full((1, n_c), np.nan))
 
-    boot = (bootstrap(p, months, reps, np.random.default_rng(SEED), ma_filter, ma_period)
+    boot = (bootstrap(p, months, reps, np.random.default_rng(SEED), candidates, ma_filter, ma_period)
             if reps > 0 else {})
     folds, wf_ret, wf_base = walk_forward(dates, s, e, R, limit)
 
@@ -302,7 +306,7 @@ def add_stop_lab(wb, dates, p, starts, months, limit, reps, ma_filter="all", ma_
     periods = wb.create_sheet("Stop Periods & Crises", at + 2)
     bs = wb.create_sheet("Stop Bootstrap", at + 3)
     wf = wb.create_sheet("Stop Walk Forward", at + 4)
-    names = [label(c) for c in CANDIDATES]
+    names = [label(c) for c in candidates]
     DATA0 = 5                      # first candidate row on the three test sheets
 
     def candidate_rows(ws, first=DATA0):
@@ -471,7 +475,7 @@ def add_stop_lab(wb, dates, p, starts, months, limit, reps, ma_filter="all", ma_
     def ref(sheet, col, row):
         return f"='{sheet}'!{L(col)}{row}"
 
-    for c, (kind, _) in enumerate(CANDIDATES):
+    for c, (kind, _) in enumerate(candidates):
         r, src = first + c, DATA0 + c
         cell(card, r, 1, names[c])
         links = {2: ref(tests.title, 2, src), 3: ref(tests.title, 3, src),
@@ -492,7 +496,7 @@ def add_stop_lab(wb, dates, p, starts, months, limit, reps, ma_filter="all", ma_
             f = f"=L{r}"
         else:
             near = [first + j for j in (c - 1, c + 1)
-                    if 0 <= j < n_c and CANDIDATES[j][0] == kind]
+                    if 0 <= j < n_c and candidates[j][0] == kind]
             test = ",".join(f'L{j}="YES"' for j in near)
             f = f'=IF(AND(L{r}="YES",{test}),"YES","no")'
         cell(card, r, 13, f)

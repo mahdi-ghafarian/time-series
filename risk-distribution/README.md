@@ -189,7 +189,7 @@ By default, this applies to 1-year windows. Each window is calculated with and w
 | Exit price | The **first close** that meets the trigger, which can be well past the stop level |
 | After exit | Cash earning 0% until the window ends. No re-entry |
 | No trigger | Held to the end of the window |
-| Default distances | 5%, 7.5%, 10%, 12.5%, 15%, 20%, 25%, 30% |
+| Default distances | Automatic, from the ladder 1%, 2%, 3%, 4%, 5%, 7.5%, 10%, 12.5%, 15%, 20%, 25%, 30%, 40%, 50%, 60%, 70%. **Minimum:** first level at or above 2 x daily volatility (same for fixed and trailing). **Maximum:** first level at or above the depth that about 5% of windows reached (separate for fixed and trailing). At least 3 levels are kept. Both use the tested history, so they include hindsight |
 
 Costs, taxes, extra slippage and intraday triggers are not included.
 
@@ -366,7 +366,11 @@ Edit these near the top of `risk_distribution.py`, save, and run again.
 | `TICKER` | `"SPY"` | Default symbol |
 | `HOLDING_MONTHS` | `[1, 3, 6, 12, 36, 60, 120]` | Holding periods, as positive whole months |
 | `STOP_MONTHS` | `12` | Holding period for stop analysis; must also be in `HOLDING_MONTHS` |
-| `STOP_LEVELS` | `[0.05, ... 0.30]` | Stop distances as decimals (`0.10` = 10%) |
+| `STOP_LEVELS` | `"auto"` | `"auto"`, or your own list of decimals (`0.10` = 10%) for both stop types. Command line: `--stop-levels 0.05,0.10,0.20` |
+| `STOP_LADDER` | 1% to 70% | Levels that `auto` picks from, in increasing order |
+| `STOP_MIN_VOL_MULTIPLE` | `2.0` | Sets the `auto` minimum: this many daily standard deviations |
+| `STOP_MIN_REACH` | `0.05` | Share of windows used to set the `auto` maximum |
+| `STOP_MIN_LEVELS` | `3` | Fewest levels `auto` keeps |
 | `MA_FILTER` | `"all"` | Entry filter: `"all"`, `"above"` or `"below"` ([section 3.9](#39-moving-average-entry-filter)) |
 | `MA_PERIOD` | `200` | Moving average length in trading days; used by `above` and `below` |
 | `HIST_BINS` | `30` | Approximate number of histogram bins |
@@ -374,7 +378,7 @@ Edit these near the top of `risk_distribution.py`, save, and run again.
 | `MAX_CVAR` | `0.15` | Loss limit for the scorecard and walk-forward. A placeholder: set your own |
 | `BOOTSTRAP_RESAMPLES` | `1000` | Resamples per block length; `0` turns the bootstrap off |
 
-Settings for the stop tests (distances, slippage, cash yield, block lengths and so on) are at the top of `stop_lab.py`. `STOP_LEVELS` above affects only the Stop Analysis tab.
+Settings for the stop tests (slippage, cash yield, volatility multiples, block lengths and so on) are at the top of `stop_lab.py`. With `STOP_LEVELS = "auto"`, Stop Analysis uses shortened lists, while the stop testing lab always tests the full `STOP_LADDER`, so Walk Forward's choices are not trimmed using later prices. A manual list applies to both.
 
 The loss and drawdown thresholds on Risk Summary, and the 95% and 99% tail levels, are set inside the `build` function.
 
@@ -463,8 +467,8 @@ When on, the lab runs only if `STOP_MONTHS` is included in the holding periods a
 | Family | Settings | Definition |
 |---|---|---|
 | No stop | - | Benchmark |
-| Fixed | 5% to 30%, every 1% | Distance below entry |
-| Trailing | 5% to 30%, every 1% | Distance below the highest close since entry |
+| Fixed | Full `STOP_LADDER` (1% to 70%) in auto mode; otherwise your manual list | Distance below entry |
+| Trailing | Full `STOP_LADDER` (1% to 70%) in auto mode; otherwise your manual list | Distance below the highest close since entry |
 | Volatility | 0.50x to 2.00x, every 0.25x | Fixed stop whose distance depends on volatility at entry |
 
 Volatility stop distance:
