@@ -222,6 +222,8 @@ Differences between `above` and `below` are historical, can come from only a few
 | Tab | Purpose |
 |---|---|
 | Risk Summary | Main risk results for all holding periods |
+| MAE Analysis | Maximum Adverse Excursion statistics, see [section 4.8](#48-mae-analysis) |
+| Drawdown Analysis | Maximum drawdown statistics, see [section 4.9](#49-drawdown-analysis) |
 | Stop Analysis | Comparison of fixed and trailing stops |
 | Distribution | Histograms and cumulative frequencies |
 | Worst Periods | Worst historical windows and their dates |
@@ -314,6 +316,25 @@ Each row is one window in the stop analysis. It shows the end date and the **No 
 ### 4.7 Notes
 
 Records the instrument, data source, run date, main definitions and exclusions. **Check it before relying on or sharing a workbook.** For CSV input, confirm yourself whether the prices include adjustments.
+
+### 4.8 MAE Analysis
+
+Maximum Adverse Excursion: the lowest daily **close** during a window relative to its entry price. It is zero or negative. One column per holding period, with no stops applied.
+
+| Section | Shows |
+|---|---|
+| MAE distribution | Windows, share never below entry, mean, median, standard deviation, the depth that 75%, 90%, 95% and 99% of windows did not exceed, and worst |
+| Chance of falling this far | Share of windows that fell each `STOP_LEVELS` distance or more |
+| Ended up / ended flat or down | MAE statistics for each group, based on the return at the end of the window |
+| After falling this far | Share of those windows that still ended up, with the number of windows behind it |
+
+Windows overlap, so a large count can come from only a few market episodes. Winners and losers are known only after a window ends. A high share ending up after a fall is a historical frequency, not a forecast. Intraday lows are not included.
+
+### 4.9 Drawdown Analysis
+
+Same layout as MAE Analysis, using **maximum drawdown**: the largest fall from the highest close so far in the window to a later close. MAE is measured from the entry price instead, so max drawdown is always at least as deep. "Never below entry" becomes "never closed below an earlier high".
+
+Statistics are formulas based on the max drawdown columns in Data. Those columns are values calculated by the script, so re-run after changing prices.
 
 ---
 
