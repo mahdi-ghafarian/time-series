@@ -17,6 +17,7 @@ from openpyxl import Workbook
 from openpyxl.chart import BarChart, Reference
 from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
+from openpyxl.worksheet.formula import ArrayFormula
 
 from stop_lab import add_stop_lab, entry_allowed, filter_text
 
@@ -168,6 +169,86 @@ def check_levels(values):
     if not levels or not all(0 < v < 1 for v in levels):
         raise SystemExit("STOP_LEVELS must be decimals between 0 and 1 (0.10 = 10%).")
     return levels
+
+
+def add_mae_analysis(wb, holds, rng, levels, subtitle="full history"):
+    """MAE = lowest daily close in the window / entry price - 1 (the 'lowest vs entry' column).
+    rng(h, m) gives a Data range: m = 0 return, m = 2 lowest vs entry. All cells are live formulas."""
+    ws = wb.create_sheet("MAE Analysis", 1)
+    last_col = len(holds) + 1
+    put(ws, 1, 1, f"Maximum Adverse Excursion (MAE), {subtitle}").font = Font(
+        name="Arial", bold=True, size=14)
+    put(ws, 2, 1, "MAE = lowest daily CLOSE during the window / entry price - 1. 0% = never closed below "
+        "entry. No stops applied. Intraday lows are not included.")
+    put(ws, 3, 1, "'75% / 90% / 95% / 99% of windows' = that share fell no further than the value shown. "
+        "Windows overlap, so they are not independent.")
+    header(ws, 4, ["Measure"] + [f"Hold {tag(h)}" for h in holds])
+    row = 5
+
+    def section(title):
+        nonlocal row
+        put(ws, row, 1, title, bold=True)
+        for c in range(1, last_col + 1):
+            ws.cell(row, c).fill = PatternFill("solid", fgColor="D9E1F2")
+        row += 1
+
+    def line(label, make, fmt=PCT, array=False):
+        nonlocal row
+        put(ws, row, 1, label)
+        for c, h in enumerate(holds, 2):
+            formula = make(rng(h, 2), rng(h, 0))
+            if array:      # needed for IF() over a whole range
+                formula = ArrayFormula(f"{get_column_letter(c)}{row}", formula)
+            put(ws, row, c, formula, fmt).alignment = Alignment(horizontal="right")
+        row += 1
+
+    depths = [(f"{q}% of windows fell no further than", (100 - q) / 100) for q in (75, 90, 95, 99)]
+
+    section("MAE distribution: all windows")
+    line("Windows", lambda L, R: f"=COUNT({L})", "#,##0")
+    line("Never closed below entry", lambda L, R: f'=COUNTIF({L},">=-0.000000000001")/COUNT({L})')
+    line("Mean MAE", lambda L, R: f"=AVERAGE({L})")
+    line("Median MAE", lambda L, R: f"=MEDIAN({L})")
+    line("Std dev of MAE", lambda L, R: f"=STDEV({L})")
+    for label, q in depths:
+        line(label, lambda L, R, q=q: f"=PERCENTILE({L},{q})")
+    line("Worst MAE", lambda L, R: f"=MIN({L})")
+
+    section("Chance of falling this far below entry at some point")
+    for lv in levels:
+        line(f"Fell {lv * 100:g}% or more", lambda L, R, lv=lv: f'=COUNTIF({L},"<="&{-lv})/COUNT({L})')
+
+    # ISNUMBER keeps blank rows (dropped by the MA filter) out of both groups
+    for title, op in (("MAE of windows that ENDED UP", ">0"),
+                      ("MAE of windows that ENDED FLAT OR DOWN", "<=0")):
+        section(title)
+
+        def stat(func, extra="", op=op):
+            return lambda L, R: (f'=IFERROR({func}(IF(ISNUMBER({R}),IF({R}{op},{L}))'
+                                 f'{extra}),"-")')
+
+        count_row = row
+        line("Windows", lambda L, R, op=op: f'=COUNTIF({R},"{op}")', "#,##0")
+        line("Mean MAE", stat("AVERAGE"), array=True)
+        line("Median MAE", stat("MEDIAN"), array=True)
+        for label, q in depths:
+            line(label, stat("PERCENTILE", f",{q}"), array=True)
+        line("Worst MAE", stat("MIN"), array=True)
+        # MIN of no values returns 0, so show a dash when the group is empty
+        for c in range(2, last_col + 1):
+            x = ws.cell(row - 1, c)
+            L_c = get_column_letter(c)
+            x.value = ArrayFormula(x.coordinate, f'=IF({L_c}{count_row}=0,"-",{x.value.text[1:]})')
+
+    section("After falling this far, share of windows that still ENDED UP")
+    for lv in levels:
+        line(f"Fell {lv * 100:g}% or more", lambda L, R, lv=lv:
+             f'=IFERROR(COUNTIFS({L},"<="&{-lv},{R},">0")/COUNTIF({L},"<="&{-lv}),"-")')
+    section("Number of windows behind each share above")
+    for lv in levels:
+        line(f"Fell {lv * 100:g}% or more", lambda L, R, lv=lv: f'=COUNTIF({L},"<="&{-lv})', "#,##0")
+    widths(ws, [46] + [14] * len(holds))
+    ws.freeze_panes = "B5"
 
 
 def add_stop_analysis(wb, dates, p, sp, ret_letter, low_letter, levels, subtitle="full history"):
@@ -408,6 +489,8 @@ def build(prices, name, source, out, max_cvar=MAX_CVAR, reps=BOOTSTRAP_RESAMPLES
             row += 1
     widths(summ, [50] + [14] * len(holds))
     summ.freeze_panes = "B5"
+
+    add_mae_analysis(wb, holds, rng, levels, subtitle)
 
     # ---- Distribution: histogram + cumulative probability ----
     row = 1
