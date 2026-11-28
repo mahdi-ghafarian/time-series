@@ -223,6 +223,7 @@ Differences between `above` and `below` are historical, can come from only a few
 |---|---|
 | Risk Summary | Main risk results for all holding periods |
 | MAE Analysis | Maximum Adverse Excursion statistics, see [section 4.8](#48-mae-analysis) |
+| Drawdown Analysis | Maximum drawdown statistics, see [section 4.9](#49-drawdown-analysis) |
 | Stop Analysis | Comparison of fixed and trailing stops |
 | Distribution | Histograms and cumulative frequencies |
 | Worst Periods | Worst historical windows and their dates |
@@ -328,6 +329,12 @@ Maximum Adverse Excursion: the lowest daily **close** during a window relative t
 | After falling this far | Share of those windows that still ended up, with the number of windows behind it |
 
 Windows overlap, so a large count can come from only a few market episodes. Winners and losers are known only after a window ends. A high share ending up after a fall is a historical frequency, not a forecast. Intraday lows are not included.
+
+### 4.9 Drawdown Analysis
+
+Same layout as MAE Analysis, using **maximum drawdown**: the largest fall from the highest close so far in the window to a later close. MAE is measured from the entry price instead, so max drawdown is always at least as deep. "Never below entry" becomes "never closed below an earlier high".
+
+Statistics are formulas based on the max drawdown columns in Data. Those columns are values calculated by the script, so re-run after changing prices.
 
 ---
 
