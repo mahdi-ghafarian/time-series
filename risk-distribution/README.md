@@ -26,11 +26,12 @@ To quantify the risk of holding an investment for a set period, using every avai
 - How bad were the worst outcomes?
 - How far did the price fall **during** the holding period?
 - When did the worst periods occur?
+- After a fall of a given size, how did windows end, and how did holding compare with exiting?
 - How would a fixed or trailing stop have changed the 1-year results?
 
 The results describe the past. They are **not forecasts**, and the program does not recommend an investment or a stop.
 
-Holding periods by default: **1M, 3M, 6M, 1Y, 3Y, 5Y, 10Y**.
+Holding periods by default: **1M, 3M, 6M, 1Y, 2Y, 3Y, 5Y, 10Y**.
 
 ---
 
@@ -54,7 +55,7 @@ Open a terminal in the folder that contains the script.
 
 | Task | Command |
 |---|---|
-| Default ticker (SPY) | `python risk_distribution.py` |
+| Default ticker (QQQ) | `python risk_distribution.py` |
 | Another ticker | `python risk_distribution.py --ticker QQQ` |
 | An index | `python risk_distribution.py --ticker "^GSPC"` |
 | Your own price file | `python risk_distribution.py --csv prices.csv` |
@@ -193,6 +194,8 @@ By default, this applies to 1-year windows. Each window is calculated with and w
 
 Costs, taxes, extra slippage and intraday triggers are not included.
 
+Results across all windows are on Stop Analysis. Results for the stopped windows alone are on After the Hit.
+
 ### 3.9 Moving-average entry filter
 
 Controls which windows are tested, based on the price **on the day the window starts**.
@@ -206,7 +209,7 @@ Controls which windows are tested, based on the price **on the day the window st
 - The average is a **simple** moving average of the last `MA_PERIOD` **trading days**, including the start day's close. It uses no later prices. The test assumes you can still enter at that same close. In practice, a signal confirmed at the close may only be traded later.
 - The condition is checked **only at entry**. The price may cross the average during the window. Crossing does not end a window or trigger a stop.
 - The first `MA_PERIOD - 1` days have no full average, so they are excluded in `above` and `below`. These two modes together cover every window that starts after that point.
-- The filter applies to all holding periods and to Risk Summary, Distribution, Worst Periods, Stop Analysis and the stop testing lab. "Full history" and "all windows" then mean all **qualifying** windows.
+- The filter applies to all holding periods and to Risk Summary, MAE Analysis, Drawdown Analysis, After the Hit, Distribution, Worst Periods, Stop Analysis and the stop testing lab. "Full history" and "all windows" then mean all **qualifying** windows.
 - A holding period needs at least 60 qualifying windows. The stop lab needs at least 750 after its volatility warm-up. Otherwise they are left out. With fewer windows, some decades may not be eligible, and the walk-forward test may have fewer years or not run.
 - **Approx. non-overlapping periods** becomes a count of qualifying windows that do not overlap, because dividing the date span by the holding period would overstate the evidence.
 - **Bootstrap:** the average is recalculated on each resampled history and only matching start days are tested. A history with fewer than 20 matching starts is redrawn, and the number of redraws is printed. This favors histories with enough matching days. If redraws become too frequent, the bootstrap is skipped. Because it joins blocks of returns, it can break trends, so be especially cautious with filtered bootstrap results.
@@ -219,20 +222,39 @@ Differences between `above` and `below` are historical, can come from only a few
 
 ## 4. Workbook guide
 
-| Tab | Purpose |
-|---|---|
-| Risk Summary | Main risk results for all holding periods |
-| MAE Analysis | Maximum Adverse Excursion statistics, see [section 4.8](#48-mae-analysis) |
-| Drawdown Analysis | Maximum drawdown statistics, see [section 4.9](#49-drawdown-analysis) |
-| Stop Analysis | Comparison of fixed and trailing stops |
-| Distribution | Histograms and cumulative frequencies |
-| Worst Periods | Worst historical windows and their dates |
-| Data | Prices and results for every window |
-| Stop Data | Results of every stop for every window |
-| Notes | Data source, run date and assumptions |
-| Stop Scorecard, Stop Stress Tests, Stop Periods & Crises, Stop Bootstrap, Stop Walk Forward | Stop robustness tests, see [section 11](#11-stop-testing-lab) |
+### Where to find what
 
-Stop Analysis and Stop Data appear only when the stop holding period is included and has enough history.
+| Question | Tab |
+|---|---|
+| How did holding periods **end**? | Risk Summary, Distribution, Worst Periods |
+| **How deep** did prices fall on the way? | MAE Analysis (from entry), Drawdown Analysis (from a high) |
+| **Once a level was reached, what happened next?** | After the Hit |
+| How did a stop affect results **across all windows**? | Stop Analysis |
+| Does a stop choice survive harder tests? | The five stop lab tabs |
+
+For stops, read in this order: **depth → after the hit → effect of the stop → robustness**. Fixed stops go with MAE (fall from entry). Trailing stops go with drawdown (fall from the highest close since entry). Risk Summary repeats a few depth figures as an overview.
+
+### All tabs, in workbook order
+
+| Tab | Purpose | When it appears |
+|---|---|---|
+| [Risk Summary](#41-risk-summary) | Main risk results for all holding periods | Always |
+| [Stop Scorecard](#411-stop-lab-tabs) | Rule-based shortlist of stops | Stop lab on |
+| [MAE Analysis](#42-mae-analysis) | How far prices fell below entry | Always |
+| [Drawdown Analysis](#43-drawdown-analysis) | How far prices fell from a high | Always |
+| [After the Hit](#44-after-the-hit) | What happened after a level was reached | Always (part 1 needs the stop holding period) |
+| [Stop Analysis](#45-stop-analysis) | Effect of fixed and trailing stops | Stop holding period included |
+| [Stop Stress Tests](#411-stop-lab-tabs) | Worse execution and tail concentration | Stop lab on |
+| [Stop Periods & Crises](#411-stop-lab-tabs) | Results by decade and without major crises | Stop lab on |
+| [Stop Bootstrap](#411-stop-lab-tabs) | Uncertainty from resampled histories | Stop lab on |
+| [Stop Walk Forward](#411-stop-lab-tabs) | Choosing stops from past data only | Stop lab on |
+| [Distribution](#46-distribution) | Histograms and cumulative frequencies | Always |
+| [Worst Periods](#47-worst-periods) | Worst historical windows and their dates | Always |
+| [Data](#48-data) | Prices and results for every window | Always |
+| [Stop Data](#49-stop-data) | Results of every fixed and trailing stop for every window | Stop holding period included |
+| [Notes](#410-notes) | Data source, run date and assumptions | Always |
+
+The stop holding period (`STOP_MONTHS`) must be in `HOLDING_MONTHS` and have enough history. The lab also needs to be switched on ([section 11](#11-stop-testing-lab)).
 
 ### 4.1 Risk Summary
 
@@ -248,30 +270,76 @@ One column per holding period. **Start here.**
 | Fall below entry price | Share of windows down 10%, 20%, 30%, 40% or more at some point; median, 5th-percentile and worst lowest point | Includes windows that later recovered |
 | Peak-to-trough drawdown | Median, severe (5th percentile) and worst drawdown; share of windows with a drawdown of 10%, 20%, 30%, 50% or more | More negative means a deeper fall |
 
-### 4.2 Stop Analysis
+### 4.2 MAE Analysis
 
-There is one table for **fixed** stops and one for **trailing** stops. Each begins with a **No stop** row for comparison.
+**How deep did prices fall below the entry price?** Maximum Adverse Excursion (MAE) is the lowest daily **close** in a window relative to its entry price. It is zero or negative. One column per holding period, with no stops applied.
+
+| Section | Shows |
+|---|---|
+| MAE distribution: all windows | Windows, share never below entry, mean, median, standard deviation, the depth that 75%, 90%, 95% and 99% of windows did not exceed, and worst |
+| Chance of falling this far | Share of all windows that fell each `STOP_LEVELS` distance or more |
+| MAE of windows that ended up / ended flat or down | Count, mean, median, the same depth figures and worst, for each group |
+| Of windows in each group: share that fell this far | Share of eventual winners, and of flat or losing windows, that reached each level |
+
+`share that fell` answers "how many winners would a fixed stop at this level have triggered on?". What happened **after** a level was reached is on After the Hit. Winners and losers are known only after a window ends. A dash means the group has no windows.
+
+### 4.3 Drawdown Analysis
+
+**How large were the falls from a high?** Same layout as MAE Analysis, using **maximum drawdown**: the largest fall from the highest close so far in the window to a later close. Because MAE is measured from the entry price, max drawdown is always at least as deep. "Never below entry" becomes "never closed below an earlier high". Its shares by outcome relate to trailing stops.
+
+Statistics are formulas based on the max drawdown columns in Data, which are values calculated by the script.
+
+### 4.4 After the Hit
+
+**Once a window reached a level, what happened next?** In this tab, **R is the return from entry to the end of the window**, for both fall-from-entry and drawdown levels. A window is "hit" if a daily close reached the level at any point.
+
+**Part 1: holding compared with exiting** (stop holding period only). One table for **fixed** stops and one for **trailing** stops, with one row per level.
+
+| Column | Meaning |
+|---|---|
+| Windows hit, % of windows hit | How often the level was reached |
+| Separate hit episodes | Number of hit windows that do not overlap. A rough guide to how much separate evidence there is, not a count of independent events |
+| Mean R, Median R | Where hit windows ended **if held** |
+| P(R > 0) | Share of hit windows that ended with a gain if held |
+| Average gain (R > 0), Average return when flat or down | Mean R within each of those two groups |
+| 5th, 95th percentile R | Lower and upper range of held results |
+| Average exit return | Mean return from entry to the exit: the first close at or past the level |
+| Average price return after exit | Average, window by window, of `end price / exit price - 1`. Below zero means the price ended lower than the exit |
+| Stop benefit when hit | Average exit return minus Mean R. **Positive means the stop did better on average** |
+| % of hits where stop helped | Share of hit windows where exiting ended higher than holding |
+| Benefit: 1st half, 2nd half | Stop benefit in the earlier and later halves of the windows |
+
+**How to read it**
+
+- Write Mean R of hit windows as `E[R | hit]`. **`E[R | hit] < 0` does not show that a stop helps.** The stop raises the average only if `E[exit return | hit] > E[R | hit]`. Made-up example for a 20% stop: held `-8%`, exit `-21%`. Holding lost money, yet stopping was 13 points worse.
+- Price return after exit and stop benefit can have **different signs**, because one averages ratios and the other averages differences in returns from entry.
+- `mean change vs no stop (Stop Analysis) = % of windows hit x stop benefit when hit`. For example, 25% hit with a benefit of +8 points gives +2 points.
+- A stop can lower the mean and still reduce large losses. Check CVaR and the worst result on Stop Analysis.
+
+**Part 2: if held, every holding period.** Windows hit, Mean R, Median R and P(R > 0), as separate tables for falls below entry (MAE) and drawdowns. No exit comparison is made here.
+
+All figures assume cash earns 0% after an exit, with no costs, slippage or re-entry. Windows overlap, so even many hits can come from one crash. Picking the best-looking level afterwards uses hindsight. A dash means there are no windows to measure.
+
+### 4.5 Stop Analysis
+
+**How did each stop change results across all windows?** One table for **fixed** stops and one for **trailing** stops. Each begins with a **No stop** row for comparison.
 
 | Column | Meaning |
 |---|---|
 | Stop distance | Percentage below entry (fixed) or below the high since entry (trailing) |
 | % windows stopped | Share of windows where the stop triggered |
-| % of stopped that would have ended up | Of stopped windows, the share with a gain if held without a stop |
 | Mean return / Median return | Average and middle result using this rule |
 | % ending with a loss | Share of all windows with a return below zero |
 | 5th percentile | Lower-tail return cutoff |
 | 95% CVaR | Average loss in the worst 5%. Here a **negative number means a gain** |
 | Worst | Lowest return. A stop does not guarantee a better worst result |
 | Mean change vs no stop | Mean with the stop minus mean without it, in percentage points |
-| % of stopped where stop helped | Of stopped windows, the share ending higher than if held |
 | Mean / CVaR | Mean return per unit of tail loss. "n/a" if CVaR is zero or negative |
 | Mean / CVaR: 1st half, 2nd half | The same ratio for the earlier and later halves of the windows |
 
-A dash means the measure does not apply or no window was stopped.
+A dash means the measure does not apply. Results for the stopped windows alone are on After the Hit.
 
-The lower table splits windows by how they ended **without a stop** ("Ended up" or "Ended flat or down"). It shows the share of each group that fell a given distance below entry. It applies to fixed stops, not trailing stops.
-
-### 4.3 Distribution
+### 4.6 Distribution
 
 Each holding period has a table and a full-history histogram.
 
@@ -287,13 +355,13 @@ Each holding period has a table and a full-history histogram.
 
 The horizontal and vertical scales differ between charts, so check them before comparing holding periods.
 
-### 4.4 Worst Periods
+### 4.7 Worst Periods
 
 Up to five windows with the lowest ending returns for each holding period: rank, start date, end date, return, lowest vs entry and maximum drawdown.
 
 Windows within each list do not overlap (one may start on the day another ends). This stops one episode filling the list with near-identical dates. A single long crisis can still appear more than once. The list is ranked by **ending return**, so it may miss the windows with the deepest drawdowns. It can include positive returns if there were few or no further losing windows to choose.
 
-### 4.5 Data
+### 4.8 Data
 
 Each row is a trading date. `Date` and `Adj. price` come first, followed by four columns per holding period. The window **ends** on the row's date.
 
@@ -306,35 +374,30 @@ Each row is a trading date. `Date` and `Adj. price` come first, followed by four
 
 Cells are blank where there is not enough earlier history. With CSV input, the `Adj. price` column holds whichever price column was used, even if it was not adjusted.
 
-### 4.6 Stop Data
+### 4.9 Stop Data
 
 Each row is one window in the stop analysis. It shows the end date and the **No stop** return, then two columns for every stop rule:
 
 - **return:** result using that rule
 - **hit:** `1` if the stop triggered, `0` if not
 
-### 4.7 Notes
+### 4.10 Notes
 
 Records the instrument, data source, run date, main definitions and exclusions. **Check it before relying on or sharing a workbook.** For CSV input, confirm yourself whether the prices include adjustments.
 
-### 4.8 MAE Analysis
+### 4.11 Stop lab tabs
 
-Maximum Adverse Excursion: the lowest daily **close** during a window relative to its entry price. It is zero or negative. One column per holding period, with no stops applied.
+These test the `STOP_MONTHS` holding period with fixed, trailing and volatility stops. Details are in [section 11](#11-stop-testing-lab).
 
-| Section | Shows |
-|---|---|
-| MAE distribution | Windows, share never below entry, mean, median, standard deviation, the depth that 75%, 90%, 95% and 99% of windows did not exceed, and worst |
-| Chance of falling this far | Share of windows that fell each `STOP_LEVELS` distance or more |
-| Ended up / ended flat or down | MAE statistics for each group, based on the return at the end of the window |
-| After falling this far | Share of those windows that still ended up, with the number of windows behind it |
+| Tab | Question it answers | Main contents |
+|---|---|---|
+| Stop Scorecard | Which rules pass my loss limit? **Start here for the lab** | Editable loss limit and required tests, pass and neighbor flags, ranking ([11.3](#113-stop-scorecard-start-here)) |
+| Stop Stress Tests | What if execution is worse? How concentrated is the tail? | Next-day fill, slippage, cash interest, worst-tail episodes, non-overlapping schedules ([11.4](#114-stop-stress-tests)) |
+| Stop Periods & Crises | Does a result depend on one period? | Decade results and removal of major declines ([11.5](#115-stop-periods--crises)) |
+| Stop Bootstrap | How much could results vary? | Resampled tail loss, mean change and how often each rule is picked ([11.6](#116-stop-bootstrap)) |
+| Stop Walk Forward | Did choosing from past data work later? | Yearly choices and their later results ([11.7](#117-stop-walk-forward)) |
 
-Windows overlap, so a large count can come from only a few market episodes. Winners and losers are known only after a window ends. A high share ending up after a fall is a historical frequency, not a forecast. Intraday lows are not included.
-
-### 4.9 Drawdown Analysis
-
-Same layout as MAE Analysis, using **maximum drawdown**: the largest fall from the highest close so far in the window to a later close. MAE is measured from the entry price instead, so max drawdown is always at least as deep. "Never below entry" becomes "never closed below an earlier high".
-
-Statistics are formulas based on the max drawdown columns in Data. Those columns are values calculated by the script, so re-run after changing prices.
+Some lab columns, such as % stopped, repeat figures from the tabs above so that each lab table can be read on its own. Lab windows start after a volatility warm-up, so figures can differ slightly.
 
 ---
 
@@ -352,7 +415,7 @@ Statistics are formulas based on the max drawdown columns in Data. Those columns
 1. **Sample:** how much separate history is there?
 2. **Ending loss:** how often did losses occur?
 3. **Tail risk:** review 95% CVaR and the worst return.
-4. **During the window:** could you have tolerated the falls and drawdowns?
+4. **During the window:** could you have tolerated the falls and drawdowns? See MAE Analysis and Drawdown Analysis.
 5. **Distribution:** look at the shape and the loss side.
 6. **Worst Periods:** which market events drive the results?
 
@@ -364,9 +427,11 @@ Start with **Stop Scorecard** ([section 11](#11-stop-testing-lab)), which applie
 
 1. Decide your loss limit **before** looking at results, for example a maximum 95% CVaR.
 2. Remove choices that fail it, including No stop if applicable. Check the worst result too.
-3. Compare the mean return given up and how often eventual gainers were stopped out.
-4. Prefer stable results across neighboring distances over one isolated winner.
-5. Compare both halves. This is a stability check, not a test on unseen data.
+3. On MAE or Drawdown Analysis, check how often eventual winners reached each level.
+4. On After the Hit, compare the average exit return with the mean return if held, and check the number of separate hit episodes.
+5. On Stop Analysis, compare the mean return given up and the change in tail loss.
+6. Prefer stable results across neighboring distances over one isolated winner.
+7. Compare both halves. This is a stability check, not a test on unseen data.
 
 Do not pick a stop only because it has the highest Mean / CVaR. If no stop meets your limit, consider a smaller position or a different investment.
 
@@ -384,15 +449,15 @@ Edit these near the top of `risk_distribution.py`, save, and run again.
 
 | Setting | Default | Meaning |
 |---|---|---|
-| `TICKER` | `"SPY"` | Default symbol |
-| `HOLDING_MONTHS` | `[1, 3, 6, 12, 36, 60, 120]` | Holding periods, as positive whole months |
+| `TICKER` | `"QQQ"` | Default symbol |
+| `HOLDING_MONTHS` | `[1, 3, 6, 12, 24, 36, 60, 120]` | Holding periods, as positive whole months |
 | `STOP_MONTHS` | `12` | Holding period for stop analysis; must also be in `HOLDING_MONTHS` |
-| `STOP_LEVELS` | `[0.05, ... 0.70]` | Stop distances as decimals (`0.10` = 10%), for both Stop Analysis and the stop testing lab |
+| `STOP_LEVELS` | `[0.05, ... 0.70]` | Stop distances as decimals (`0.10` = 10%), for MAE Analysis, Drawdown Analysis, After the Hit, Stop Analysis and the stop testing lab |
 | `MA_FILTER` | `"all"` | Entry filter: `"all"`, `"above"` or `"below"` ([section 3.9](#39-moving-average-entry-filter)) |
 | `MA_PERIOD` | `200` | Moving average length in trading days; used by `above` and `below` |
 | `HIST_BINS` | `30` | Approximate number of histogram bins |
-| `RUN_STOP_LAB` | `True` | Switch for the stop testing lab ([section 11](#11-stop-testing-lab)) |
-| `MAX_CVAR` | `0.15` | Loss limit for the scorecard and walk-forward. A placeholder: set your own |
+| `RUN_STOP_LAB` | `False` | Switch for the stop testing lab ([section 11](#11-stop-testing-lab)) |
+| `MAX_CVAR` | `0.50` | Loss limit for the scorecard and walk-forward. A placeholder: set your own |
 | `BOOTSTRAP_RESAMPLES` | `1000` | Resamples per block length; `0` turns the bootstrap off |
 
 Settings for the stop tests (slippage, cash yield, volatility multiples, block lengths and so on) are at the top of `stop_lab.py`.
@@ -409,7 +474,7 @@ The loss and drawdown thresholds on Risk Summary, and the 95% and 99% tail level
 |---|---|
 | Returns, annualized returns, lowest vs entry | Which start row each window uses |
 | Risk Summary statistics | Maximum drawdown values |
-| Stop Analysis summaries of Stop Data | Stopped returns and hit flags |
+| Stop Analysis and After the Hit summaries of Stop Data and Data | Stopped returns, hit flags and separate hit episodes |
 | Histogram counts and frequencies | Which windows appear on Worst Periods |
 | | Formula date ranges, the half-sample split and descriptive text |
 
@@ -457,6 +522,7 @@ Blue text marks stored values, such as prices, bin settings and script-calculate
 - The bootstrap was checked for plausibility against newly simulated and shuffled histories, not matched value by value. Non-overlap schedule columns and walk-forward test returns were not independently recalculated.
 - Formula recalculation in LibreOffice reported no errors. These checks do not cover every value or possible input.
 - **MA filter:** with the filter set to `all`, a run with the stop lab on and 5 resamples matched the previous code in every cell. For 200-day `above` and `below` and 50-day `above`, selected Risk Summary measures and the entry flags matched a separate calculation, as did sampled 10% stop results. Sampled bootstrap draws tested only qualifying entries. Other filtered outputs were not independently recalculated.
+- **MAE, Drawdown, After the Hit and Stop Analysis redesign:** on simulated prices with all entries, rising prices, and 200-day `above` and `below`, the new After the Hit figures and the shares by outcome matched a separate calculation, and the link between stop benefit and mean change held. Retained Stop Analysis values matched the previous version.
 - A run with 1,000 resamples on about 8,800 simulated prices took about 2.5 minutes in the 2-CPU test environment.
 - Selected layouts and charts were checked visually in LibreOffice. The workbook has **not** been tested in Microsoft Excel.
 - Very long histories, such as `^GSPC`, have not been tested for speed or file size.
@@ -475,7 +541,7 @@ These tests apply to the `STOP_MONTHS` holding period (default 1 year). They hel
 | Setting in `risk_distribution.py` (every run) | `RUN_STOP_LAB = True` | `RUN_STOP_LAB = False` |
 | Command line (this run only; overrides the setting) | `--stop-lab` | `--no-stop-lab` |
 
-The default is **on**. When off, the five lab tabs (Stop Scorecard, Stop Stress Tests, Stop Periods & Crises, Stop Bootstrap, Stop Walk Forward) are not created, and `--max-cvar` and `--bootstrap` have no effect. **Stop Analysis and Stop Data are still created**; they are the basic stop comparison, not part of the lab. `stop_lab.py` must stay in the folder even when the switch is off.
+The default is **off**. When off, the five lab tabs (Stop Scorecard, Stop Stress Tests, Stop Periods & Crises, Stop Bootstrap, Stop Walk Forward) are not created, and `--max-cvar` and `--bootstrap` have no effect. **After the Hit, Stop Analysis and Stop Data are still created**; they are the basic stop comparison, not part of the lab. `stop_lab.py` must stay in the folder even when the switch is off.
 
 When on, the lab runs only if `STOP_MONTHS` is included in the holding periods and there is enough history. Because a run overwrites a file with the same name, a run with the lab off replaces an earlier workbook that included it. Use `--out` to keep both.
 
