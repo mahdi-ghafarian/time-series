@@ -29,7 +29,6 @@ STOP_LEVELS = [0.05, 0.075, 0.10, 0.125, 0.15, 0.20, 0.25, 0.30, 0.40, 0.50, 0.6
 HOLDING_MONTHS = [1, 3, 6, 12, 24, 36, 60, 120]   # how long each investment is held, in months
 HIST_BINS = 30                   # approximate number of histogram bars
 
-
 MA_FILTER = "all"                # test entries: "all" (any day), "above" the MA, or "below" (at/below)
 MA_PERIOD = 200                  # simple moving average length in TRADING days (used by above/below)
 
