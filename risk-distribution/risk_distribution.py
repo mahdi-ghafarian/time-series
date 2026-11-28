@@ -4,6 +4,7 @@ Holding-period RISK analysis over the whole price history -> one Excel workbook.
 Install:  pip install -U yfinance pandas openpyxl
 Run:      python risk_distribution.py                       (settings below)
           python risk_distribution.py --ticker ^GSPC
+          python risk_distribution.py --stop-levels 0.05,0.10,0.20
           python risk_distribution.py --csv prices.csv      (Date + 'Adj Close' or 'Close')
 """
 import argparse
@@ -24,7 +25,12 @@ from stop_lab import add_stop_lab, entry_allowed, filter_text
 TICKER = "BTC-USD"
 
 STOP_MONTHS = 12                 # holding period used for the stop analysis
-STOP_LEVELS = [0.05, 0.075, 0.10, 0.125, 0.15, 0.20, 0.25, 0.30, 0.35, 0.40, 0.45, 0.50]
+STOP_LEVELS = "auto"             # "auto", or your own list, e.g. [0.05, 0.10, 0.20]
+STOP_LADDER = [0.01, 0.02, 0.03, 0.04, 0.05, 0.075, 0.10, 0.125,    # same steps in every market
+               0.15, 0.20, 0.25, 0.30, 0.40, 0.50, 0.60, 0.70]
+STOP_MIN_VOL_MULTIPLE = 2.0      # auto min = this many typical daily moves (std dev), rounded up
+STOP_MIN_REACH = 0.05            # auto max = depth reached by about this share of windows
+STOP_MIN_LEVELS = 3              # auto always keeps at least this many ladder levels
 HIST_BINS = 30                   # approximate number of histogram bars
 HOLDING_MONTHS = [1, 3, 6, 12, 24, 36, 60, 120]   # how long each investment is held, in months
 
@@ -162,7 +168,60 @@ def count_separate(sp):
     return count
 
 
-def add_stop_analysis(wb, dates, p, sp, ret_letter, low_letter, subtitle="full history"):
+def auto_stop_levels(depths, daily_vol):
+    """Part of the ladder, from the volatility-based minimum to the depth-based maximum.
+
+    Min: first level at/above STOP_MIN_VOL_MULTIPLE x daily_vol.
+    Max: first level at/above the depth that STOP_MIN_REACH of windows reached.
+    depths: one number per window, negative = fall (NaN = no window).
+    Returns (levels, calculated depth as a positive number).
+    """
+    target = max(0.0, -float(np.nanquantile(depths, STOP_MIN_REACH)))
+    k = int(np.searchsorted(STOP_LADDER, target - 1e-9))       # round UP to the ladder
+    lo = int(np.searchsorted(STOP_LADDER, STOP_MIN_VOL_MULTIPLE * daily_vol - 1e-9))
+    lo = max(0, min(lo, len(STOP_LADDER) - STOP_MIN_LEVELS))   # leave room for the fewest levels
+    end = max(k + 1, lo + STOP_MIN_LEVELS)
+    return list(STOP_LADDER[lo:end]), target
+
+
+def choose_stop_levels(setting, p, sp, dd):
+    """(fixed levels, trailing levels, description lines) for the stop analysis."""
+    if not isinstance(setting, str):
+        levels = check_levels(setting)
+        return levels, levels, ["Manual list, used for both fixed and trailing stops."]
+    if setting.lower() != "auto":
+        raise SystemExit('STOP_LEVELS must be "auto" or a list of decimals.')
+    low = np.array([p[s:i + 1].min() / p[s] - 1 if s >= 0 else np.nan
+                    for i, s in enumerate(sp)])
+    # daily returns from the first tested window's start to the end of the history
+    span = p[int(sp[sp >= 0].min()):]
+    daily_vol = float(np.std(span[1:] / span[:-1] - 1, ddof=1))
+    out = []
+    lines = [f"Minimum: {STOP_MIN_VOL_MULTIPLE:g} x daily volatility of {daily_vol:.2%} = "
+             f"{STOP_MIN_VOL_MULTIPLE * daily_vol:.2%}, rounded up to the ladder."]
+    for kind, depths in (("Fixed", low), ("Trailing", dd)):
+        levels, target = auto_stop_levels(depths, daily_vol)
+        out.append(levels)
+        line = (f"{kind}: about {STOP_MIN_REACH:.0%} of windows fell {target:.1%} or more; "
+                f"levels run {levels[0]:.1%} to {levels[-1]:.1%}.")
+        if target > levels[-1] + 1e-9:
+            line += " This depth is beyond the end of the ladder."
+        lines.append(line)
+    return out[0], out[1], lines
+
+
+def check_levels(values):
+    try:
+        levels = sorted({float(v) for v in values})
+    except (TypeError, ValueError):
+        raise SystemExit("Stop levels must be numbers, e.g. 0.05,0.10,0.20")
+    if not levels or not all(0 < v < 1 for v in levels):
+        raise SystemExit("Stop levels must be decimals between 0 and 1 (0.10 = 10%).")
+    return levels
+
+
+def add_stop_analysis(wb, dates, p, sp, ret_letter, low_letter, fixed_levels, trail_levels,
+                      level_lines, subtitle="full history"):
     name = tag(STOP_MONTHS)
     ws = wb.create_sheet("Stop Analysis", 1)
     sd = wb.create_sheet("Stop Data", wb.sheetnames.index("Data") + 1)
@@ -170,7 +229,7 @@ def add_stop_analysis(wb, dates, p, sp, ret_letter, low_letter, subtitle="full h
     first, last = 2, len(valid) + 1
     half = len(valid) // 2
 
-    combos = [(t, lv) for t in (False, True) for lv in STOP_LEVELS]
+    combos = ([(False, lv) for lv in fixed_levels] + [(True, lv) for lv in trail_levels])
     header(sd, 1, ["End date", "No stop"] + [
         f"{'Trail' if t else 'Fixed'} {lv:.1%} {x}" for t, lv in combos for x in ("return", "hit")])
     results = [stopped_returns(p, sp, lv, t) for t, lv in combos]
@@ -240,7 +299,7 @@ def add_stop_analysis(wb, dates, p, sp, ret_letter, low_letter, subtitle="full h
     low = f"Data!${low_letter}${valid[0] + 2}:${low_letter}${len(p) + 1}"
     end = f"Data!${ret_letter}${valid[0] + 2}:${ret_letter}${len(p) + 1}"
     r = row + 2
-    for lv in STOP_LEVELS:
+    for lv in fixed_levels:
         put(ws, r, 1, f"Share that fell {lv:.1%} or more")
         for c, cond in ((2, '">0"'), (3, '"<=0"')):
             put(ws, r, c, f'=IFERROR(COUNTIFS({low},"<="&{-lv},{end},{cond})/COUNTIF({end},{cond}),0)', PCT)
@@ -249,12 +308,16 @@ def add_stop_analysis(wb, dates, p, sp, ret_letter, low_letter, subtitle="full h
         f"{dates[valid[half - 1]]:%Y-%m-%d}; 2nd half = the rest. Halves share some price history.")
     put(ws, r + 2, 1, "Stopped returns are values calculated by the script (blue in Stop Data). "
         "Re-run after changing prices or stop levels.")
+    put(ws, r + 3, 1, "Stop levels:", bold=True)
+    for k, line in enumerate(level_lines, 4):
+        put(ws, r + k, 1, line)
     widths(ws, [34] + [15] * 13)
     ws.freeze_panes = "B4"
 
 
 def build(prices, name, source, out, max_cvar=MAX_CVAR, reps=BOOTSTRAP_RESAMPLES,
-          run_lab=RUN_STOP_LAB, ma_filter=MA_FILTER, ma_period=MA_PERIOD):
+          run_lab=RUN_STOP_LAB, ma_filter=MA_FILTER, ma_period=MA_PERIOD,
+          stop_levels=STOP_LEVELS):
     dates, p = prices.index, prices.values
     n = len(p)
     last = n + 1
@@ -490,6 +553,24 @@ def build(prices, name, source, out, max_cvar=MAX_CVAR, reps=BOOTSTRAP_RESAMPLES
                      "'Full history' and 'all windows' elsewhere mean all QUALIFYING windows. "
                      "'Approx. non-overlapping periods' is a count of qualifying windows that do not overlap. "
                      "Changing prices needs a re-run."))
+    if STOP_MONTHS in holds:
+        fixed_levels, trail_levels, level_lines = choose_stop_levels(
+            stop_levels, p, starts[STOP_MONTHS], dd[STOP_MONTHS])
+        for line in level_lines:
+            print("Stop levels - " + line)
+        # The lab's Walk Forward must not get a menu of stops that was trimmed using later prices
+        if isinstance(stop_levels, str):
+            lab_fixed = lab_trail = list(STOP_LADDER)
+        else:
+            lab_fixed, lab_trail = fixed_levels, trail_levels
+        detail = " ".join(level_lines)
+        if isinstance(stop_levels, str):
+            detail += (f" Auto uses a fixed ladder ({', '.join(f'{v * 100:g}%' for v in STOP_LADDER)}), "
+                       "with both ends rounded up to the next level, so the last level may have been reached less "
+                       f"often than the target. At least {STOP_MIN_LEVELS} levels are kept. "
+                       "Stop Analysis levels are chosen from all tested windows (hindsight), including "
+                       "both halves. The stop testing lab, when run, always tests the full ladder.")
+        info.append(("Stop levels", detail))
     header(notes, 1, ["Item", "Detail"])
     for i, (a, b) in enumerate(info, 2):
         put(notes, i, 1, a, bold=True)
@@ -498,10 +579,11 @@ def build(prices, name, source, out, max_cvar=MAX_CVAR, reps=BOOTSTRAP_RESAMPLES
 
     if STOP_MONTHS in holds:
         add_stop_analysis(wb, dates, p, starts[STOP_MONTHS], cols[STOP_MONTHS][0],
-                          cols[STOP_MONTHS][2], subtitle)
+                          cols[STOP_MONTHS][2], fixed_levels, trail_levels, level_lines,
+                          subtitle)
         if run_lab:
             add_stop_lab(wb, dates, p, starts[STOP_MONTHS], STOP_MONTHS, max_cvar, reps,
-                         ma_filter, ma_period)
+                         lab_fixed, lab_trail, ma_filter, ma_period)
         else:
             print("Stop testing lab: OFF (use --stop-lab to run it)")
 
@@ -528,7 +610,15 @@ if __name__ == "__main__":
                     help="which entry days to test: all, above the MA, or below (at/below) it")
     ap.add_argument("--ma-period", type=int, default=MA_PERIOD,
                     help="simple moving average length in trading days")
+    ap.add_argument("--stop-levels",
+                    help='"auto" or comma-separated decimals, e.g. 0.05,0.10,0.20')
     a = ap.parse_args()
+    levels = STOP_LEVELS
+    if a.stop_levels is not None:
+        text = a.stop_levels.strip()
+        levels = "auto" if text.lower() == "auto" else text.split(",")
+    if not isinstance(levels, str):
+        levels = check_levels(levels)        # fail before downloading
     if a.ma_filter not in ("all", "above", "below"):
         ap.error('MA_FILTER must be "all", "above" or "below"')
     if a.ma_period < 2:
@@ -544,4 +634,5 @@ if __name__ == "__main__":
     if out.parent == Path("."):          # bare file name -> results folder
         out = RESULTS_DIR / out
     out.parent.mkdir(parents=True, exist_ok=True)
-    build(series, label, src, out, a.max_cvar, a.bootstrap, a.stop_lab, a.ma_filter, a.ma_period)
+    build(series, label, src, out, a.max_cvar, a.bootstrap, a.stop_lab, a.ma_filter, a.ma_period,
+          levels)
